@@ -25,7 +25,22 @@ Confirmé le 16 novembre 2026 avec un identifiant inventé (aucun compte réel) 
   - `modules[]` : `{ code, enable, ordre, badge, params }` (NOTES, EDT, CAHIER_DE_TEXTES, MESSAGERIE, VIE_SCOLAIRE…). Certains `params` contiennent des données personnelles (badge de cantine, e-mails).
   - `parametresIndividuels.is2FATOTPActif`, et `data.totp` dans la réponse 250 : une double auth TOTP existe ; non gérée (pas de cas réel).
 - `POST /v3/eleves/<id>/notes.awp?verbe=get` `{ anneeScolaire: "" }` avec `X-Token` : 200, `token` renouvelé dans le corps et `x-token`. Début vu : `data.foStat`, `data.periodes[]` (`idPeriode`, `codePeriode` `A001`…, `periode`, `annuel`, `dateDebut`/`dateFin`, `cloture`, `ensembleMatieres` avec `moyenneGenerale` « 13,5 » à virgule, `disciplines[]` avec `codeMatiere`, `discipline`, `moyenne`, `coef` numérique, `groupeMatiere`, `idGroupeMatiere`, `sousMatiere`, `professeurs[]`). Matière sans note : `moyenne: ""`. Le reste (liste `notes`, paramétrage) attend la capture complète.
-- **Pas encore vu** : reconnexion par `accessToken`, compte parent.
+- **Reconnexion par `accessToken` : confirmée** (APK réinstallé, app rouverte) : GTK, puis `login.awp` `isReLogin: true` → 200 direct, sans mot de passe ni QCM.
+- **Pas encore vu** : compte parent, durée de vie de l'`accessToken`, double auth TOTP.
+
+## notes.awp — confirmé (capture complète, fixture `fixtures/ed/notes-eleve.json`)
+`data` = `{ foStat, periodes[], notes[], parametrage }`.
+- `periodes[]` : trimestres (`A001`…), relevés (`A001R001`…, dates propres, `cloture`), année (`A999Z`, `annuel: true`, sans champs de moyenne), examens blancs (`H000X001`, `examenBlanc: true`, tous coefs 1, ordre des matières différent). Moyennes en chaînes à virgule, `""` si absentes ; `coef` de matière numérique.
+- Sous-matières : ligne parente (`codeSousMatiere: ""`) puis lignes `sousMatiere: true` (`codeSousMatiere` `ETT`, `SIN`), coef 1 chacune.
+- `notes[]` : `valeur` (« 12,5 », « Abs  » avec espace), `noteSur` (« 10 », « 20 »), `coef` **avec point** (« 0.5 », « 1.5 »), `moyenneClasse` **avec point** aussi, `enLettre`, `nonSignificatif`, `valeurisee`, `date`, `dateSaisie`. **Toutes les notes portent `codePeriode: "A001"`, même celles des relevés** : rattacher aux relevés par `date`.
+- `parametrage` : drapeaux d'affichage et de calcul (`moyenneCoefMatiere`, `moyennePeriodeReleve`, `moyenneSur: 20`, `coefficientNote`…), libellés de compétences en base64.
+
+### Règles de calcul vérifiées sur une classe réelle (22 moyennes de matière, 3 générales, 0 écart)
+1. Note ramenée sur 20, moyenne pondérée par `coef` de la note ; « Abs » exclue.
+2. **Instantané** : les moyennes ED datent de `ensembleMatieres.dateCalcul` (calcul nocturne). Les notes saisies après n'y sont pas. Comparer avec les seules notes saisies avant.
+3. Arrondi au centième **demi vers le haut** (16,125 → 16,13).
+4. **Matière à sous-matières = moyenne des moyennes de sous-matières arrondies**, pondérées par leur coef (15,5 et 16,13 → 15,82 ; sans arrondi 15,81). Hypothèse appuyée par un seul cas discriminant.
+5. Générale = Σ(moyenne de matière × coef de matière) / Σ coefs, sous-matières non comptées à part, matières sans note exclues.
 
 ## Sources (lues en novembre 2026, aucun code copié)
 - `@blockshub/blocksdirecte` 0.0.10-alpha (ISC), utilisé par Papillon 8.6.2 (GPL-3.0) : parcours « application mobile ».
