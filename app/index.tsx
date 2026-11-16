@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CAPTURE, texteCaptures } from '@/api/ecoledirecte/capture';
+import { CAPTURE, partSuivanteCaptures } from '@/api/ecoledirecte/capture';
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
 import { Bouton, T, useCouleurs } from '@/features/compte/brut';
@@ -63,7 +63,7 @@ function Compte() {
             ])
           }
         />
-        {CAPTURE ? <Bouton titre="Partager les captures (anonymisées)" onPress={() => Share.share({ message: texteCaptures() })} /> : null}
+        {CAPTURE ? <Bouton titre="Partager la partie suivante des captures" onPress={() => Share.share({ message: partSuivanteCaptures() })} /> : null}
         <T>Client non officiel, non affilié à EcoleDirecte.</T>
       </ScrollView>
     </SafeAreaView>
