@@ -11,6 +11,7 @@ Chaque dépendance a sa justification. Pas de kit UI, pas de SDK de collecte.
 | react-native-screens, react-native-safe-area-context | Navigation native et zones sûres, requises par expo-router. |
 | expo-status-bar | Couleur de la barre d'état selon le thème. |
 | expo-font | Polices libres embarquées (aucun CDN). |
+| @expo-google-fonts/geist | Fichiers TTF de Geist (OFL), embarqués dans l'app : trois graisses importées une à une, aucun téléchargement. |
 | react-native-reanimated (+ react-native-worklets) | Animations sur le thread UI. |
 | react-native-gesture-handler | Gestes natifs (simulateur, glisser). |
 | @shopify/flash-list | Listes virtualisées. |
