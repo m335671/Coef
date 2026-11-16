@@ -19,7 +19,13 @@ Confirmé le 16 novembre 2026 avec un identifiant inventé (aucun compte réel) 
 - Réponse 250 : `{"code":250,"token":"<non vide>","message":"Identifiant et/ou mot de passe invalide !","data":{"totp":false}}`, en-têtes `2fa-token` et `x-token`. **Le message est trompeur** : ne jamais l'afficher, se fier au code.
 - `POST /v3/connexion/doubleauth.awp?verbe=get` avec `2fa-token` : 200, `data.question` + `data.propositions` (15 propositions), **`message: null`**, `host`, pas de `token`.
 - Mot de passe contenant `:` : passe tel quel.
-- **Pas encore vu** : réponse au QCM (`verbe=post`), login final, `notes.awp`, reconnexion.
+- `POST doubleauth.awp?verbe=post` `{ choix: base64 }` avec `2fa-token` : 200, `data: { cn, cv }`, `message: null`. Propositions et réponse bien en base64 UTF-8 (l'app les a affichées et la bonne réponse est passée).
+- Login final (GTK redemandé, `cn`/`cv` + `fa`) : 200, `token` dans le corps et `x-token`, `message: ""`, `data.accounts[]`. Forme réelle (valeurs inventées) : `fixtures/ed/login-eleve.json`.
+  - Compte élève : `typeCompte: "E"`, `main: true`, `accessToken` présent, `profile.classe.libelle`, `nomEtablissement` en double (compte et profil). **Pas** d'`anneeScolaireCourante`.
+  - `modules[]` : `{ code, enable, ordre, badge, params }` (NOTES, EDT, CAHIER_DE_TEXTES, MESSAGERIE, VIE_SCOLAIRE…). Certains `params` contiennent des données personnelles (badge de cantine, e-mails).
+  - `parametresIndividuels.is2FATOTPActif`, et `data.totp` dans la réponse 250 : une double auth TOTP existe ; non gérée (pas de cas réel).
+- `POST /v3/eleves/<id>/notes.awp?verbe=get` `{ anneeScolaire: "" }` avec `X-Token` : 200, `token` renouvelé dans le corps et `x-token`. Début vu : `data.foStat`, `data.periodes[]` (`idPeriode`, `codePeriode` `A001`…, `periode`, `annuel`, `dateDebut`/`dateFin`, `cloture`, `ensembleMatieres` avec `moyenneGenerale` « 13,5 » à virgule, `disciplines[]` avec `codeMatiere`, `discipline`, `moyenne`, `coef` numérique, `groupeMatiere`, `idGroupeMatiere`, `sousMatiere`, `professeurs[]`). Matière sans note : `moyenne: ""`. Le reste (liste `notes`, paramétrage) attend la capture complète.
+- **Pas encore vu** : reconnexion par `accessToken`, compte parent.
 
 ## Sources (lues en novembre 2026, aucun code copié)
 - `@blockshub/blocksdirecte` 0.0.10-alpha (ISC), utilisé par Papillon 8.6.2 (GPL-3.0) : parcours « application mobile ».

@@ -4,21 +4,59 @@
   "message": "",
   "data": {
     "changementMDP": false,
+    "nbJourMdpExire": 0,
     "accounts": [
       {
         "idLogin": 1001,
         "id": 4242,
-        "uid": "00000000000000000000000000000000",
+        "uid": "uid-fictif",
         "identifiant": "camille.exemple",
         "typeCompte": "E",
+        "codeOgec": "0000000X",
         "main": true,
+        "lastConnexion": "2026-11-16 08:00",
+        "civilite": "",
         "prenom": "Camille",
+        "particule": "",
         "nom": "EXEMPLE",
-        "anneeScolaireCourante": "2026-2027",
+        "email": "camille@exemple.invalid",
+        "isPrimaire": false,
         "nomEtablissement": "Collège Imaginaire",
+        "logoEtablissement": "",
+        "couleurAgendaEtablissement": "#1796b0",
+        "dicoEnLigneLeRobert": true,
+        "isELE": false,
+        "isV4": false,
         "accessToken": "acces-1",
-        "modules": [{ "code": "NOTES", "enable": true, "ordre": 1, "badge": 0, "params": {} }],
-        "profile": { "classe": { "id": 1, "code": "3A", "libelle": "3ème A" }, "nomEtablissement": "Collège Imaginaire" }
+        "socketToken": "",
+        "modules": [
+          { "code": "VIE_SCOLAIRE", "enable": true, "ordre": 10, "badge": 0, "params": {} },
+          { "code": "NOTES", "enable": true, "ordre": 30, "badge": 0, "params": {} },
+          { "code": "EDT", "enable": true, "ordre": 50, "badge": 0, "params": { "displayTrous": "0" } },
+          { "code": "CAHIER_DE_TEXTES", "enable": true, "ordre": 60, "badge": 0, "params": { "compteRenduSeance": "1", "compteRenduSeancePrevisionnel": "0", "isCDTPrimaire": "0" } },
+          { "code": "MESSAGERIE", "enable": true, "ordre": 40, "badge": 0, "params": { "isActif": "1", "messagerieApiVersion": "v3" } },
+          { "code": "RDVPP", "enable": false, "ordre": 90, "badge": 0, "params": {} }
+        ],
+        "parametresIndividuels": {
+          "modeCalculLSU": "",
+          "isQrcode": false,
+          "checkAuthentificationSecure": true,
+          "is2FATOTPActivable": false,
+          "is2FATOTPActif": false,
+          "fuseauHoraire": "Europe/Paris"
+        },
+        "profile": {
+          "sexe": "",
+          "infoEDT": "",
+          "nomEtablissement": "Collège Imaginaire",
+          "idEtablissement": "0",
+          "rneEtablissement": "0000000X",
+          "telPortable": "",
+          "idReelEtab": "0",
+          "photo": "",
+          "estApprenant": false,
+          "classe": { "id": 1, "code": "3A", "libelle": "3ème A", "estNote": 1 }
+        }
       }
     ]
   }
