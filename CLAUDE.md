@@ -19,7 +19,7 @@ Références : Papillon (parcours ED, pièges de l'API ; ne pas reprendre son ar
 - Bouton « Tout effacer » : base, clés, jetons.
 - **Aucune donnée réelle dans le dépôt** : fixtures fabriquées ou anonymisées. Relire chaque diff avant commit.
 - TypeScript `strict`, pas d'`any` non justifié. Chaque réponse ED validée par un schéma Zod : réponse inattendue = erreur claire, jamais crash ni moyenne fausse silencieuse.
-- Avant chaque commit : `npm run typecheck`, `npm run lint`, `npm test`. Commits petits, en français, Conventional Commits.
+- Avant chaque commit : `npm run typecheck`, `npm run lint`, `npm test`. Commits petits, en français, Conventional Commits, chacun avec le trailer `Co-Authored-By: m335671 <110462702+m335671@users.noreply.github.com>`.
 - Chaque dépendance justifiée dans `docs/DEPENDANCES.md`. Pas de kit UI complet : design system maison.
 - Perf : démarrage à froid rapide, FlashList, animations Reanimated sur le thread UI.
 
