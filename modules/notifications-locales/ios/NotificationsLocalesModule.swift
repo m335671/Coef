@@ -15,7 +15,8 @@ public class NotificationsLocalesModule: Module {
       await UNUserNotificationCenter.current().notificationSettings().authorizationStatus == .authorized
     }
 
-    AsyncFunction("afficher") { (id: Int, titre: String, texte: String) async throws -> Bool in
+    // ecranVerrouille : ignoré, iOS laisse ce choix aux réglages d'aperçu du système.
+    AsyncFunction("afficher") { (id: Int, titre: String, texte: String, _ ecranVerrouille: String) async throws -> Bool in
       let contenu = UNMutableNotificationContent()
       contenu.title = titre
       contenu.body = texte

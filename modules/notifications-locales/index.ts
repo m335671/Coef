@@ -5,8 +5,15 @@ import { PermissionsAndroid, Platform } from 'react-native';
 type Natif = {
   demanderAutorisation?(): Promise<boolean>;
   autorisees(): Promise<boolean>;
-  afficher(id: number, titre: string, texte: string): Promise<boolean>;
+  afficher(id: number, titre: string, texte: string, ecranVerrouille: EcranVerrouille): Promise<boolean>;
 };
+
+/**
+ * Sur l'écran verrouillé : « rien » (la notification n'apparaît qu'après déverrouillage) ou « systeme »
+ * (le réglage « contenu sensible » du téléphone décide). Android ne permet pas d'imposer une version courte.
+ * iOS : l'aperçu des notifications se règle dans les réglages du système.
+ */
+export type EcranVerrouille = 'rien' | 'systeme';
 
 // Absent sur le web et dans les tests : tout devient sans effet.
 const natif = requireOptionalNativeModule<Natif>('NotificationsLocales');
@@ -21,6 +28,6 @@ export async function demanderAutorisation(): Promise<boolean> {
 }
 
 /** Affiche une notification ; la même id remplace la précédente. Faux si non autorisé. */
-export async function afficher(id: number, titre: string, texte: string): Promise<boolean> {
-  return natif ? natif.afficher(id, titre, texte) : false;
+export async function afficher(id: number, titre: string, texte: string, ecranVerrouille: EcranVerrouille = 'rien'): Promise<boolean> {
+  return natif ? natif.afficher(id, titre, texte, ecranVerrouille) : false;
 }

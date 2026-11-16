@@ -15,6 +15,7 @@ const MIGRATIONS = [
      synchro TEXT NOT NULL,
      nouveautes TEXT NOT NULL
    );`,
+  `CREATE TABLE preferences (cle TEXT PRIMARY KEY NOT NULL, valeur TEXT NOT NULL);`,
 ];
 
 let ouverture: Promise<SQLite.SQLiteDatabase> | undefined;
@@ -89,6 +90,16 @@ export const depot = {
     );
   },
 };
+
+/** Réglages de l'app (pas des secrets) : valeurs courtes, sérialisées en JSON. */
+export async function lirePreference<T>(cle: string, defaut: T): Promise<T> {
+  const l = await (await base()).getFirstAsync<{ valeur: string }>('SELECT valeur FROM preferences WHERE cle = ?', cle);
+  return l ? (JSON.parse(l.valeur) as T) : defaut;
+}
+
+export async function ecrirePreference(cle: string, valeur: unknown): Promise<void> {
+  await (await base()).runAsync('INSERT OR REPLACE INTO preferences (cle, valeur) VALUES (?, ?)', cle, JSON.stringify(valeur));
+}
 
 /** Essai : ouvre (et migre) la base, rend la version de SQLCipher et du schéma. */
 export async function diagnosticBase(): Promise<string> {

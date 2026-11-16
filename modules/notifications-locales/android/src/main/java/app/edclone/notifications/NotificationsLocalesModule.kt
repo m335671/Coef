@@ -21,12 +21,14 @@ class NotificationsLocalesModule : Module() {
 
     AsyncFunction("autorisees") { NotificationManagerCompat.from(context).areNotificationsEnabled() }
 
-    AsyncFunction("afficher") { id: Int, titre: String, texte: String -> afficher(id, titre, texte) }
+    AsyncFunction("afficher") { id: Int, titre: String, texte: String, ecranVerrouille: String ->
+      afficher(id, titre, texte, ecranVerrouille)
+    }
   }
 
   // Permission vérifiée juste avant (areNotificationsEnabled), et SecurityException rattrapée.
   @SuppressLint("MissingPermission")
-  private fun afficher(id: Int, titre: String, texte: String): Boolean {
+  private fun afficher(id: Int, titre: String, texte: String, ecranVerrouille: String): Boolean {
     val gestionnaire = NotificationManagerCompat.from(context)
     if (!gestionnaire.areNotificationsEnabled()) return false
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -43,9 +45,11 @@ class NotificationsLocalesModule : Module() {
       .setContentTitle(titre)
       .setContentText(texte)
       .setStyle(NotificationCompat.BigTextStyle().bigText(texte))
-      // Rien sur l'écran verrouillé, quel que soit le réglage « contenu sensible » du téléphone (essai du
-      // 17/11/2026 : VISIBILITY_PRIVATE laissait tout voir). Réglage dans l'app prévu à l'étape 5.
-      .setVisibility(NotificationCompat.VISIBILITY_SECRET)
+      // « rien » (défaut) : invisible tant que le téléphone est verrouillé, quel que soit son réglage.
+      // « systeme » : le réglage « contenu sensible » du téléphone décide ; la version publique dit seulement
+      // « Nouvelle note ». (Essai du 17/11/2026 : PRIVATE seul laissait tout voir sur un téléphone qui montre tout.)
+      .setVisibility(if (ecranVerrouille == "systeme") NotificationCompat.VISIBILITY_PRIVATE else NotificationCompat.VISIBILITY_SECRET)
+      .setPublicVersion(NotificationCompat.Builder(context, CANAL).setSmallIcon(icone).setContentTitle("Nouvelle note").build())
       .setContentIntent(ouvrir)
       .setAutoCancel(true)
       .build()
