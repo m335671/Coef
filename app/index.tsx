@@ -1,8 +1,9 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CAPTURE, texteCaptures } from '@/api/ecoledirecte/capture';
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
 import { Bouton, T, useCouleurs } from '@/features/compte/brut';
@@ -62,6 +63,7 @@ function Compte() {
             ])
           }
         />
+        {CAPTURE ? <Bouton titre="Partager les captures (anonymisées)" onPress={() => Share.share({ message: texteCaptures() })} /> : null}
         <T>Client non officiel, non affilié à EcoleDirecte.</T>
       </ScrollView>
     </SafeAreaView>

@@ -3,6 +3,7 @@ import type { z } from 'zod';
 
 import { ErreurReseau, requete } from '../http';
 import { decoderBase64, encoderBase64 } from './base64';
+import { CAPTURE, capturer } from './capture';
 import { ErreurED } from './erreurs';
 import { cleAppareil, type CompteED, donneesConnexion, enveloppe, questionQCM } from './schemas';
 
@@ -52,6 +53,7 @@ async function appel(chemin: string, verbe: string | undefined, data: object, en
   } catch {
     throw new ErreurED('reponse-inattendue', `${chemin} : pas du JSON (HTTP ${rep.status})`);
   }
+  if (CAPTURE) capturer(chemin, rep.status, rep.headers, json);
   const env = valider(enveloppe, json, chemin);
   // Le jeton est renouvelé à chaque réponse : en-tête x-token, sinon champ token du corps.
   const token = rep.headers.get('x-token') || env.token || undefined;

@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { ScrollView, Share, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { type CleAppareil, connexion, repondreQCM } from '@/api/ecoledirecte/client';
+import { CAPTURE, texteCaptures } from '@/api/ecoledirecte/capture';
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { Bouton, T, useCouleurs } from '@/features/compte/brut';
 import { useCompte } from '@/features/compte/store';
@@ -92,6 +93,7 @@ export default function Connexion() {
         )}
         {erreur ? <T>{erreur}</T> : null}
         <T>Tes identifiants ne sont envoyés qu’à EcoleDirecte. Le mot de passe n’est jamais enregistré.</T>
+        {CAPTURE ? <Bouton titre="Partager les captures (anonymisées)" onPress={() => Share.share({ message: texteCaptures() })} /> : null}
         <T>Client non officiel, non affilié à EcoleDirecte.</T>
       </ScrollView>
     </SafeAreaView>
