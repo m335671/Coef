@@ -43,3 +43,6 @@ coverage/
 
 # données réelles (anonymisées) : jamais dans le dépôt
 /fixtures/prive/
+
+# Playwright (inspection de l’aperçu web)
+/.playwright-mcp/

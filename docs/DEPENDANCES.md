@@ -19,6 +19,10 @@ Chaque dépendance a sa justification. Pas de kit UI, pas de SDK de collecte.
 | expo-secure-store | Jetons et clés d'appareil dans le trousseau (iOS) / Keystore (Android), jamais ailleurs. |
 | expo-crypto | UUID d'appareil aléatoire généré localement (et, à l'étape 4, clé SQLCipher). |
 | zustand | Stores légers au-dessus de la base, source de vérité. |
+| expo-sqlite (SQLCipher activé) | Base locale chiffrée des données scolaires ; l'ouverture échoue si SQLCipher manque. |
+| expo-background-task, expo-task-manager | Synchro périodique en arrière-plan (WorkManager / BGTaskScheduler), sans serveur. |
+
+**Écarté : expo-notifications.** Il compile Firebase Messaging dans l'app (impossible à retirer, seulement à désactiver). Remplacé par le module maison `modules/notifications-locales` (Kotlin + Swift, notifications locales seulement, aucun SDK tiers).
 
 ## Développement
 | Paquet | Pourquoi |

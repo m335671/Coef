@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
-import { comptesEnregistres, lireAcces, oublierCompte, sauverAcces, toutEffacerSecrets, uuidAppareil } from '../secrets';
+import { cleBase, comptesEnregistres, lireAcces, oublierCompte, sauverAcces, toutEffacerSecrets, uuidAppareil } from '../secrets';
 
 jest.mock('expo-secure-store', () => {
   const m = new Map<string, string>();
@@ -12,7 +12,7 @@ jest.mock('expo-secure-store', () => {
     deleteItemAsync: jest.fn(async (k: string) => void m.delete(k)),
   };
 });
-jest.mock('expo-crypto', () => ({ randomUUID: () => 'uuid-genere' }));
+jest.mock('expo-crypto', () => ({ randomUUID: () => 'uuid-genere', getRandomBytesAsync: async (n: number) => new Uint8Array(n).fill(171) }));
 
 const memoire = (SecureStore as unknown as { __memoire: Map<string, string> }).__memoire;
 const acces = (n: string) => ({ identifiant: n, uuid: 'u', typeCompte: 'E', accessToken: `a-${n}` });
@@ -48,4 +48,12 @@ test('tout effacer', async () => {
   await sauverAcces('1', acces('a'));
   await toutEffacerSecrets();
   expect([...memoire.keys()]).toEqual([]);
+});
+
+test('clé de base : 256 bits en hexadécimal, stable, effacée avec le reste', async () => {
+  const cle = await cleBase();
+  expect(cle).toBe('ab'.repeat(32));
+  expect(await cleBase()).toBe(cle);
+  await toutEffacerSecrets();
+  expect(memoire.size).toBe(0);
 });

@@ -7,6 +7,8 @@ import { CAPTURE, partSuivanteCaptures } from '@/api/ecoledirecte/capture';
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { calibrer } from '@/domain/moyennes/calibration';
 import { calculer } from '@/domain/moyennes/moteur';
+import { depot } from '@/storage/base';
+import { synchroniser } from '@/sync/synchro';
 import { MODE_DEMO } from '@/demo';
 import { Bouton, T, useCouleurs } from '@/features/compte/brut';
 import { useCompte } from '@/features/compte/store';
@@ -36,7 +38,8 @@ function Compte() {
   async function essayerNotes(eleveId: string) {
     setResultat('…');
     try {
-      const d = await client!.notes(eleveId);
+      const r = await synchroniser(eleveId, () => client!.notes(eleveId), depot);
+      const d = r.instantane.donnees;
       // Écran brut d'essai : calcul vérifié contre ED pour chaque période qui a une moyenne officielle.
       const lignes = d.periodes
         .filter((p) => p.officielleGenerale !== undefined)
@@ -46,7 +49,12 @@ function Compte() {
           const etat = retenue.verifie ? 'calcul vérifié' : `écart max ${retenue.ecartMax.toFixed(2)} (${retenue.variante})`;
           return `${p.libelle} : prévue ${prevue?.toFixed(2) ?? '–'}, officielle ED ${p.officielleGenerale}, ${etat}`;
         });
-      setResultat([`${d.notes.length} notes, ${d.periodes.length} périodes.`, ...lignes].join('\n'));
+      const source = r.depuisCache
+        ? `cache (synchro ${r.instantane.synchro.slice(11, 16)} UTC)`
+        : r.premiere
+          ? 'première synchro'
+          : `${r.nouvelles.length} nouvelle(s), ${r.modifiees.length} modifiée(s)`;
+      setResultat([`${d.notes.length} notes, ${d.periodes.length} périodes · ${source}.`, ...lignes].join('\n'));
     } catch (e) {
       setResultat(e instanceof ErreurED ? `${e.message} (${e.detail ?? e.type})` : 'Erreur inattendue.');
     }

@@ -15,7 +15,7 @@ function fichiers(dir: string): string[] {
 }
 
 test('aucun accès réseau hors de src/api/http.ts', () => {
-  const fautifs = ['app', 'src', 'fixtures']
+  const fautifs = ['app', 'src', 'fixtures', 'modules']
     .flatMap((d) => fichiers(join(RACINE, d)))
     .map((p) => relative(RACINE, p).split(sep).join('/'))
     .filter((p) => p !== AUTORISE)
