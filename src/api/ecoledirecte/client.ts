@@ -1,11 +1,14 @@
 // Client EcoleDirecte, parcours « application mobile » (voir docs/API-ED.md pour chaque hypothèse).
 import type { z } from 'zod';
 
+import type { DonneesNotes } from '@/domain/types';
+
 import { ErreurReseau, requete } from '../http';
 import { decoderBase64, encoderBase64 } from './base64';
 import { CAPTURE, capturer } from './capture';
 import { ErreurED } from './erreurs';
-import { cleAppareil, type CompteED, donneesConnexion, enveloppe, questionQCM } from './schemas';
+import { versDonneesNotes } from './mapping';
+import { cleAppareil, type CompteED, donneesConnexion, donneesNotes, enveloppe, questionQCM } from './schemas';
 
 export const API = 'https://api.ecoledirecte.com/v3';
 /** Paramètre v= : hypothèse, à corriger ici si ED renvoie le code 517. */
@@ -196,8 +199,9 @@ export class ClientED {
     return this.renouvellement;
   }
 
-  /** Notes brutes d'un élève (validées et traduites à l'étape 3). */
-  notesBrutes(eleveId: string): Promise<unknown> {
-    return this.post(`/eleves/${eleveId}/notes.awp`, { anneeScolaire: '' });
+  /** Notes, périodes et paramétrage d'un élève, validés puis traduits vers le domaine. */
+  async notes(eleveId: string): Promise<DonneesNotes> {
+    const data = await this.post(`/eleves/${eleveId}/notes.awp`, { anneeScolaire: '' });
+    return versDonneesNotes(valider(donneesNotes, data, 'notes'));
   }
 }

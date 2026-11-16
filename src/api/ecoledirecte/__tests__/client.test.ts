@@ -73,6 +73,17 @@ describe('connexion', () => {
     expect(p.eleves.map((e) => [e.id, e.classe])).toEqual([['501', '2nde 4'], ['502', '6ème B']]);
   });
 
+  test('profils avec champs null ou absents (vu chez ED) : rien d’inventé', () => {
+    const base = { idLogin: 1, id: 7, prenom: 'P', nom: 'N' };
+    expect(versProfil({ ...base, typeCompte: 'E', nomEtablissement: null, profile: { nomEtablissement: 'Lycée', classe: {} } }).eleves[0]).toMatchObject({
+      etablissement: 'Lycée',
+      classe: undefined,
+    });
+    expect(versProfil({ ...base, typeCompte: 'E', profile: null }).eleves[0]).toMatchObject({ etablissement: undefined, classe: undefined });
+    expect(versProfil({ ...base, typeCompte: '1', profile: { eleves: [{ id: 3, prenom: 'E', nom: 'N', classe: null }] } }).eleves[0]!.classe).toBeUndefined();
+    expect(versProfil({ ...base, typeCompte: '1' }).eleves).toEqual([]);
+  });
+
   test('mauvais identifiants : erreur typée, sans le mot de passe', async () => {
     fauxServeur().repond(login505);
     const e = await erreurDe(connexion(IDS));
@@ -147,8 +158,8 @@ describe('session', () => {
   test('renouvelle le jeton à chaque réponse', async () => {
     const s = fauxServeur().repond({ code: 200, data: { a: 1 } }, { 'x-token': 'jeton-2' }).repond({ code: 200, data: {} });
     const c = new ClientED({ ...session(), token: 'jeton-1' }, jest.fn());
-    expect(await c.notesBrutes('4242')).toEqual({ a: 1 });
-    await c.notesBrutes('4242');
+    await c.post('/eleves/4242/notes.awp');
+    await c.post('/eleves/4242/notes.awp');
     expect(s.envois.map((e) => e.entetes['X-Token'])).toEqual(['jeton-1', 'jeton-2']);
     expect(s.envois[0]!.url.pathname).toBe('/v3/eleves/4242/notes.awp');
   });

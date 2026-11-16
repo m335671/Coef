@@ -44,3 +44,51 @@ export const questionQCM = z.object({
 });
 
 export const cleAppareil = z.object({ cn: z.string().min(1), cv: z.string().min(1) });
+
+// notes.awp (forme confirmée, docs/API-ED.md). Nombres en chaînes, virgule ou point selon le champ.
+const nombreTexte = z.union([z.string(), z.number()]);
+
+const disciplineED = z.object({
+  codeMatiere: z.string(),
+  codeSousMatiere: z.string().nullish(),
+  discipline: z.string(),
+  coef: nombreTexte,
+  sousMatiere: z.boolean().nullish(),
+  moyenne: z.string().nullish(),
+});
+
+const periodeED = z.object({
+  codePeriode: z.string(),
+  periode: z.string(),
+  annuel: z.boolean().nullish(),
+  examenBlanc: z.boolean().nullish(),
+  dateDebut: z.string(),
+  dateFin: z.string(),
+  cloture: z.boolean().nullish(),
+  ensembleMatieres: z.object({
+    dateCalcul: z.string().nullish(),
+    moyenneGenerale: z.string().nullish(),
+    disciplines: z.array(disciplineED),
+  }),
+});
+
+const noteED = z.object({
+  id: z.union([z.number(), z.string()]),
+  devoir: z.string().nullish(),
+  codePeriode: z.string(),
+  codeMatiere: z.string(),
+  codeSousMatiere: z.string().nullish(),
+  date: z.string(),
+  dateSaisie: z.string().nullish(),
+  coef: nombreTexte,
+  noteSur: nombreTexte,
+  valeur: z.string(),
+  nonSignificatif: z.boolean().nullish(),
+});
+
+export const donneesNotes = z.object({
+  periodes: z.array(periodeED),
+  notes: z.array(noteED),
+  parametrage: z.object({ moyenneCoefMatiere: z.boolean().nullish() }).nullish(),
+});
+export type DonneesNotesED = z.infer<typeof donneesNotes>;

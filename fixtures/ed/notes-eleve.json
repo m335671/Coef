@@ -1,0 +1,2694 @@
+{
+ "code": 200,
+ "token": "jeton-fictif",
+ "host": "HTTP000",
+ "data": {
+  "foStat": "foStat-fictif",
+  "periodes": [
+   {
+    "idPeriode": "A001-fictif",
+    "codePeriode": "A001",
+    "periode": "1er Trimestre",
+    "annuel": false,
+    "dateDebut": "2026-09-02",
+    "dateFin": "2026-11-22",
+    "examenBlanc": false,
+    "cloture": false,
+    "dateConseil": "2026-12-01",
+    "heureConseil": "18:00",
+    "moyNbreJoursApresConseil": -1,
+    "ensembleMatieres": {
+     "dateCalcul": "2026-11-16 01:02",
+     "moyenneGenerale": "7,38",
+     "moyenneClasse": "",
+     "moyenneMin": "",
+     "moyenneMax": "",
+     "nomPP": "PROF PRINCIPAL",
+     "appreciationPP": "",
+     "nomCE": "",
+     "decisionDuConseil": "",
+     "disciplines": [
+      {
+       "id": 1004,
+       "codeMatiere": "PHILO",
+       "codeSousMatiere": "",
+       "discipline": "PHILOSOPHIE",
+       "moyenne": "13,83",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 4,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1006,
+         "nom": "PROF A"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1008,
+       "codeMatiere": "HI-GE",
+       "codeSousMatiere": "",
+       "discipline": "HISTOIRE-GEOGRAPHIE",
+       "moyenne": "8,25",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1009,
+         "nom": "PROF B"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1011,
+       "codeMatiere": "EMC",
+       "codeSousMatiere": "",
+       "discipline": "ENS. MORAL & CIVIQUE",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 2,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1012,
+         "nom": "PROF C"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1014,
+       "codeMatiere": "AGL1",
+       "codeSousMatiere": "",
+       "discipline": "ANGLAIS LV1-ETLV",
+       "moyenne": "1,25",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1015,
+         "nom": "PROF D"
+        },
+        {
+         "id": 1017,
+         "nom": "PROF E"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1019,
+       "codeMatiere": "ALL2",
+       "codeSousMatiere": "",
+       "discipline": "ALLEMAND LV2",
+       "moyenne": "6,25",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1020,
+         "nom": "PROF F"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1022,
+       "codeMatiere": "MATHS",
+       "codeSousMatiere": "",
+       "discipline": "MATHEMATIQUES TC",
+       "moyenne": "7,07",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1023,
+         "nom": "PROF G"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1025,
+       "codeMatiere": "PH-CH",
+       "codeSousMatiere": "",
+       "discipline": "SPE PHYSIQUE MATHS",
+       "moyenne": "4,78",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 16,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1026,
+         "nom": "PROF H"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1028,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "",
+       "discipline": "2I2D",
+       "moyenne": "10,87",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 16,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        },
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1033,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "ETT",
+       "discipline": "Ens Techno Trans",
+       "moyenne": "16,42",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": true,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1034,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "SIN",
+       "discipline": "Syst.Info et Num",
+       "moyenne": "5,31",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": true,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1035,
+       "codeMatiere": "EPS",
+       "codeSousMatiere": "",
+       "discipline": "ED.PHYSIQUE & SPORT.",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1036,
+         "nom": "PROF K"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1038,
+       "codeMatiere": "2I2D",
+       "codeSousMatiere": "",
+       "discipline": "INGEN.INNOV.DEV.DUR.",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        },
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      }
+     ],
+     "disciplinesSimulation": []
+    }
+   },
+   {
+    "idPeriode": "A001R001-fictif",
+    "codePeriode": "A001R001",
+    "periode": "Relevé 1",
+    "annuel": false,
+    "dateDebut": "2026-09-02",
+    "dateFin": "2026-10-04",
+    "examenBlanc": false,
+    "cloture": true,
+    "moyNbreJoursApresConseil": -1,
+    "ensembleMatieres": {
+     "dateCalcul": "2026-11-04 08:45",
+     "moyenneGenerale": "6,86",
+     "moyenneClasse": "",
+     "moyenneMin": "",
+     "moyenneMax": "",
+     "nomPP": "PROF PRINCIPAL",
+     "appreciationPP": "",
+     "nomCE": "",
+     "decisionDuConseil": "",
+     "disciplines": [
+      {
+       "id": 1004,
+       "codeMatiere": "PHILO",
+       "codeSousMatiere": "",
+       "discipline": "PHILOSOPHIE",
+       "moyenne": "7,5",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 4,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1006,
+         "nom": "PROF A"
+        }
+       ],
+       "appreciations": [
+        "",
+        "",
+        ""
+       ]
+      },
+      {
+       "id": 1008,
+       "codeMatiere": "HI-GE",
+       "codeSousMatiere": "",
+       "discipline": "HISTOIRE-GEOGRAPHIE",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1009,
+         "nom": "PROF B"
+        }
+       ],
+       "appreciations": [
+        "Appréciation inventée."
+       ]
+      },
+      {
+       "id": 1011,
+       "codeMatiere": "EMC",
+       "codeSousMatiere": "",
+       "discipline": "ENS. MORAL & CIVIQUE",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 2,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1012,
+         "nom": "PROF C"
+        }
+       ],
+       "appreciations": [
+        "",
+        "",
+        ""
+       ]
+      },
+      {
+       "id": 1014,
+       "codeMatiere": "AGL1",
+       "codeSousMatiere": "",
+       "discipline": "ANGLAIS LV1-ETLV",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1015,
+         "nom": "PROF D"
+        },
+        {
+         "id": 1017,
+         "nom": "PROF E"
+        }
+       ],
+       "appreciations": [
+        "Appréciation inventée."
+       ]
+      },
+      {
+       "id": 1019,
+       "codeMatiere": "ALL2",
+       "codeSousMatiere": "",
+       "discipline": "ALLEMAND LV2",
+       "moyenne": "3,25",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1020,
+         "nom": "PROF F"
+        }
+       ],
+       "appreciations": [
+        "",
+        "",
+        ""
+       ]
+      },
+      {
+       "id": 1022,
+       "codeMatiere": "MATHS",
+       "codeSousMatiere": "",
+       "discipline": "MATHEMATIQUES TC",
+       "moyenne": "6,3",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1023,
+         "nom": "PROF G"
+        }
+       ],
+       "appreciations": [
+        "",
+        "",
+        ""
+       ]
+      },
+      {
+       "id": 1025,
+       "codeMatiere": "PH-CH",
+       "codeSousMatiere": "",
+       "discipline": "SPE PHYSIQUE MATHS",
+       "moyenne": "2,75",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 16,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1026,
+         "nom": "PROF H"
+        }
+       ],
+       "appreciations": [
+        "Appréciation inventée."
+       ]
+      },
+      {
+       "id": 1028,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "",
+       "discipline": "2I2D",
+       "moyenne": "12,38",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 16,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        },
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": [
+        "",
+        "",
+        ""
+       ]
+      },
+      {
+       "id": 1033,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "ETT",
+       "discipline": "Ens Techno Trans",
+       "moyenne": "15,25",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": true,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        }
+       ],
+       "appreciations": [
+        "",
+        "",
+        ""
+       ]
+      },
+      {
+       "id": 1034,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "SIN",
+       "discipline": "Syst.Info et Num",
+       "moyenne": "9,5",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": true,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": [
+        "",
+        "",
+        ""
+       ]
+      },
+      {
+       "id": 1035,
+       "codeMatiere": "EPS",
+       "codeSousMatiere": "",
+       "discipline": "ED.PHYSIQUE & SPORT.",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1036,
+         "nom": "PROF K"
+        }
+       ],
+       "appreciations": [
+        "Appréciation inventée."
+       ]
+      },
+      {
+       "id": 1038,
+       "codeMatiere": "2I2D",
+       "codeSousMatiere": "",
+       "discipline": "INGEN.INNOV.DEV.DUR.",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        },
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": [
+        "Appréciation inventée."
+       ]
+      }
+     ],
+     "disciplinesSimulation": []
+    }
+   },
+   {
+    "idPeriode": "A001R002-fictif",
+    "codePeriode": "A001R002",
+    "periode": "Relevé 2",
+    "annuel": false,
+    "dateDebut": "2026-10-05",
+    "dateFin": "2026-11-22",
+    "examenBlanc": false,
+    "cloture": false,
+    "moyNbreJoursApresConseil": -1,
+    "ensembleMatieres": {
+     "dateCalcul": "2026-11-16 01:02",
+     "moyenneGenerale": "8,3",
+     "moyenneClasse": "",
+     "moyenneMin": "",
+     "moyenneMax": "",
+     "nomPP": "PROF PRINCIPAL",
+     "appreciationPP": "",
+     "nomCE": "",
+     "decisionDuConseil": "",
+     "disciplines": [
+      {
+       "id": 1004,
+       "codeMatiere": "PHILO",
+       "codeSousMatiere": "",
+       "discipline": "PHILOSOPHIE",
+       "moyenne": "17",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 4,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1006,
+         "nom": "PROF A"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1008,
+       "codeMatiere": "HI-GE",
+       "codeSousMatiere": "",
+       "discipline": "HISTOIRE-GEOGRAPHIE",
+       "moyenne": "8,25",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1009,
+         "nom": "PROF B"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1011,
+       "codeMatiere": "EMC",
+       "codeSousMatiere": "",
+       "discipline": "ENS. MORAL & CIVIQUE",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 2,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1012,
+         "nom": "PROF C"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1014,
+       "codeMatiere": "AGL1",
+       "codeSousMatiere": "",
+       "discipline": "ANGLAIS LV1-ETLV",
+       "moyenne": "1,25",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1015,
+         "nom": "PROF D"
+        },
+        {
+         "id": 1017,
+         "nom": "PROF E"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1019,
+       "codeMatiere": "ALL2",
+       "codeSousMatiere": "",
+       "discipline": "ALLEMAND LV2",
+       "moyenne": "7,75",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1020,
+         "nom": "PROF F"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1022,
+       "codeMatiere": "MATHS",
+       "codeSousMatiere": "",
+       "discipline": "MATHEMATIQUES TC",
+       "moyenne": "9",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1023,
+         "nom": "PROF G"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1025,
+       "codeMatiere": "PH-CH",
+       "codeSousMatiere": "",
+       "discipline": "SPE PHYSIQUE MATHS",
+       "moyenne": "6,58",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 16,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1026,
+         "nom": "PROF H"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1028,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "",
+       "discipline": "2I2D",
+       "moyenne": "10,46",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 16,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        },
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1033,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "ETT",
+       "discipline": "Ens Techno Trans",
+       "moyenne": "17",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": true,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1034,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "SIN",
+       "discipline": "Syst.Info et Num",
+       "moyenne": "3,92",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": true,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1035,
+       "codeMatiere": "EPS",
+       "codeSousMatiere": "",
+       "discipline": "ED.PHYSIQUE & SPORT.",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1036,
+         "nom": "PROF K"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1038,
+       "codeMatiere": "2I2D",
+       "codeSousMatiere": "",
+       "discipline": "INGEN.INNOV.DEV.DUR.",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        },
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      }
+     ],
+     "disciplinesSimulation": []
+    }
+   },
+   {
+    "idPeriode": "A002-fictif",
+    "codePeriode": "A002",
+    "periode": "2ème Trimestre",
+    "annuel": false,
+    "dateDebut": "2026-11-23",
+    "dateFin": "2027-03-06",
+    "examenBlanc": false,
+    "cloture": false,
+    "dateConseil": "2027-03-15",
+    "heureConseil": "18:00",
+    "heureFinConseil": "19:00",
+    "moyNbreJoursApresConseil": -1,
+    "ensembleMatieres": {
+     "dateCalcul": "",
+     "moyenneGenerale": "",
+     "moyenneClasse": "",
+     "moyenneMin": "",
+     "moyenneMax": "",
+     "nomPP": "PROF PRINCIPAL",
+     "appreciationPP": "",
+     "nomCE": "",
+     "decisionDuConseil": "",
+     "disciplines": [
+      {
+       "id": 1004,
+       "codeMatiere": "PHILO",
+       "codeSousMatiere": "",
+       "discipline": "PHILOSOPHIE",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 4,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1006,
+         "nom": "PROF A"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1008,
+       "codeMatiere": "HI-GE",
+       "codeSousMatiere": "",
+       "discipline": "HISTOIRE-GEOGRAPHIE",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1009,
+         "nom": "PROF B"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1011,
+       "codeMatiere": "EMC",
+       "codeSousMatiere": "",
+       "discipline": "ENS. MORAL & CIVIQUE",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 2,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1012,
+         "nom": "PROF C"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1014,
+       "codeMatiere": "AGL1",
+       "codeSousMatiere": "",
+       "discipline": "ANGLAIS LV1-ETLV",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1015,
+         "nom": "PROF D"
+        },
+        {
+         "id": 1017,
+         "nom": "PROF E"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1019,
+       "codeMatiere": "ALL2",
+       "codeSousMatiere": "",
+       "discipline": "ALLEMAND LV2",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1020,
+         "nom": "PROF F"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1022,
+       "codeMatiere": "MATHS",
+       "codeSousMatiere": "",
+       "discipline": "MATHEMATIQUES TC",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1023,
+         "nom": "PROF G"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1025,
+       "codeMatiere": "PH-CH",
+       "codeSousMatiere": "",
+       "discipline": "SPE PHYSIQUE MATHS",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 16,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1026,
+         "nom": "PROF H"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1028,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "",
+       "discipline": "2I2D",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 16,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        },
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1033,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "ETT",
+       "discipline": "Ens Techno Trans",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": true,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1034,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "SIN",
+       "discipline": "Syst.Info et Num",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": true,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1035,
+       "codeMatiere": "EPS",
+       "codeSousMatiere": "",
+       "discipline": "ED.PHYSIQUE & SPORT.",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1036,
+         "nom": "PROF K"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1038,
+       "codeMatiere": "2I2D",
+       "codeSousMatiere": "",
+       "discipline": "INGEN.INNOV.DEV.DUR.",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        },
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      }
+     ],
+     "disciplinesSimulation": []
+    }
+   },
+   {
+    "idPeriode": "A999Z-fictif",
+    "codePeriode": "A999Z",
+    "periode": "Année",
+    "annuel": true,
+    "dateDebut": "2026-09-02",
+    "dateFin": "2027-06-15",
+    "examenBlanc": false,
+    "cloture": false,
+    "moyNbreJoursApresConseil": -1,
+    "ensembleMatieres": {
+     "dateCalcul": "2026-11-16 01:02",
+     "nomPP": "PROF PRINCIPAL",
+     "appreciationPP": "",
+     "nomCE": "",
+     "decisionDuConseil": "",
+     "disciplines": [
+      {
+       "id": 1004,
+       "codeMatiere": "PHILO",
+       "codeSousMatiere": "",
+       "discipline": "PHILOSOPHIE",
+       "coef": 4,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1006,
+         "nom": "PROF A"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1008,
+       "codeMatiere": "HI-GE",
+       "codeSousMatiere": "",
+       "discipline": "HISTOIRE-GEOGRAPHIE",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1009,
+         "nom": "PROF B"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1011,
+       "codeMatiere": "EMC",
+       "codeSousMatiere": "",
+       "discipline": "ENS. MORAL & CIVIQUE",
+       "coef": 2,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1012,
+         "nom": "PROF C"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1014,
+       "codeMatiere": "AGL1",
+       "codeSousMatiere": "",
+       "discipline": "ANGLAIS LV1-ETLV",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1015,
+         "nom": "PROF D"
+        },
+        {
+         "id": 1017,
+         "nom": "PROF E"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1019,
+       "codeMatiere": "ALL2",
+       "codeSousMatiere": "",
+       "discipline": "ALLEMAND LV2",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1020,
+         "nom": "PROF F"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1022,
+       "codeMatiere": "MATHS",
+       "codeSousMatiere": "",
+       "discipline": "MATHEMATIQUES TC",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1023,
+         "nom": "PROF G"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1025,
+       "codeMatiere": "PH-CH",
+       "codeSousMatiere": "",
+       "discipline": "SPE PHYSIQUE MATHS",
+       "coef": 16,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1026,
+         "nom": "PROF H"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1028,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "",
+       "discipline": "2I2D",
+       "coef": 16,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        },
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1033,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "ETT",
+       "discipline": "Ens Techno Trans",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": true,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1034,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "SIN",
+       "discipline": "Syst.Info et Num",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": true,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1035,
+       "codeMatiere": "EPS",
+       "codeSousMatiere": "",
+       "discipline": "ED.PHYSIQUE & SPORT.",
+       "coef": 6,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1036,
+         "nom": "PROF K"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1038,
+       "codeMatiere": "2I2D",
+       "codeSousMatiere": "",
+       "discipline": "INGEN.INNOV.DEV.DUR.",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        },
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      }
+     ],
+     "disciplinesSimulation": []
+    }
+   },
+   {
+    "idPeriode": "H000X001-fictif",
+    "codePeriode": "H000X001",
+    "periode": "Examen Blanc 1",
+    "annuel": false,
+    "dateDebut": "2026-11-23",
+    "dateFin": "2027-01-10",
+    "examenBlanc": true,
+    "cloture": false,
+    "moyNbreJoursApresConseil": -1,
+    "ensembleMatieres": {
+     "dateCalcul": "",
+     "moyenneGenerale": "",
+     "moyenneClasse": "",
+     "moyenneMin": "",
+     "moyenneMax": "",
+     "nomPP": "PROF PRINCIPAL",
+     "appreciationPP": "",
+     "nomCE": "",
+     "decisionDuConseil": "",
+     "disciplines": [
+      {
+       "id": 1014,
+       "codeMatiere": "AGL1",
+       "codeSousMatiere": "",
+       "discipline": "ANGLAIS LV1-ETLV",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1015,
+         "nom": "PROF D"
+        },
+        {
+         "id": 1017,
+         "nom": "PROF E"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1035,
+       "codeMatiere": "EPS",
+       "codeSousMatiere": "",
+       "discipline": "ED.PHYSIQUE & SPORT.",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1036,
+         "nom": "PROF K"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1028,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "",
+       "discipline": "2I2D",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        },
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1033,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "ETT",
+       "discipline": "Ens Techno Trans",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": true,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1034,
+       "codeMatiere": "ETT",
+       "codeSousMatiere": "SIN",
+       "discipline": "Syst.Info et Num",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": true,
+       "saisieAppreciationSSMat": true,
+       "professeurs": [
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1022,
+       "codeMatiere": "MATHS",
+       "codeSousMatiere": "",
+       "discipline": "MATHEMATIQUES TC",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1023,
+         "nom": "PROF G"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1025,
+       "codeMatiere": "PH-CH",
+       "codeSousMatiere": "",
+       "discipline": "SPE PHYSIQUE MATHS",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1026,
+         "nom": "PROF H"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1004,
+       "codeMatiere": "PHILO",
+       "codeSousMatiere": "",
+       "discipline": "PHILOSOPHIE",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1006,
+         "nom": "PROF A"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1011,
+       "codeMatiere": "EMC",
+       "codeSousMatiere": "",
+       "discipline": "ENS. MORAL & CIVIQUE",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1012,
+         "nom": "PROF C"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1008,
+       "codeMatiere": "HI-GE",
+       "codeSousMatiere": "",
+       "discipline": "HISTOIRE-GEOGRAPHIE",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1009,
+         "nom": "PROF B"
+        }
+       ],
+       "appreciations": []
+      },
+      {
+       "id": 1038,
+       "codeMatiere": "2I2D",
+       "codeSousMatiere": "",
+       "discipline": "INGEN.INNOV.DEV.DUR.",
+       "moyenne": "",
+       "moyenneClasse": "",
+       "moyenneMin": "",
+       "moyenneMax": "",
+       "coef": 1,
+       "effectif": 0,
+       "rang": 0,
+       "groupeMatiere": false,
+       "idGroupeMatiere": 1005,
+       "option": 0,
+       "sousMatiere": false,
+       "saisieAppreciationSSMat": false,
+       "professeurs": [
+        {
+         "id": 1029,
+         "nom": "PROF I"
+        },
+        {
+         "id": 1031,
+         "nom": "PROF J"
+        }
+       ],
+       "appreciations": []
+      }
+     ],
+     "disciplinesSimulation": []
+    }
+   }
+  ],
+  "notes": [
+   {
+    "id": 1054,
+    "devoir": "Évaluation MATHS 1",
+    "codePeriode": "A001",
+    "codeMatiere": "MATHS",
+    "libelleMatiere": "MATHEMATIQUES TC",
+    "codeSousMatiere": "",
+    "typeDevoir": "Devoir Surveillé",
+    "enLettre": true,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-09-16",
+    "dateSaisie": "2026-09-23",
+    "coef": "2",
+    "noteSur": "20",
+    "valeur": "Abs ",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1055,
+    "devoir": "Évaluation PHILO 1",
+    "codePeriode": "A001",
+    "codeMatiere": "PHILO",
+    "libelleMatiere": "PHILOSOPHIE",
+    "codeSousMatiere": "",
+    "typeDevoir": "Travaux Pratiques",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-09-21",
+    "dateSaisie": "2026-09-21",
+    "coef": "1",
+    "noteSur": "20",
+    "valeur": "7,5",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1056,
+    "devoir": "Évaluation SIN 1",
+    "codePeriode": "A001",
+    "codeMatiere": "ETT",
+    "libelleMatiere": "Syst.Info et Num",
+    "codeSousMatiere": "SIN",
+    "typeDevoir": "Contrôle",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-09-24",
+    "dateSaisie": "2026-09-26",
+    "coef": "1",
+    "noteSur": "20",
+    "valeur": "9,5",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1057,
+    "devoir": "Évaluation ALL2 1",
+    "codePeriode": "A001",
+    "codeMatiere": "ALL2",
+    "libelleMatiere": "ALLEMAND LV2",
+    "codeSousMatiere": "",
+    "typeDevoir": "Test",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-09-28",
+    "dateSaisie": "2026-10-06",
+    "coef": "1",
+    "noteSur": "20",
+    "valeur": "3,25",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1058,
+    "devoir": "Évaluation MATHS 2",
+    "codePeriode": "A001",
+    "codeMatiere": "MATHS",
+    "libelleMatiere": "MATHEMATIQUES TC",
+    "codeSousMatiere": "",
+    "typeDevoir": "Interrogation Ecrite",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-09-28",
+    "dateSaisie": "2026-10-25",
+    "coef": "0.5",
+    "noteSur": "10",
+    "valeur": "6,25",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1059,
+    "devoir": "Évaluation ETT 1",
+    "codePeriode": "A001",
+    "codeMatiere": "ETT",
+    "libelleMatiere": "Ens Techno Trans",
+    "codeSousMatiere": "ETT",
+    "typeDevoir": "Interrogation Ecrite",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-09-28",
+    "dateSaisie": "2026-10-06",
+    "coef": "1",
+    "noteSur": "20",
+    "valeur": "15,25",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1060,
+    "devoir": "Évaluation MATHS 3",
+    "codePeriode": "A001",
+    "codeMatiere": "MATHS",
+    "libelleMatiere": "MATHEMATIQUES TC",
+    "codeSousMatiere": "",
+    "typeDevoir": "Interrogation Ecrite",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-09-28",
+    "dateSaisie": "2026-10-13",
+    "coef": "2",
+    "noteSur": "20",
+    "valeur": "4,75",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1061,
+    "devoir": "Évaluation PH-CH 1",
+    "codePeriode": "A001",
+    "codeMatiere": "PH-CH",
+    "libelleMatiere": "SPE PHYSIQUE MATHS",
+    "codeSousMatiere": "",
+    "typeDevoir": "Devoir Surveillé",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-10-02",
+    "dateSaisie": "2026-10-09",
+    "coef": "4",
+    "noteSur": "20",
+    "valeur": "2,75",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1062,
+    "devoir": "Évaluation AGL1 1",
+    "codePeriode": "A001",
+    "codeMatiere": "AGL1",
+    "libelleMatiere": "ANGLAIS LV1-ETLV",
+    "codeSousMatiere": "",
+    "typeDevoir": "Devoir Surveillé",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-10-07",
+    "dateSaisie": "2026-11-10",
+    "coef": "1",
+    "noteSur": "10",
+    "valeur": "1",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1063,
+    "devoir": "Évaluation AGL1 2",
+    "codePeriode": "A001",
+    "codeMatiere": "AGL1",
+    "libelleMatiere": "ANGLAIS LV1-ETLV",
+    "codeSousMatiere": "",
+    "typeDevoir": "Devoir Surveillé",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-10-07",
+    "dateSaisie": "2026-11-10",
+    "coef": "1",
+    "noteSur": "20",
+    "valeur": "0,5",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1064,
+    "devoir": "Évaluation ALL2 2",
+    "codePeriode": "A001",
+    "codeMatiere": "ALL2",
+    "libelleMatiere": "ALLEMAND LV2",
+    "codeSousMatiere": "",
+    "typeDevoir": "Interrogation Ecrite",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-02",
+    "dateSaisie": "2026-11-10",
+    "coef": "1",
+    "noteSur": "10",
+    "valeur": "6,25",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1065,
+    "devoir": "Évaluation ETT 2",
+    "codePeriode": "A001",
+    "codeMatiere": "ETT",
+    "libelleMatiere": "Ens Techno Trans",
+    "codeSousMatiere": "ETT",
+    "typeDevoir": "Contrôle",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-02",
+    "dateSaisie": "2026-11-10",
+    "coef": "1",
+    "noteSur": "20",
+    "valeur": "17,5",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1066,
+    "devoir": "Évaluation SIN 2",
+    "codePeriode": "A001",
+    "codeMatiere": "ETT",
+    "libelleMatiere": "Syst.Info et Num",
+    "codeSousMatiere": "SIN",
+    "typeDevoir": "Contrôle",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-04",
+    "dateSaisie": "2026-11-04",
+    "coef": "1",
+    "noteSur": "20",
+    "valeur": "9,25",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1067,
+    "devoir": "Évaluation SIN 3",
+    "codePeriode": "A001",
+    "codeMatiere": "ETT",
+    "libelleMatiere": "Syst.Info et Num",
+    "codeSousMatiere": "SIN",
+    "typeDevoir": "Contrôle",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-04",
+    "dateSaisie": "2026-11-04",
+    "coef": "1",
+    "noteSur": "20",
+    "valeur": "1,75",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1068,
+    "devoir": "Évaluation PHILO 2",
+    "codePeriode": "A001",
+    "codeMatiere": "PHILO",
+    "libelleMatiere": "PHILOSOPHIE",
+    "codeSousMatiere": "",
+    "typeDevoir": "Travaux Pratiques",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-04",
+    "dateSaisie": "2026-11-04",
+    "coef": "1",
+    "noteSur": "20",
+    "valeur": "7",
+    "valeurisee": false,
+    "nonSignificatif": true,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1069,
+    "devoir": "Évaluation ETT 3",
+    "codePeriode": "A001",
+    "codeMatiere": "ETT",
+    "libelleMatiere": "Ens Techno Trans",
+    "codeSousMatiere": "ETT",
+    "typeDevoir": "Test",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-05",
+    "dateSaisie": "2026-11-06",
+    "coef": "1",
+    "noteSur": "20",
+    "valeur": "16,5",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1070,
+    "devoir": "Évaluation PHILO 3",
+    "codePeriode": "A001",
+    "codeMatiere": "PHILO",
+    "libelleMatiere": "PHILOSOPHIE",
+    "codeSousMatiere": "",
+    "typeDevoir": "Devoir Surveillé",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-05",
+    "dateSaisie": "2026-11-05",
+    "coef": "2",
+    "noteSur": "20",
+    "valeur": "17",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1071,
+    "devoir": "Évaluation MATHS 4",
+    "codePeriode": "A001",
+    "codeMatiere": "MATHS",
+    "libelleMatiere": "MATHEMATIQUES TC",
+    "codeSousMatiere": "",
+    "typeDevoir": "Interrogation Ecrite",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-06",
+    "dateSaisie": "2026-11-14",
+    "coef": "0.5",
+    "noteSur": "10",
+    "valeur": "5,75",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1072,
+    "devoir": "Évaluation PH-CH 2",
+    "codePeriode": "A001",
+    "codeMatiere": "PH-CH",
+    "libelleMatiere": "SPE PHYSIQUE MATHS",
+    "codeSousMatiere": "",
+    "typeDevoir": "Interrogation Orale",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-06",
+    "dateSaisie": "2026-11-06",
+    "coef": "1.5",
+    "noteSur": "20",
+    "valeur": "8,75",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1073,
+    "devoir": "Évaluation PH-CH 3",
+    "codePeriode": "A001",
+    "codeMatiere": "PH-CH",
+    "libelleMatiere": "SPE PHYSIQUE MATHS",
+    "codeSousMatiere": "",
+    "typeDevoir": "Interrogation Ecrite",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-06",
+    "dateSaisie": "2026-11-06",
+    "coef": "3",
+    "noteSur": "20",
+    "valeur": "5,5",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1074,
+    "devoir": "Évaluation ALL2 3",
+    "codePeriode": "A001",
+    "codeMatiere": "ALL2",
+    "libelleMatiere": "ALLEMAND LV2",
+    "codeSousMatiere": "",
+    "typeDevoir": "Interrogation Orale",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-09",
+    "dateSaisie": "2026-11-10",
+    "coef": "1",
+    "noteSur": "10",
+    "valeur": "1,5",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1075,
+    "devoir": "Évaluation HI-GE 1",
+    "codePeriode": "A001",
+    "codeMatiere": "HI-GE",
+    "libelleMatiere": "HISTOIRE-GEOGRAPHIE",
+    "codeSousMatiere": "",
+    "typeDevoir": "Devoir Surveillé",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-11",
+    "dateSaisie": "2026-11-11",
+    "coef": "2",
+    "noteSur": "20",
+    "valeur": "8,25",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1076,
+    "devoir": "Évaluation MATHS 5",
+    "codePeriode": "A001",
+    "codeMatiere": "MATHS",
+    "libelleMatiere": "MATHEMATIQUES TC",
+    "codeSousMatiere": "",
+    "typeDevoir": "Interrogation Ecrite",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-13",
+    "dateSaisie": "2026-11-14",
+    "coef": "0.5",
+    "noteSur": "10",
+    "valeur": "3,25",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1077,
+    "devoir": "Évaluation SIN 4",
+    "codePeriode": "A001",
+    "codeMatiere": "ETT",
+    "libelleMatiere": "Syst.Info et Num",
+    "codeSousMatiere": "SIN",
+    "typeDevoir": "Travaux Pratiques",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-13",
+    "dateSaisie": "2026-11-13",
+    "coef": "1",
+    "noteSur": "20",
+    "valeur": "0,75",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1078,
+    "devoir": "Évaluation ALL2 4",
+    "codePeriode": "A001",
+    "codeMatiere": "ALL2",
+    "libelleMatiere": "ALLEMAND LV2",
+    "codeSousMatiere": "",
+    "typeDevoir": "Interrogation Orale",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-16",
+    "dateSaisie": "2026-11-16",
+    "coef": "1",
+    "noteSur": "20",
+    "valeur": "8,25",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   },
+   {
+    "id": 1079,
+    "devoir": "Évaluation EMC 1",
+    "codePeriode": "A001",
+    "codeMatiere": "EMC",
+    "libelleMatiere": "ENS. MORAL & CIVIQUE",
+    "codeSousMatiere": "",
+    "typeDevoir": "Interrogation Orale",
+    "enLettre": false,
+    "commentaire": "",
+    "uncSujet": "",
+    "uncCorrige": "",
+    "date": "2026-11-16",
+    "dateSaisie": "2026-11-16",
+    "coef": "1",
+    "noteSur": "20",
+    "valeur": "8,5",
+    "valeurisee": false,
+    "nonSignificatif": false,
+    "moyenneClasse": "",
+    "minClasse": "",
+    "maxClasse": "",
+    "elementsProgramme": []
+   }
+  ],
+  "parametrage": {
+   "couleurEval1": "#FF0000",
+   "couleurEval2": "#FFC000",
+   "couleurEval3": "#0070C0",
+   "couleurEval4": "#00B050",
+   "libelleEval1": "Tm9uIGF0dGVpbnRz",
+   "libelleEval2": "UGFydGllbGxlbWVudCBhdHRlaW50cw==",
+   "libelleEval3": "QXR0ZWludHM=",
+   "libelleEval4": "RMOpcGFzc8Opcw==",
+   "affichageMoyenne": true,
+   "affichageMoyenneDevoir": true,
+   "affichagePositionMatiere": false,
+   "affichageOngletCompetence": 0,
+   "affichageNote": true,
+   "affichageCompetence": false,
+   "affichageEvaluationsComposantes": true,
+   "affichageGraphiquesComposantes": true,
+   "modeCalculGraphiquesComposantes": "eval",
+   "affichageCompNum": false,
+   "libelleEvalCompNum1": "Tm9uIGF0dGVpbnQ=",
+   "libelleEvalCompNum2": "UGFydGllbGxlbWVudCBhdHRlaW50",
+   "libelleEvalCompNum3": "QXR0ZWludA==",
+   "affichageAppreciation": true,
+   "appreciationsProf": true,
+   "appreciationProfPrinc": true,
+   "affichageMention": false,
+   "affichageAppreciationCE": false,
+   "affichageAppreciationVS": false,
+   "affichageAppreciationCN": false,
+   "affichageAppreciationClasse": false,
+   "affichageAppreciationPeriodeCloturee": false,
+   "moyenneUniquementPeriodeCloture": false,
+   "moyennePeriodeReleve": true,
+   "moyennePeriodeAnnuelle": false,
+   "moyennePeriodeHorsP": false,
+   "moyenneEleveDansNotes": true,
+   "moyenneEleve": true,
+   "moyenneEleveDansMoyenne": true,
+   "moyenneGenerale": true,
+   "moyenneCoefMatiere": true,
+   "moyenneClasse": true,
+   "moyenneMin": true,
+   "moyenneMax": true,
+   "moyenneRang": false,
+   "moyenneSur": 20,
+   "moyenneGraphique": true,
+   "moyennesSimulation": false,
+   "coefficientNote": true,
+   "colonneCoefficientMatiere": true,
+   "noteGrasSousMoyenne": false,
+   "noteGrasAudessusMoyenne": false,
+   "libelleDevoir": true,
+   "dateDevoir": true,
+   "typeDevoir": true,
+   "noteUniquementPeriodeCloture": false,
+   "notePeriodeReleve": true,
+   "notePeriodeAnnuelle": true,
+   "notePeriodeHorsP": false,
+   "libellesAppreciations": [
+    "Appréciation générale"
+   ],
+   "appreciationsParametrage": [
+    {
+     "code": "AG",
+     "id": 1,
+     "nbMaxCaractere": 300,
+     "libelle": "Appréciation générale"
+    }
+   ]
+  }
+ }
+}

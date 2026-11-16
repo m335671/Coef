@@ -4,7 +4,7 @@
 
 ## Où on en est
 - **Étape 1 (squelette)** : validée. Expo SDK 58, TS strict, lint, Jest, CI GitHub Actions verte, mode démo web.
-- **Étape 2 (client ED)** : validée le 16/11/2026 après essai réel sur Android (GTK, QCM, notes, reconnexion). Prochaine : **étape 3, moteur de moyenne**.
+- **Étape 2 (client ED)** : validée le 16/11/2026 après essai réel sur Android (GTK, QCM, notes, reconnexion). **Étape 3 (moteur de moyenne)** : faite, en attente de validation. `src/domain/moyennes/` (moteur, calibration, simulateur), 100 % des branches couvertes ; fixture dorée fabriquée et calibration réelle locale au centième.
 - Capture réelle de `notes.awp` (anonymisée) : `fixtures/prive/notes-reelles.json`, **ignorée par git, sur cette machine seulement**. Sert au test de calibration réelle (ignoré si absent). La fixture commitée sera fabriquée.
 - Règles de calcul déjà vérifiées sur données réelles : `docs/API-ED.md`, section notes.awp.
 - Décision : **aucune copie** de code GPL (Papillon, Pawdirecte) : on réécrit à partir du protocole.
