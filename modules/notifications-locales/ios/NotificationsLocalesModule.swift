@@ -11,6 +11,10 @@ public class NotificationsLocalesModule: Module {
       try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
     }
 
+    AsyncFunction("effacer") {
+      UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+    }
+
     AsyncFunction("autorisees") { () async -> Bool in
       await UNUserNotificationCenter.current().notificationSettings().authorizationStatus == .authorized
     }

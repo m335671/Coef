@@ -4,9 +4,12 @@ import { Geist_700Bold } from '@expo-google-fonts/geist/700Bold';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
+import { useEffect } from 'react';
+import { AppState, View } from 'react-native';
 
 import { useCouleurs } from '@/ui/theme';
+
+import { effacer } from '../modules/notifications-locales';
 
 // Définit la tâche de synchro en arrière-plan avant tout réveil par le système.
 import '@/sync/tache';
@@ -15,6 +18,14 @@ export default function RootLayout() {
   const c = useCouleurs();
   // Polices embarquées dans l'app (fichiers locaux, aucune requête réseau). Trois graisses seulement.
   const [pret] = useFonts({ Geist_400Regular, Geist_500Medium, Geist_700Bold });
+
+  // Ouvrir l'app, même sans toucher la notification, vaut lecture : on retire les notifications de notes.
+  useEffect(() => {
+    void effacer();
+    const abonnement = AppState.addEventListener('change', (e) => e === 'active' && void effacer());
+    return () => abonnement.remove();
+  }, []);
+
   if (!pret) return <View style={{ flex: 1, backgroundColor: c.fond }} />;
   return (
     <>

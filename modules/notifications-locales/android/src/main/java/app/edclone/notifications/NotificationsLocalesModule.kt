@@ -19,6 +19,9 @@ class NotificationsLocalesModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("NotificationsLocales")
 
+    // L'app ouverte, les notifications de notes n'ont plus de raison de rester.
+    AsyncFunction("effacer") { NotificationManagerCompat.from(context).cancelAll() }
+
     AsyncFunction("autorisees") { NotificationManagerCompat.from(context).areNotificationsEnabled() }
 
     AsyncFunction("afficher") { id: Int, titre: String, texte: String, ecranVerrouille: String ->

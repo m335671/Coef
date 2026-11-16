@@ -5,6 +5,7 @@ import { PermissionsAndroid, Platform } from 'react-native';
 type Natif = {
   demanderAutorisation?(): Promise<boolean>;
   autorisees(): Promise<boolean>;
+  effacer(): Promise<void>;
   afficher(id: number, titre: string, texte: string, ecranVerrouille: EcranVerrouille): Promise<boolean>;
 };
 
@@ -25,6 +26,11 @@ export async function demanderAutorisation(): Promise<boolean> {
     return (await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS)) === 'granted';
   }
   return natif.demanderAutorisation!();
+}
+
+/** Retire les notifications déjà affichées par l'app (à l'ouverture). */
+export async function effacer(): Promise<void> {
+  await natif?.effacer();
 }
 
 /** Affiche une notification ; la même id remplace la précédente. Faux si non autorisé. */
