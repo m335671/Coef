@@ -13,7 +13,7 @@ const eleveDeFamille = z.object({
   id: z.number(),
   prenom: z.string(),
   nom: z.string(),
-  classe: z.object({ libelle: z.string() }).partial().optional(),
+  classe: z.object({ libelle: z.string() }).partial().nullish(),
 });
 
 export const compte = z.object({
@@ -22,17 +22,17 @@ export const compte = z.object({
   typeCompte: z.string(),
   prenom: z.string(),
   nom: z.string(),
-  nomEtablissement: z.string().optional(),
-  anneeScolaireCourante: z.string().optional(),
-  accessToken: z.string().optional(),
-  main: z.boolean().optional(),
+  nomEtablissement: z.string().nullish(),
+  anneeScolaireCourante: z.string().nullish(),
+  accessToken: z.string().nullish(),
+  main: z.boolean().nullish(),
   profile: z
     .object({
-      classe: z.object({ libelle: z.string() }).partial().optional(),
-      nomEtablissement: z.string().optional(),
-      eleves: z.array(eleveDeFamille).optional(),
+      classe: z.object({ libelle: z.string() }).partial().nullish(),
+      nomEtablissement: z.string().nullish(),
+      eleves: z.array(eleveDeFamille).nullish(),
     })
-    .optional(),
+    .nullish(),
 });
 export type CompteED = z.infer<typeof compte>;
 
