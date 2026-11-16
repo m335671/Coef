@@ -1,108 +1,209 @@
-import { Redirect } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// Écran des notes, la vitrine. Sa question : « Où en est ma moyenne ce trimestre, et qu'est-ce qui l'a fait bouger ? »
+// Le plus grand chiffre y répond (moyenne générale prévue), le signal d'écart dit ce qui a bougé depuis la synchro.
+import { Redirect, router } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { CAPTURE } from '@/api/ecoledirecte/capture';
-import { calibrer } from '@/domain/moyennes/calibration';
-import { calculer } from '@/domain/moyennes/moteur';
-import { depot } from '@/storage/base';
-import { annonce } from '@/sync/annonce';
-import { synchroniser } from '@/sync/synchro';
+import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
-import { Bouton, exporterCaptures, messageErreur, T, useCouleurs } from '@/features/compte/brut';
+import { ELEVE_DEMO } from '@/demo/notes';
+import type { Eleve } from '@/domain/types';
 import { useCompte } from '@/features/compte/store';
-import { NotesDemo } from '@/features/notes/NotesDemo';
-
-import { afficher } from '../modules/notifications-locales';
+import { useNotes } from '@/features/notes/store';
+import { periodeParDefaut, periodesAffichees, type VueNotes, vueNotes } from '@/features/notes/vue';
+import { libelleMatiere } from '@/sync/annonce';
+import { Bouton, Chiffre, Ecart, Ecran, EnTete, Ligne, Panneau, Reglette, Section, Segments, Texte } from '@/ui/composants';
+import { brute, coef, jour, moyenne } from '@/ui/format';
+import { espace, taille, useCouleurs } from '@/ui/theme';
 
 export default function Accueil() {
-  return MODE_DEMO ? <NotesDemo /> : <Compte />;
-}
-
-function Compte() {
-  const c = useCouleurs();
-  const { client, profils, restaurer, deconnecter, toutEffacer } = useCompte();
-  const [sansSession, setSansSession] = useState(false);
-  const [resultat, setResultat] = useState('');
+  const { client, profils, horsLigne, restaurer } = useCompte();
+  const [etat, setEtat] = useState<'attente' | 'connexion' | 'pret'>(MODE_DEMO || client || horsLigne ? 'pret' : 'attente');
 
   useEffect(() => {
-    if (client) return;
-    // shortcut: une panne réseau au démarrage renvoie aussi vers la connexion ; à affiner avec le cache (étape 4).
-    restaurer()
-      .then((ok) => setSansSession(!ok))
-      .catch(() => setSansSession(true));
-  }, [client, restaurer]);
+    if (etat !== 'attente') return;
+    restaurer().then(
+      (ok) => setEtat(ok ? 'pret' : 'connexion'),
+      () => setEtat('connexion'), // session expirée ou refusée : on repasse par la connexion
+    );
+  }, [etat, restaurer]);
 
-  if (!client && sansSession) return <Redirect href="/connexion" />;
-  if (!client) return <ActivityIndicator style={{ flex: 1, backgroundColor: c.fond }} />;
+  if (etat === 'connexion') return <Redirect href="/connexion" />;
+  if (etat === 'attente') return <Attente />;
+  const eleves = MODE_DEMO ? [ELEVE_DEMO] : profils.flatMap((p) => p.eleves);
+  return <Notes eleves={eleves} />;
+}
 
-  async function essayerNotes(eleveId: string) {
-    setResultat('…');
-    try {
-      const r = await synchroniser(eleveId, () => client!.notes(eleveId), depot);
-      const d = r.instantane.donnees;
-      // Écran brut d'essai : calcul vérifié contre ED pour chaque période qui a une moyenne officielle.
-      const lignes = d.periodes
-        .filter((p) => p.officielleGenerale !== undefined)
-        .map((p) => {
-          const { retenue } = calibrer(p, d.notes, d.periodes, d.parametrage);
-          const prevue = calculer(p, d.notes, d.periodes, { parametrage: d.parametrage }).generale;
-          const etat = retenue.verifie ? 'calcul vérifié' : `écart max ${retenue.ecartMax.toFixed(2)} (${retenue.variante})`;
-          return `${p.libelle} : prévue ${prevue?.toFixed(2) ?? '–'}, officielle ED ${p.officielleGenerale}, ${etat}`;
-        });
-      const source = r.depuisCache
-        ? `cache (synchro ${r.instantane.synchro.slice(11, 16)} UTC)`
-        : r.premiere
-          ? 'première synchro'
-          : `${r.nouvelles.length} nouvelle(s), ${r.modifiees.length} modifiée(s)`;
-      setResultat([`${d.notes.length} notes, ${d.periodes.length} périodes · ${source}.`, ...lignes].join('\n'));
-    } catch (e) {
-      setResultat(messageErreur(e, 'notes'));
-    }
-  }
+function Attente() {
+  const c = useCouleurs();
+  return <ActivityIndicator accessibilityLabel="Reconnexion à EcoleDirecte" style={{ flex: 1, backgroundColor: c.fond }} />;
+}
 
-  // Essai seulement (build de capture) : retire la note la plus récente du cache puis resynchronise ;
-  // ED la renvoie, elle passe pour nouvelle et déclenche la vraie notification.
-  async function simulerNouvelleNote(eleveId: string) {
-    const i = await depot.lire(eleveId);
-    const derniere = i && [...i.donnees.notes].sort((a, b) => (a.dateSaisie ?? a.date).localeCompare(b.dateSaisie ?? b.date)).pop();
-    if (!i || !derniere) return setResultat('Synchronise d’abord avec « Notes de … ».');
-    await depot.ecrire(eleveId, { ...i, donnees: { ...i.donnees, notes: i.donnees.notes.filter((n) => n.id !== derniere.id) }, synchro: new Date(0).toISOString() });
-    const r = await synchroniser(eleveId, () => client!.notes(eleveId), depot);
-    const a = annonce(r, r.instantane.donnees);
-    const affichee = a ? await afficher(1, a.titre, a.texte) : false;
-    setResultat(a ? `${a.titre} — ${a.texte}${affichee ? '' : ' (notifications refusées)'}` : 'Aucune nouvelle note détectée.');
-  }
+function Notes({ eleves }: { eleves: Eleve[] }) {
+  const [eleveId, setEleveId] = useState(eleves[0]?.id ?? '');
+  const etat = useNotes((s) => s.eleves[eleveId]);
+  const charger = useNotes((s) => s.charger);
+  const [periodeChoisie, setPeriode] = useState<string>();
+
+  useEffect(() => {
+    if (eleveId) void charger(eleveId);
+  }, [eleveId, charger]);
+
+  const instantane = etat?.instantane;
+  const periodes = instantane ? periodesAffichees(instantane.donnees) : [];
+  const periode = periodeChoisie ?? (instantane && periodeParDefaut(instantane.donnees, new Date().toISOString().slice(0, 10))?.code);
+  const vue = useMemo(() => (instantane && periode ? vueNotes(instantane, periode) : undefined), [instantane, periode]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}>
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        {profils.map((p) => (
-          <T key={p.id} gras>
-            {p.prenom} {p.nom} · compte {p.type}
-          </T>
-        ))}
-        {profils.flatMap((p) => p.eleves).map((e) => (
-          <Bouton key={e.id} titre={`Notes de ${e.prenom}${e.classe ? ` (${e.classe})` : ''}`} onPress={() => essayerNotes(e.id)} />
-        ))}
-        {resultat ? <T>{resultat}</T> : null}
-        <Bouton titre="Se déconnecter" onPress={() => deconnecter()} />
-        <Bouton
-          titre="Tout effacer"
-          onPress={() =>
-            Alert.alert('Tout effacer ?', 'Notes, jetons et clés seront supprimés de cet appareil.', [
-              { text: 'Annuler', style: 'cancel' },
-              { text: 'Effacer', style: 'destructive', onPress: () => toutEffacer() },
-            ])
-          }
-        />
-        {CAPTURE ? <Bouton titre="Exporter les captures (fichier)" onPress={() => exporterCaptures()} /> : null}
-        {CAPTURE
-          ? profils.flatMap((p) => p.eleves).map((e) => <Bouton key={`sim-${e.id}`} titre={`Essai : simuler une nouvelle note (${e.prenom})`} onPress={() => simulerNouvelleNote(e.id)} />)
-          : null}
-        <T>Client non officiel, non affilié à EcoleDirecte.</T>
-      </ScrollView>
-    </SafeAreaView>
+    <Ecran>
+      <EnTete titre="Notes" action={<Bouton variante="texte" titre="Réglages" onPress={() => router.push('/reglages')} />} />
+      {eleves.length > 1 ? (
+        <Segments libelle="Élève" options={eleves.map((e) => ({ cle: e.id, libelle: e.prenom }))} valeur={eleveId} onChange={setEleveId} />
+      ) : null}
+      {periodes.length > 0 && periode ? (
+        <Segments libelle="Période" options={periodes.map((p) => ({ cle: p.code, libelle: p.libelle }))} valeur={periode} onChange={setPeriode} />
+      ) : null}
+      <Moyenne vue={vue} chargement={etat?.chargement ?? true} erreur={etat?.erreur} synchro={instantane?.synchro} onReessayer={() => charger(eleveId, true)} />
+      {vue && instantane ? (
+        <>
+          {vue.nouvelles.length > 0 ? (
+            <Section titre="Nouvelles notes" aide={vue.depuis ? `Depuis la synchro du ${jour(vue.depuis)}` : undefined}>
+              <Panneau>
+                {vue.nouvelles.slice(0, 5).map((n, i, l) => (
+                  <Ligne
+                    key={n.id}
+                    dernier={i === l.length - 1}
+                    onPress={() => router.push({ pathname: '/matiere/[code]', params: { code: n.matiereCode, periode: vue.periode.code, eleve: eleveId } })}>
+                    <View style={{ flex: 1 }}>
+                      <Texte variante="liste" moyen numberOfLines={1}>
+                        {libelleMatiere(instantane.donnees, n)}
+                      </Texte>
+                      <Texte variante="petit" attenue numberOfLines={1}>
+                        {n.devoir || n.matiereCode} · coef {coef(n.coef)}
+                      </Texte>
+                    </View>
+                    <Texte variante="liste" moyen style={styles.chiffres}>
+                      {brute(n.valeurBrute)}
+                      <Texte variante="liste" attenue>
+                        /{n.noteSur}
+                      </Texte>
+                    </Texte>
+                  </Ligne>
+                ))}
+              </Panneau>
+            </Section>
+          ) : null}
+          <Section titre="Matières" aide={`${vue.periode.libelle} · moyennes prévues, points sur 20`}>
+            <Panneau>
+              {vue.matieres.map(({ matiere: m, sur20 }, i, l) => (
+                <Ligne
+                  key={m.code}
+                  dernier={i === l.length - 1}
+                  libelleAccessible={`${m.libelle}, coefficient ${coef(m.coef)}, ${m.moyenne === undefined ? 'pas de note' : `moyenne prévue ${moyenne(m.moyenne)}`}`}
+                  onPress={() => router.push({ pathname: '/matiere/[code]', params: { code: m.code, periode: vue.periode.code, eleve: eleveId } })}>
+                  <View style={{ flex: 1 }}>
+                    <Texte variante="liste" moyen numberOfLines={2}>
+                      {m.libelle}
+                    </Texte>
+                    <Texte variante="petit" attenue>
+                      coef {coef(m.coef)}
+                    </Texte>
+                  </View>
+                  <View style={styles.reglette}>
+                    <Reglette notes={sur20} moyenne={m.moyenne} />
+                  </View>
+                  <View style={styles.colonne}>
+                    <Chiffre valeur={m.moyenne} />
+                  </View>
+                </Ligne>
+              ))}
+            </Panneau>
+          </Section>
+          <Bouton
+            variante="secondaire"
+            titre="Simuler une note"
+            onPress={() => router.push({ pathname: '/simulateur', params: { periode: vue.periode.code, eleve: eleveId } })}
+          />
+          <Texte variante="petit" attenue>
+            Moyennes prévues par ED-Clone à partir de tes notes. Client non officiel, non affilié à EcoleDirecte.
+          </Texte>
+        </>
+      ) : null}
+    </Ecran>
   );
 }
+
+/** Le bloc qui répond à la question de l'écran : la moyenne générale prévue, son écart, son état face à ED. */
+function Moyenne({
+  vue,
+  chargement,
+  erreur,
+  synchro,
+  onReessayer,
+}: {
+  vue?: VueNotes;
+  chargement: boolean;
+  erreur?: unknown;
+  synchro?: string;
+  onReessayer: () => void;
+}) {
+  const c = useCouleurs();
+  const g = vue?.resultat.generale;
+  const officielle = vue?.resultat.officielleGenerale;
+  const cal = vue?.calibration;
+  const etatED =
+    officielle === undefined
+      ? 'Pas encore de moyenne officielle ED pour cette période'
+      : `Officielle ED ${moyenne(officielle)}${
+          vue?.enAvance ? `, sans ${vue.enAvance === 1 ? 'la dernière note' : `les ${vue.enAvance} dernières notes`}` : ''
+        } · ${cal?.verifie ? 'calcul vérifié' : `écart de ${moyenne(cal?.ecartMax ?? 0)} point`}`;
+  const fraicheur = chargement
+    ? 'Synchronisation avec EcoleDirecte…'
+    : synchro
+      ? `Synchro ${jour(synchro)} à ${new Date(synchro).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+      : undefined;
+
+  return (
+    <Panneau style={{ paddingVertical: espace.l, gap: espace.s }}>
+      <Texte variante="liste" attenue>
+        Moyenne générale prévue
+      </Texte>
+      <View style={styles.phare}>
+        {vue ? <Chiffre valeur={g} taillePx={taille.phare} donnee /> : <View style={[styles.attente, { backgroundColor: c.releve }]} />}
+        {vue && g !== undefined ? (
+          <Texte variante="liste" attenue>
+            /20
+          </Texte>
+        ) : null}
+        <View style={{ flex: 1 }} />
+        {vue?.ecart !== undefined && vue.depuis ? <Ecart valeur={vue.ecart} suffixe={`depuis le ${jour(vue.depuis)}`} /> : null}
+      </View>
+      {vue ? (
+        <Texte variante="liste" attenue>
+          {etatED}
+        </Texte>
+      ) : null}
+      {erreur ? (
+        <View style={{ gap: espace.xs }}>
+          <Texte variante="liste">
+            {erreur instanceof ErreurED ? erreur.message : 'La synchronisation a échoué.'}
+            {vue ? ' Notes affichées : dernière synchro réussie.' : ''}
+          </Texte>
+          <Bouton variante="texte" titre="Réessayer" onPress={onReessayer} />
+        </View>
+      ) : fraicheur ? (
+        <Texte variante="petit" attenue>
+          {fraicheur}
+        </Texte>
+      ) : null}
+    </Panneau>
+  );
+}
+
+const styles = StyleSheet.create({
+  phare: { flexDirection: 'row', alignItems: 'baseline', gap: espace.xs, minHeight: 46 },
+  attente: { width: 120, height: 40, borderRadius: 4 },
+  reglette: { width: 88 },
+  colonne: { width: 48, alignItems: 'flex-end' },
+  chiffres: { fontVariant: ['tabular-nums'] },
+});

@@ -6,7 +6,8 @@ import type { Comparaison } from './synchro';
 
 export const virgule = (x: number) => arrondi(x).toFixed(2).replace('.', ',');
 
-function libelle(d: DonneesNotes, n: Note): string {
+/** Libellé de matière d'une note (sous-matière si elle en a une). */
+export function libelleMatiere(d: DonneesNotes, n: Note): string {
   for (const p of d.periodes) {
     const m = p.matieres.find((x) => x.code === n.matiereCode && x.sousCode === n.sousMatiereCode);
     if (m) return m.libelle;
@@ -18,7 +19,7 @@ export function annonce(c: Comparaison, d: DonneesNotes, prenom?: string): { tit
   const [premiere] = c.nouvelles;
   if (!premiere) return undefined;
   const pour = prenom ? `${prenom} : ` : '';
-  const matieres = [...new Set(c.nouvelles.map((n) => libelle(d, n)))];
+  const matieres = [...new Set(c.nouvelles.map((n) => libelleMatiere(d, n)))];
   const titre = c.nouvelles.length === 1 ? `${pour}nouvelle note en ${matieres[0]}` : `${pour}${c.nouvelles.length} nouvelles notes`;
   let texte = c.nouvelles.length === 1 ? `${premiere.valeurBrute.trim()}/${premiere.noteSur}` : matieres.join(', ');
   const e = c.ecarts.find((x) => x.periode.type === 'trimestre' && x.apres !== undefined);

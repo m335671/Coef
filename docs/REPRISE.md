@@ -4,7 +4,10 @@
 
 ## Où on en est
 - **Étape 1 (squelette)** : validée. Expo SDK 58, TS strict, lint, Jest, CI GitHub Actions verte, mode démo web.
-- **Étape 2 (client ED)** : validée le 16/11/2026 après essai réel sur Android (GTK, QCM, notes, reconnexion). **Étape 3 (moteur de moyenne)** : validée le 16/11/2026 (APK n°5 : calcul identique à ED). **Étape 4 (stockage, synchro, notifications)** : validée le 17/11/2026 (APK n°7). Prochaine : **étape 5, écrans et design**.
+- **Étape 2 (client ED)** : validée le 16/11/2026 après essai réel sur Android (GTK, QCM, notes, reconnexion). **Étape 3 (moteur de moyenne)** : validée le 16/11/2026 (APK n°5 : calcul identique à ED). **Étape 4 (stockage, synchro, notifications)** : validée le 17/11/2026 (APK n°7). **Étape 5 (écrans, design)** : faite, en attente de validation.
+- Direction : taste-skill, app, style `achromatic-ledger` (graine 721322393) ; fond bleu-gris de cahier, une seule teinte (#1d5fbf) sur la moyenne prévue, Geist embarquée. Signature : la réglette 0–20 par matière. Design system : `src/ui/` (theme, composants, format).
+- Écrans : `app/index.tsx` (notes), `app/matiere/[code].tsx`, `app/simulateur.tsx` (modal), `app/reglages.tsx`, `app/connexion.tsx`. Démo web : fixture fabriquée `fixtures/ed/notes-eleve.json` via `src/demo/notes.ts`.
+- Vérifié : inspecteur taste-skill `--app` 0 FAIL 0 WARN à 1440/768/390, captures claires et sombres relues.
 - Notifications : module maison `modules/notifications-locales` (expo-notifications écarté : Firebase). Android : rien sur l'écran verrouillé (VISIBILITY_SECRET). iOS écrit, non essayé.
 - **Pas encore vérifié** : la synchro en arrière-plan en conditions réelles (WorkManager décide du moment) ; à surveiller à la prochaine vraie note.
 - Piège connu : `withExclusiveTransactionAsync` d'expo-sqlite ouvre une connexion sans la clé SQLCipher, ne pas l'utiliser. `src/domain/moyennes/` (moteur, calibration, simulateur), 100 % des branches couvertes ; fixture dorée fabriquée et calibration réelle locale au centième.
