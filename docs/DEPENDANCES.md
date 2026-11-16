@@ -16,6 +16,8 @@ Chaque dépendance a sa justification. Pas de kit UI, pas de SDK de collecte.
 | @shopify/flash-list | Listes virtualisées. |
 | react-dom, react-native-web | Aperçu web en mode démo uniquement. |
 | zod | Validation de chaque réponse ED (API non officielle, change sans prévenir). |
+| expo-secure-store | Jetons et clés d'appareil dans le trousseau (iOS) / Keystore (Android), jamais ailleurs. |
+| expo-crypto | UUID d'appareil aléatoire généré localement (et, à l'étape 4, clé SQLCipher). |
 | zustand | Stores légers au-dessus de la base, source de vérité. |
 
 ## Développement

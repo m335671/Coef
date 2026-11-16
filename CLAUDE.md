@@ -13,7 +13,7 @@ Références : Papillon (parcours ED, pièges de l'API ; ne pas reprendre son ar
 - **Aucun SDK tiers de collecte** : ni analytics, crash reporting, pub, A/B, Firebase, Sentry, Expo Updates (OTA), ni police/image depuis un CDN.
 - Notifications **locales** uniquement, sans jeton push.
 - **Réseau** : tout passe par `src/api/http.ts`, liste blanche des domaines ED. Test (`tests/reseau.test.ts`) et lint échouent si `fetch(` ou un client HTTP apparaît ailleurs.
-- Identifiants et jetons dans `expo-secure-store` seulement, jamais dans SQLite, AsyncStorage, logs ou messages d'erreur. Mot de passe gardé seulement si « rester connecté ».
+- Identifiants et jetons dans `expo-secure-store` seulement, jamais dans SQLite, AsyncStorage, logs ou messages d'erreur. Le mot de passe n'est jamais stocké : « rester connecté » garde l'`accessToken` de reconnexion (parcours mobile, voir `docs/API-ED.md`).
 - Données scolaires en **SQLite chiffrée** (expo-sqlite + SQLCipher), clé générée sur l'appareil, rangée dans SecureStore.
 - Android `allowBackup=false` ; iOS `PrivacyInfo.xcprivacy` exact.
 - Bouton « Tout effacer » : base, clés, jetons.
@@ -25,7 +25,7 @@ Références : Papillon (parcours ED, pièges de l'API ; ne pas reprendre son ar
 
 ## Stack
 Expo SDK 58 (nouvelle architecture), TypeScript, expo-router (routes dans `app/`). Reanimated, Gesture Handler, FlashList. expo-sqlite (SQLCipher), expo-secure-store, expo-local-authentication, expo-notifications (locales), expo-background-task. Zustand au-dessus de la base (source de vérité). Jest (jest-expo) + fast-check.
-- Builds natifs : `npx eas-cli build` uniquement (pas de SDK Android ni Xcode ici).
+- Builds natifs : `npx eas-cli build` uniquement (pas de SDK Android ni Xcode ici). Profil `test` (APK interne) pour les essais sur téléphone.
 - Web (`npx expo start --web`) : aperçu visuel en mode démo seulement (l'API ED refuse le navigateur, CORS). Le web est toujours en démo (`src/demo`). Sur mobile : `EXPO_PUBLIC_DEMO=1`.
 - Toujours `npx expo install <paquet>` pour les modules Expo/RN. Ne jamais créer `ios/` ni `android/` à la main (CNG) : passer par `app.json` et des config plugins.
 - Une brique pose problème : expliquer et proposer une alternative avant de changer.
@@ -45,8 +45,8 @@ fixtures/             réponses ED anonymisées (démo, tests)
 Seul `api/ecoledirecte/mapping` connaît le format ED.
 
 ## Client EcoleDirecte
-API privée : s'appuyer sur Pawdirecte, Papillon, docs communautaires (EduWireApps), pydirecte, versions récentes. Points à vérifier : GTK avant login, `X-Token` renouvelé à chaque réponse, double auth QCM base64 avec en-tête dédié, `cn`/`cv` à conserver, paramètre `v=`. Gérer mauvais identifiants, QCM, parent multi-enfants, session expirée (reconnexion silencieuse). Cache d'abord, pas de rafales, erreurs typées.
-**Licence** : Pawdirecte et Papillon sont GPL-3.0. Ne pas copier leur code sans accord explicite (le dépôt passerait en GPL-3.0) ; sinon réécrire depuis la compréhension du protocole.
+API privée : s'appuyer sur blocksdirecte (utilisé par Papillon), Papillon, hacf-fr/ecoledirecte_api (Python), docs communautaires (EduWireApps), pydirecte, versions récentes. Points à vérifier : GTK avant login, `X-Token` renouvelé à chaque réponse, double auth QCM base64 avec en-tête dédié, `cn`/`cv` à conserver, paramètre `v=`. Gérer mauvais identifiants, QCM, parent multi-enfants, session expirée (reconnexion silencieuse). Cache d'abord, pas de rafales, erreurs typées.
+**Licence** : décision prise, **aucune copie** de code (Papillon et Pawdirecte sont GPL-3.0) : réécrire depuis la compréhension du protocole.
 Tout comportement découvert ou supposé va dans `docs/API-ED.md`. Incertain : écrire l'hypothèse, la rendre facile à corriger, la signaler.
 
 ## Moteur de moyenne (priorité absolue)

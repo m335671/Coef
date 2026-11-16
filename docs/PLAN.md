@@ -2,7 +2,7 @@
 
 - [x] **1. Squelette** — Expo, TS strict, lint, tests ; CI GitHub Actions ; mode démo.
   Fin : l'app démarre en web avec les données de démo et la CI est verte.
-- [ ] **2. Client ED** — connexion, double authentification ; multi-comptes, renouvellement de session ; tests sur réponses enregistrées.
+- [ ] **2. Client ED** (code et tests faits, essai réel en attente) — connexion, double authentification ; multi-comptes, renouvellement de session ; tests sur réponses enregistrées.
   Fin : tests verts, puis essai réel sur téléphone via un build EAS de développement.
 - [ ] **3. Moteur de moyenne**, calibration et simulateur, entièrement testés.
   Fin : les fixtures dorées passent.
