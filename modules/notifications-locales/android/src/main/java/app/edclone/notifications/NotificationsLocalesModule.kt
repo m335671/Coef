@@ -38,15 +38,14 @@ class NotificationsLocalesModule : Module() {
     }
     // ponytail: icône de l'app comme petite icône ; une icône monochrome dédiée viendra avec le design (étape 5).
     val icone = context.applicationInfo.icon
-    // Écran verrouillé : ni matière ni note.
-    val publique = NotificationCompat.Builder(context, CANAL).setSmallIcon(icone).setContentTitle("Nouvelle note").build()
     val notification = NotificationCompat.Builder(context, CANAL)
       .setSmallIcon(icone)
       .setContentTitle(titre)
       .setContentText(texte)
       .setStyle(NotificationCompat.BigTextStyle().bigText(texte))
-      .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-      .setPublicVersion(publique)
+      // Rien sur l'écran verrouillé, quel que soit le réglage « contenu sensible » du téléphone (essai du
+      // 17/11/2026 : VISIBILITY_PRIVATE laissait tout voir). Réglage dans l'app prévu à l'étape 5.
+      .setVisibility(NotificationCompat.VISIBILITY_SECRET)
       .setContentIntent(ouvrir)
       .setAutoCancel(true)
       .build()

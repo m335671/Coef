@@ -4,7 +4,10 @@
 
 ## Où on en est
 - **Étape 1 (squelette)** : validée. Expo SDK 58, TS strict, lint, Jest, CI GitHub Actions verte, mode démo web.
-- **Étape 2 (client ED)** : validée le 16/11/2026 après essai réel sur Android (GTK, QCM, notes, reconnexion). **Étape 3 (moteur de moyenne)** : validée le 16/11/2026 (APK n°5 : calcul identique à ED). Prochaine : **étape 4, stockage chiffré et synchro**. `src/domain/moyennes/` (moteur, calibration, simulateur), 100 % des branches couvertes ; fixture dorée fabriquée et calibration réelle locale au centième.
+- **Étape 2 (client ED)** : validée le 16/11/2026 après essai réel sur Android (GTK, QCM, notes, reconnexion). **Étape 3 (moteur de moyenne)** : validée le 16/11/2026 (APK n°5 : calcul identique à ED). **Étape 4 (stockage, synchro, notifications)** : validée le 17/11/2026 (APK n°7). Prochaine : **étape 5, écrans et design**.
+- Notifications : module maison `modules/notifications-locales` (expo-notifications écarté : Firebase). Android : rien sur l'écran verrouillé (VISIBILITY_SECRET). iOS écrit, non essayé.
+- **Pas encore vérifié** : la synchro en arrière-plan en conditions réelles (WorkManager décide du moment) ; à surveiller à la prochaine vraie note.
+- Piège connu : `withExclusiveTransactionAsync` d'expo-sqlite ouvre une connexion sans la clé SQLCipher, ne pas l'utiliser. `src/domain/moyennes/` (moteur, calibration, simulateur), 100 % des branches couvertes ; fixture dorée fabriquée et calibration réelle locale au centième.
 - Capture réelle de `notes.awp` (anonymisée) : `fixtures/prive/notes-reelles.json`, **ignorée par git, sur cette machine seulement**. Sert au test de calibration réelle (ignoré si absent). La fixture commitée sera fabriquée.
 - Règles de calcul déjà vérifiées sur données réelles : `docs/API-ED.md`, section notes.awp.
 - Décision : **aucune copie** de code GPL (Papillon, Pawdirecte) : on réécrit à partir du protocole.
@@ -59,7 +62,6 @@ APK : `C:/edw/android/app/build/outputs/apk/release/app-release.apk` (signé ave
 | Compte parent sans enfants listés | Vérifier le chemin `profile.eleves` dans la vraie réponse. |
 
 ## Points ouverts pour plus tard
-- **Étape 4** : `expo-notifications` embarque Firebase Messaging sur Android. Inspecter le manifeste fusionné d'un vrai build ; retirer les composants FCM par config plugin, sinon proposer une alternative purement locale.
 - **Raccourcis notés dans le code** (`grep -rn "shortcut:" src app`) :
   - au démarrage, l'app reprend le premier compte enregistré ;
   - une panne réseau au démarrage renvoie vers l'écran de connexion.

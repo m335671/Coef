@@ -6,8 +6,8 @@
   Fin : tests verts, puis essai réel sur téléphone via un build EAS de développement.
 - [x] **3. Moteur de moyenne** (validée le 16/11/2026 : calcul identique à ED sur téléphone), calibration et simulateur, entièrement testés.
   Fin : les fixtures dorées passent.
-- [ ] **4. Synchro et stockage** — stockage chiffré ; synchro incrémentale ; notifications locales des nouvelles notes.
-- [ ] **5. Écrans** notes, moyennes et simulateur, finition du design.
+- [x] **4. Synchro et stockage** (validée le 17/11/2026 sur Android : base chiffrée, synchro, notification) — stockage chiffré ; synchro incrémentale ; notifications locales des nouvelles notes.
+- [ ] **5. Écrans** notes, moyennes et simulateur, finition du design. Inclut le réglage de confidentialité des notifications (écran verrouillé : rien / « Nouvelle note » / détail ; défaut : rien).
 - [ ] **6. Autres données** — emploi du temps, devoirs, vie scolaire.
 - [ ] **7. Messagerie et documents.**
 - [ ] **8. Stores** — icône et captures ; déclarations de confidentialité ; profils EAS.
