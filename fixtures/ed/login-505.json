@@ -1,1 +1,1 @@
-{ "code": 505, "token": "", "message": "Identifiant et/ou mot de passe invalide !", "data": {} }
+{ "code": 505, "token": "", "message": "Identifiant et/ou mot de passe invalide !", "data": { "changementMDP": false, "nbJourMdpExire": 0, "accounts": [] } }

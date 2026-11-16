@@ -39,6 +39,15 @@
 5. Capturer de vraies réponses pour remplacer les fixtures inventées, **anonymisées avant tout commit** (noms, établissements, identifiants, jetons) : la connexion, et surtout `notes.awp`, indispensable à l'étape 3.
 6. Mettre `docs/API-ED.md` à jour : passer chaque point vérifié de « supposé » à « confirmé ».
 
+## Construire l'APK sous Windows (sans EAS)
+Les chemins CMake dépassent 260 caractères : `subst` ne suffit pas (Node résout les vrais chemins).
+1. Worktree à chemin court : `git worktree add --detach C:/edw HEAD`, puis `npm ci` dedans.
+2. `npx expo prebuild -p android --no-install` (annuler la modif de `package.json` qu'il fait).
+3. Dans `android/local.properties` : `cmake.dir=C:/Users/<toi>/AppData/Local/Android/Sdk/cmake/3.31.6` (Ninja 1.12, chemins longs ; la 3.22.1 par défaut échoue).
+4. `JAVA_HOME` = JBR d'Android Studio, `EXPO_PUBLIC_CAPTURE=1` pour la capture, puis
+   `./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,x86_64`.
+APK : `C:/edw/android/app/build/outputs/apk/release/app-release.apk` (signé avec la clé de debug : essais seulement).
+
 ## En cas d'échec de l'essai
 | Symptôme | Piste |
 |---|---|

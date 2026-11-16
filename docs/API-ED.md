@@ -3,7 +3,13 @@
 API privée, sans documentation officielle. Chaque point porte un statut :
 **confirmé** (vu sur une réponse réelle), **supposé** (lu dans une implémentation de référence, pas encore vu par nous), **inconnu**.
 
-Rien n'est encore **confirmé** : tout reste à vérifier lors de l'essai réel (étape 2) ou sur des réponses réelles anonymisées.
+Confirmé le 16 novembre 2026 avec un identifiant inventé (aucun compte réel) : voir « Constaté sans compte » ci-dessous. Le reste attend l'essai avec un vrai compte.
+
+## Constaté sans compte — confirmé
+- `POST /v3/login.awp?v=8.0.0`, corps `data=<JSON>`, User-Agent `… EDMOBILE v8.0.0` : accepté (pas de 517), depuis l'APK Android et depuis curl.
+- Mauvais identifiants : **HTTP 200**, en-tête `x-code: 505`, corps `{"code":505,"token":"","message":"Identifiant et/ou mot de passe invalide !","data":{"changementMDP":false,"nbJourMdpExire":0,"accounts":[]}}` (`fixtures/ed/login-505.json`).
+- `access-control-expose-headers` liste `X-Token`, `X-Code`, `2FA-Token`, `X-GTK` : cohérent avec les en-têtes supposés (indice, pas preuve qu'ils sont envoyés).
+- Pas de cookie `Set-Cookie` sur cette réponse.
 
 ## Sources (lues en novembre 2026, aucun code copié)
 - `@blockshub/blocksdirecte` 0.0.10-alpha (ISC), utilisé par Papillon 8.6.2 (GPL-3.0) : parcours « application mobile ».
@@ -36,7 +42,7 @@ Constantes à corriger en un seul endroit : `src/api/ecoledirecte/client.ts` (`A
 | 200 | OK | — |
 | 210 | OK, pas de données | — |
 | 250 | Double authentification requise | étape QCM |
-| 505 | Identifiants invalides (aussi : mauvaise réponse au QCM) | `identifiants` / `qcm-echoue` |
+| 505 | Identifiants invalides (**confirmé** ; mauvaise réponse au QCM : supposé) | `identifiants` / `qcm-echoue` |
 | 517 | Version d'API (`v=`) refusée | `version-api` |
 | 520 | Jeton invalide | reconnexion silencieuse, sinon `session-expiree` |
 | 525 | Jeton expiré | idem |
