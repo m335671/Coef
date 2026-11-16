@@ -44,15 +44,11 @@ export function capturer(chemin: string, statut: number, entetes: Headers, corps
   captures.push({ chemin: chemin.replace(/\/eleves\/\d+\//, '/eleves/<id>/'), statut, entetes: noms, corps: anonymiser(corps) });
 }
 
-// Un long message est coupé au collage : on partage en parts de 12 000 caractères, une par appui.
-const TAILLE_PART = 12_000;
-let instantane = '';
-let part = 0;
-
-export function partSuivanteCaptures(): string {
-  if (part === 0) instantane = JSON.stringify(captures);
-  const total = Math.max(1, Math.ceil(instantane.length / TAILLE_PART));
-  const texte = `ED-Clone capture, partie ${part + 1}/${total}\n${instantane.slice(part * TAILLE_PART, (part + 1) * TAILLE_PART)}`;
-  part = (part + 1) % total;
-  return texte;
+/** Erreur hors ED (stockage, natif…) : message gardé, clés et jetons hexadécimaux masqués. */
+export function capturerErreur(contexte: string, e: unknown): string {
+  const message = (e instanceof Error ? `${e.name}: ${e.message}` : String(e)).replace(/[0-9a-f]{32,}/gi, '[masqué]');
+  captures.push({ chemin: `erreur:${contexte}`, statut: 0, entetes: [], corps: anonymiser({ message }) });
+  return message;
 }
+
+export const texteCaptures = (): string => JSON.stringify(captures, null, 1);

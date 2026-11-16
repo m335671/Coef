@@ -1,17 +1,16 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Share } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CAPTURE, partSuivanteCaptures } from '@/api/ecoledirecte/capture';
-import { ErreurED } from '@/api/ecoledirecte/erreurs';
+import { CAPTURE } from '@/api/ecoledirecte/capture';
 import { calibrer } from '@/domain/moyennes/calibration';
 import { calculer } from '@/domain/moyennes/moteur';
 import { depot } from '@/storage/base';
 import { annonce } from '@/sync/annonce';
 import { synchroniser } from '@/sync/synchro';
 import { MODE_DEMO } from '@/demo';
-import { Bouton, T, useCouleurs } from '@/features/compte/brut';
+import { Bouton, exporterCaptures, messageErreur, T, useCouleurs } from '@/features/compte/brut';
 import { useCompte } from '@/features/compte/store';
 import { NotesDemo } from '@/features/notes/NotesDemo';
 
@@ -59,7 +58,7 @@ function Compte() {
           : `${r.nouvelles.length} nouvelle(s), ${r.modifiees.length} modifiée(s)`;
       setResultat([`${d.notes.length} notes, ${d.periodes.length} périodes · ${source}.`, ...lignes].join('\n'));
     } catch (e) {
-      setResultat(e instanceof ErreurED ? `${e.message} (${e.detail ?? e.type})` : 'Erreur inattendue.');
+      setResultat(messageErreur(e, 'notes'));
     }
   }
 
@@ -98,7 +97,7 @@ function Compte() {
             ])
           }
         />
-        {CAPTURE ? <Bouton titre="Partager la partie suivante des captures" onPress={() => Share.share({ message: partSuivanteCaptures() })} /> : null}
+        {CAPTURE ? <Bouton titre="Exporter les captures (fichier)" onPress={() => exporterCaptures()} /> : null}
         {CAPTURE
           ? profils.flatMap((p) => p.eleves).map((e) => <Bouton key={`sim-${e.id}`} titre={`Essai : simuler une nouvelle note (${e.prenom})`} onPress={() => simulerNouvelleNote(e.id)} />)
           : null}

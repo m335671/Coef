@@ -19,8 +19,7 @@ const MIGRATIONS = [
 
 let ouverture: Promise<SQLite.SQLiteDatabase> | undefined;
 
-async function ouvrir(): Promise<SQLite.SQLiteDatabase> {
-  const cle = await cleBase();
+async function ouvrirAvecCle(cle: string): Promise<SQLite.SQLiteDatabase> {
   const db = await SQLite.openDatabaseAsync(NOM);
   // Clé brute hexadécimale (pas de dérivation de mot de passe) : elle vient déjà d'un générateur aléatoire.
   await db.execAsync(`PRAGMA key = "x'${cle}'";`);
@@ -29,12 +28,31 @@ async function ouvrir(): Promise<SQLite.SQLiteDatabase> {
     await db.closeAsync();
     throw new Error('Base non chiffrée (SQLCipher absent) : ouverture refusée.');
   }
-  const { user_version: version } = (await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version;'))!;
+  return db;
+}
+
+async function ouvrir(): Promise<SQLite.SQLiteDatabase> {
+  const cle = await cleBase();
+  let db = await ouvrirAvecCle(cle);
+  let lu = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version;').catch(() => undefined);
+  if (!lu) {
+    // Fichier illisible avec cette clé (créé sans chiffrement, ou clé perdue). La base n'est qu'un cache de
+    // données ED, toutes récupérables : on la recrée chiffrée plutôt que de bloquer l'app.
+    await db.closeAsync();
+    await SQLite.deleteDatabaseAsync(NOM);
+    db = await ouvrirAvecCle(cle);
+    lu = (await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version;'))!;
+  }
+  const version = lu.user_version;
+  // Pas de withExclusiveTransactionAsync : il ouvre une seconde connexion, sans la clé SQLCipher
+  // (« Erreur inattendue » à l'essai réel du 17/11/2026). Transaction sur cette connexion-ci.
   for (let v = version; v < MIGRATIONS.length; v++) {
-    await db.withExclusiveTransactionAsync(async (tx) => {
-      await tx.execAsync(MIGRATIONS[v]!);
-      await tx.execAsync(`PRAGMA user_version = ${v + 1};`);
-    });
+    try {
+      await db.execAsync(`BEGIN; ${MIGRATIONS[v]!} PRAGMA user_version = ${v + 1}; COMMIT;`);
+    } catch (e) {
+      await db.execAsync('ROLLBACK;').catch(() => undefined); // déjà annulée si BEGIN a échoué
+      throw e;
+    }
   }
   return db;
 }
@@ -71,6 +89,14 @@ export const depot = {
     );
   },
 };
+
+/** Essai : ouvre (et migre) la base, rend la version de SQLCipher et du schéma. */
+export async function diagnosticBase(): Promise<string> {
+  const db = await base();
+  const c = await db.getFirstAsync<{ cipher_version: string }>('PRAGMA cipher_version;');
+  const v = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version;');
+  return `SQLCipher ${c?.cipher_version} · schéma v${v?.user_version}`;
+}
 
 /** « Tout effacer » : ferme et supprime la base. La clé part avec les secrets. */
 export async function effacerBase(): Promise<void> {

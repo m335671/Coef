@@ -1,13 +1,13 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, Share, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { type CleAppareil, connexion, repondreQCM } from '@/api/ecoledirecte/client';
-import { CAPTURE, partSuivanteCaptures } from '@/api/ecoledirecte/capture';
-import { ErreurED } from '@/api/ecoledirecte/erreurs';
-import { Bouton, T, useCouleurs } from '@/features/compte/brut';
+import { CAPTURE } from '@/api/ecoledirecte/capture';
+import { Bouton, exporterCaptures, messageErreur, T, useCouleurs } from '@/features/compte/brut';
 import { useCompte } from '@/features/compte/store';
+import { diagnosticBase } from '@/storage/base';
 import { uuidAppareil } from '@/storage/secrets';
 
 type QCM = { jeton2fa: string; question: string; propositions: string[] };
@@ -28,7 +28,7 @@ export default function Connexion() {
     try {
       await action();
     } catch (e) {
-      setErreur(e instanceof ErreurED ? e.message : 'Erreur inattendue.');
+      setErreur(messageErreur(e, 'connexion'));
     } finally {
       setOccupe(false);
     }
@@ -93,7 +93,13 @@ export default function Connexion() {
         )}
         {erreur ? <T>{erreur}</T> : null}
         <T>Tes identifiants ne sont envoyés qu’à EcoleDirecte. Le mot de passe n’est jamais enregistré.</T>
-        {CAPTURE ? <Bouton titre="Partager la partie suivante des captures" onPress={() => Share.share({ message: partSuivanteCaptures() })} /> : null}
+        {CAPTURE ? <Bouton titre="Exporter les captures (fichier)" onPress={() => exporterCaptures()} /> : null}
+        {CAPTURE ? (
+          <Bouton
+            titre="Essai : base chiffrée"
+            onPress={() => diagnosticBase().then(setErreur, (e: unknown) => setErreur(messageErreur(e, 'base')))}
+          />
+        ) : null}
         <T>Client non officiel, non affilié à EcoleDirecte.</T>
       </ScrollView>
     </SafeAreaView>

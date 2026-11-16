@@ -1,6 +1,6 @@
 import parent from '../../../../fixtures/ed/login-parent.json';
 import { decoderBase64 } from '../base64';
-import { anonymiser, capturer, partSuivanteCaptures } from '../capture';
+import { anonymiser, capturer, capturerErreur, texteCaptures } from '../capture';
 
 const SECRETS = ['jeton-session-parent', 'acces-parent-1', 'Dominique', 'FICTIF', 'Lycée de Nulle Part', 'Alex', 'Sam', 2002, 777, 501, 502];
 
@@ -45,15 +45,15 @@ test('fuites vues à l’essai réel : UAI, badge de cantine, foStat, appréciat
   expect(a).toMatchObject({ modules: [{ code: 'CANTINE_BARCODE', badge: 0 }], moyenne: '12,75', dateDebut: '2026-09-02' });
 });
 
-test('partage en parts qui se recollent', () => {
-  capturer('/eleves/42/notes.awp', 200, new Headers({ 'x-token': 'secret' }), { data: { notes: Array.from({ length: 900 }, (_, i) => ({ valeur: `${i % 20}`, devoir: 'Contrôle de cours' })) } });
-  const parts = [partSuivanteCaptures()];
-  const total = Number(/partie 1\/(\d+)/.exec(parts[0]!)![1]);
-  expect(total).toBeGreaterThan(1);
-  for (let i = 1; i < total; i++) parts.push(partSuivanteCaptures());
-  const json = JSON.parse(parts.map((p) => p.slice(p.indexOf('\n') + 1)).join(''));
-  expect(json[0].chemin).toBe('/eleves/<id>/notes.awp');
-  expect(json[0].entetes).toEqual(['x-token']);
-  expect(JSON.stringify(json)).not.toContain('secret');
-  expect(partSuivanteCaptures()).toMatch(/^ED-Clone capture, partie 1\//);
+test('export : JSON complet, chemins et en-têtes sans valeur ; erreurs avec clés masquées', () => {
+  capturer('/eleves/42/notes.awp', 200, new Headers({ 'x-token': 'secret' }), { data: { notes: [{ valeur: '12' }] } });
+  const message = capturerErreur('notes', new Error(`file is not a database (clé ${'ab'.repeat(32)})`));
+  expect(message).toBe('Error: file is not a database (clé [masqué])');
+  const json = JSON.parse(texteCaptures());
+  const notes = json.find((c: { chemin: string }) => c.chemin === '/eleves/<id>/notes.awp');
+  expect(notes.entetes).toEqual(['x-token']);
+  expect(texteCaptures()).not.toContain('secret');
+  expect(texteCaptures()).not.toContain('abab');
+  expect(json.at(-1)).toMatchObject({ chemin: 'erreur:notes', statut: 0 });
+  expect(capturerErreur('x', 'texte brut')).toBe('texte brut');
 });
