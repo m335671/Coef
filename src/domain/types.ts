@@ -1,22 +1,39 @@
 // Types métier, indépendants d'EcoleDirecte. Seul api/ecoledirecte/mapping connaît le format ED.
 
-export type Periode = {
-  id: string;
-  libelle: string;
-};
+export type TypePeriode = 'trimestre' | 'releve' | 'annee' | 'examen';
 
-export type Matiere = {
+/** Une ligne de matière d'une période. Une sous-matière porte le code de sa matière parente et un sousCode. */
+export type MatierePeriode = {
   code: string;
+  sousCode?: string;
   libelle: string;
   coef: number;
+  /** Moyenne affichée par ED, si elle existe. */
+  officielle?: number;
+};
+
+export type Periode = {
+  code: string;
+  libelle: string;
+  type: TypePeriode;
+  debut: string; // AAAA-MM-JJ
+  fin: string;
+  cloture: boolean;
+  /** Dernier calcul des moyennes par ED (« AAAA-MM-JJ HH:MM ») : les notes saisies après n'y sont pas. */
+  dateCalcul?: string;
+  officielleGenerale?: number;
+  matieres: MatierePeriode[];
 };
 
 export type Note = {
   id: string;
-  periodeId: string;
+  /** Période déclarée par ED. Peu fiable : ED met celle du trimestre même pour un relevé. */
+  periodeCode: string;
   matiereCode: string;
+  sousMatiereCode?: string;
   devoir: string;
   date: string; // AAAA-MM-JJ
+  dateSaisie?: string;
   /** Valeur telle que saisie (« 12,5 », « Abs »…), avant toute interprétation. */
   valeurBrute: string;
   noteSur: number;
@@ -24,10 +41,16 @@ export type Note = {
   nonSignificative: boolean;
 };
 
+/** Drapeaux du paramétrage d'établissement que le calcul respecte. */
+export type Parametrage = {
+  /** Moyenne générale pondérée par les coefficients de matière (sinon moyenne simple des matières). */
+  moyenneCoefMatiere: boolean;
+};
+
 export type DonneesNotes = {
   periodes: Periode[];
-  matieres: Matiere[];
   notes: Note[];
+  parametrage: Parametrage;
 };
 
 export type Eleve = {

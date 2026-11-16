@@ -8,7 +8,7 @@ import { demo } from '../../../fixtures/demo';
 export function NotesDemo() {
   const sombre = useColorScheme() === 'dark';
   const texte = { color: sombre ? '#F2F2F2' : '#151515' };
-  const nom = new Map(demo.matieres.map((m) => [m.code, m.libelle]));
+  const nom = new Map(demo.periodes[0]!.matieres.map((m) => [m.code, m.libelle]));
 
   return (
     <SafeAreaView style={[styles.page, { backgroundColor: sombre ? '#101010' : '#FAFAF7' }]}>
