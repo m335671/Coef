@@ -10,7 +10,8 @@ import { cleAppareil, type CompteED, donneesConnexion, enveloppe, questionQCM } 
 export const API = 'https://api.ecoledirecte.com/v3';
 /** Paramètre v= : hypothèse, à corriger ici si ED renvoie le code 517. */
 export const VERSION_API = '8.0.0';
-const USER_AGENT = `ED-Clone EDMOBILE v${VERSION_API}`;
+// Même User-Agent que blocksdirecte (Papillon, en production) : « ED-Clone … » est peut-être refusé.
+const USER_AGENT = `Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 EDMOBILE v${VERSION_API}`;
 
 const CODE = { OK: 200, VIDE: 210, QCM: 250, IDENTIFIANTS: 505, VERSION: 517, JETON_INVALIDE: 520, JETON_EXPIRE: 525 };
 
@@ -33,13 +34,28 @@ export type ResultatConnexion =
 
 type Reponse = { code: number; token?: string; data: unknown; entetes: Headers };
 
+// Hypothèse (essai réel du 16/11/2026, 505 sans lui) : ED exige le jeton GTK avant login, même en parcours mobile.
+// Les cookies posés avec lui sont gardés et renvoyés par le client HTTP natif.
+let enteteGTK: Record<string, string> = {};
+
+async function preparerGTK(): Promise<void> {
+  try {
+    const rep = await requete(`${API}/login.awp?gtk=1&v=${VERSION_API}`, { method: 'GET', headers: { 'User-Agent': USER_AGENT } });
+    const gtk = /GTK=([^;,\s]+)/.exec(rep.headers.get('set-cookie') ?? '')?.[1];
+    enteteGTK = gtk ? { 'X-Gtk': gtk } : {};
+    if (CAPTURE) capturer('/login.awp?gtk=1', rep.status, rep.headers, { gtkRecu: Boolean(gtk) });
+  } catch {
+    enteteGTK = {}; // on tente quand même la connexion
+  }
+}
+
 async function appel(chemin: string, verbe: string | undefined, data: object, entetes: Record<string, string>): Promise<Reponse> {
   const url = `${API}${chemin}?${verbe ? `verbe=${verbe}&` : ''}v=${VERSION_API}`;
   let rep: Response;
   try {
     rep = await requete(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': USER_AGENT, ...entetes },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': USER_AGENT, ...enteteGTK, ...entetes },
       body: `data=${encodeURIComponent(JSON.stringify(data))}`,
     });
   } catch (e) {
@@ -94,6 +110,7 @@ function ouvrirSession(r: Reponse, acces: Omit<Acces, 'accessToken' | 'typeCompt
  * la reconnexion se fait ensuite avec l'accessToken (Acces).
  */
 export async function connexion(p: { identifiant: string; motDePasse: string; uuid: string; appareil?: CleAppareil }): Promise<ResultatConnexion> {
+  await preparerGTK();
   const r = await appel('/login.awp', undefined, {
     identifiant: p.identifiant,
     motdepasse: p.motDePasse,
@@ -127,6 +144,7 @@ export async function repondreQCM(jeton2fa: string, choix: string): Promise<CleA
 
 /** Reconnexion silencieuse. L'accessToken est à usage unique : le nouveau doit être sauvegardé. */
 export async function reconnexion(acces: Acces): Promise<Session> {
+  await preparerGTK();
   const r = await appel('/login.awp', undefined, {
     identifiant: acces.identifiant,
     uuid: acces.uuid,

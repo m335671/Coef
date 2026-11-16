@@ -39,6 +39,9 @@ describe('connexion', () => {
     // Le mot de passe passe tel quel, encodage spécial compris (hypothèse documentée).
     expect(e.data).toMatchObject({ identifiant: 'camille.exemple', motdepasse: 'mdp%secret+é', isReLogin: false, sesouvenirdemoi: true, uuid: 'uuid-test' });
     expect(e.data).not.toHaveProperty('cn');
+    // Jeton GTK demandé juste avant et renvoyé en en-tête.
+    expect(e.entetes['X-Gtk']).toBe('gtk-test');
+    expect(e.entetes['User-Agent']).toContain('EDMOBILE v');
   });
 
   test('sans en-tête x-token, prend le jeton du corps', async () => {

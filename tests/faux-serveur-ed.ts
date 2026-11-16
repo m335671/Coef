@@ -6,6 +6,7 @@ export function fauxServeur() {
   const envois: Envoi[] = [];
   const file: (() => Response)[] = [];
   jest.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+    if (new URL(String(url)).searchParams.get('gtk') === '1') return new Response(null, { headers: { 'set-cookie': 'GTK=gtk-test; path=/' } });
     const corps = String(init?.body ?? '');
     envois.push({
       url: new URL(String(url)),
