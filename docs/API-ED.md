@@ -11,6 +11,16 @@ Confirmé le 16 novembre 2026 avec un identifiant inventé (aucun compte réel) 
 - `access-control-expose-headers` liste `X-Token`, `X-Code`, `2FA-Token`, `X-GTK` : cohérent avec les en-têtes supposés (indice, pas preuve qu'ils sont envoyés).
 - Pas de cookie `Set-Cookie` sur cette réponse.
 
+## Essai avec un vrai compte (16 novembre 2026, Android) — confirmé
+- **Le jeton GTK est obligatoire, même en parcours mobile `v=8.0.0`.** Sans lui, un compte valide reçoit **505** (« Identifiant et/ou mot de passe invalide ! »), indiscernable de mauvais identifiants. Avec lui : 250.
+  - `GET /v3/login.awp?gtk=1&v=8.0.0` : HTTP 200, corps vide, deux `set-cookie` (`GTK=…` et un second cookie au nom hexadécimal), `domain=ecoledirecte.com`.
+  - On renvoie la valeur de `GTK` dans `X-Gtk` ; les cookies suivent via le client HTTP natif. React Native Android expose bien `set-cookie` à JS.
+  - User-Agent utilisé : celui de blocksdirecte (`Mozilla/5.0 (iPhone; …) Mobile/15E148 EDMOBILE v8.0.0`). **Non isolé** : on ne sait pas si l'ancien (`ED-Clone EDMOBILE …`) passerait avec le GTK.
+- Réponse 250 : `{"code":250,"token":"<non vide>","message":"Identifiant et/ou mot de passe invalide !","data":{"totp":false}}`, en-têtes `2fa-token` et `x-token`. **Le message est trompeur** : ne jamais l'afficher, se fier au code.
+- `POST /v3/connexion/doubleauth.awp?verbe=get` avec `2fa-token` : 200, `data.question` + `data.propositions` (15 propositions), **`message: null`**, `host`, pas de `token`.
+- Mot de passe contenant `:` : passe tel quel.
+- **Pas encore vu** : réponse au QCM (`verbe=post`), login final, `notes.awp`, reconnexion.
+
 ## Sources (lues en novembre 2026, aucun code copié)
 - `@blockshub/blocksdirecte` 0.0.10-alpha (ISC), utilisé par Papillon 8.6.2 (GPL-3.0) : parcours « application mobile ».
 - `hacf-fr/ecoledirecte_api` (Python, intégration Home Assistant, novembre 2026) : parcours « site web ».
@@ -19,7 +29,7 @@ Confirmé le 16 novembre 2026 avec un identifiant inventé (aucun compte réel) 
 ## Deux parcours de connexion
 | | Application mobile (retenu) | Site web |
 |---|---|---|
-| Jeton GTK préalable (`GET login.awp?gtk=1`, cookie `GTK` → en-tête `X-Gtk`) | non | oui |
+| Jeton GTK préalable (`GET login.awp?gtk=1`, cookie `GTK` → en-tête `X-Gtk`) | **oui (confirmé, contrairement à blocksdirecte)** | oui |
 | `v=` | `8.0.0` | `4.104.3` |
 | User-Agent | contient `EDMOBILE v8.0.0` | navigateur |
 | Reconnexion sans mot de passe | oui (`accessToken`) | non (mot de passe stocké) |

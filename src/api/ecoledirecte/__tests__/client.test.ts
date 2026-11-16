@@ -88,7 +88,7 @@ describe('connexion', () => {
       .repond(loginEleve);
 
     const r = await connexion(IDS);
-    expect(r).toEqual({ etape: 'qcm', jeton2fa: 'jeton-2fa', question: 'Quelle est votre année de naissance ?', propositions: ['2010', '2011', '2012'] });
+    expect(r).toEqual({ etape: 'qcm', jeton2fa: 'jeton-2fa', question: 'Quelle est votre année de naissance ?', propositions: Array.from({ length: 15 }, (_, i) => String(2004 + i)) });
     expect(s.envois[1]!.url.searchParams.get('verbe')).toBe('get');
     expect(s.envois[1]!.entetes['2fa-token']).toBe('jeton-2fa');
 
@@ -108,7 +108,7 @@ describe('connexion', () => {
   });
 
   test('QCM sans jeton 2FA : erreur claire', async () => {
-    fauxServeur().repond(loginQcm);
+    fauxServeur().repond({ ...loginQcm, token: '' });
     expect((await erreurDe(connexion(IDS))).type).toBe('reponse-inattendue');
   });
 

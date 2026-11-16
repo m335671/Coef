@@ -1,1 +1,1 @@
-{ "code": 250, "token": "", "message": "", "data": {} }
+{ "code": 250, "token": "jeton-fictif", "message": "Identifiant et/ou mot de passe invalide !", "data": { "totp": false } }

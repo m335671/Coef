@@ -4,8 +4,8 @@ import { z } from 'zod';
 
 export const enveloppe = z.object({
   code: z.number(),
-  token: z.string().optional(),
-  message: z.string().optional(),
+  token: z.string().nullish(),
+  message: z.string().nullish(), // confirmé : null sur doubleauth.awp
   data: z.unknown().optional(),
 });
 
