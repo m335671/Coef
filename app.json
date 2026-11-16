@@ -23,6 +23,11 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -39,7 +44,8 @@
           "useSQLCipher": true
         }
       ],
-      "expo-background-task"
+      "expo-background-task",
+      "./plugins/regles-r8"
     ]
   }
 }
