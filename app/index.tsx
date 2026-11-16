@@ -8,11 +8,14 @@ import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { calibrer } from '@/domain/moyennes/calibration';
 import { calculer } from '@/domain/moyennes/moteur';
 import { depot } from '@/storage/base';
+import { annonce } from '@/sync/annonce';
 import { synchroniser } from '@/sync/synchro';
 import { MODE_DEMO } from '@/demo';
 import { Bouton, T, useCouleurs } from '@/features/compte/brut';
 import { useCompte } from '@/features/compte/store';
 import { NotesDemo } from '@/features/notes/NotesDemo';
+
+import { afficher } from '../modules/notifications-locales';
 
 export default function Accueil() {
   return MODE_DEMO ? <NotesDemo /> : <Compte />;
@@ -60,6 +63,19 @@ function Compte() {
     }
   }
 
+  // Essai seulement (build de capture) : retire la note la plus récente du cache puis resynchronise ;
+  // ED la renvoie, elle passe pour nouvelle et déclenche la vraie notification.
+  async function simulerNouvelleNote(eleveId: string) {
+    const i = await depot.lire(eleveId);
+    const derniere = i && [...i.donnees.notes].sort((a, b) => (a.dateSaisie ?? a.date).localeCompare(b.dateSaisie ?? b.date)).pop();
+    if (!i || !derniere) return setResultat('Synchronise d’abord avec « Notes de … ».');
+    await depot.ecrire(eleveId, { ...i, donnees: { ...i.donnees, notes: i.donnees.notes.filter((n) => n.id !== derniere.id) }, synchro: new Date(0).toISOString() });
+    const r = await synchroniser(eleveId, () => client!.notes(eleveId), depot);
+    const a = annonce(r, r.instantane.donnees);
+    const affichee = a ? await afficher(1, a.titre, a.texte) : false;
+    setResultat(a ? `${a.titre} — ${a.texte}${affichee ? '' : ' (notifications refusées)'}` : 'Aucune nouvelle note détectée.');
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.fond }}>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -76,13 +92,16 @@ function Compte() {
         <Bouton
           titre="Tout effacer"
           onPress={() =>
-            Alert.alert('Tout effacer ?', 'Jetons et clés seront supprimés de cet appareil.', [
+            Alert.alert('Tout effacer ?', 'Notes, jetons et clés seront supprimés de cet appareil.', [
               { text: 'Annuler', style: 'cancel' },
               { text: 'Effacer', style: 'destructive', onPress: () => toutEffacer() },
             ])
           }
         />
         {CAPTURE ? <Bouton titre="Partager la partie suivante des captures" onPress={() => Share.share({ message: partSuivanteCaptures() })} /> : null}
+        {CAPTURE
+          ? profils.flatMap((p) => p.eleves).map((e) => <Bouton key={`sim-${e.id}`} titre={`Essai : simuler une nouvelle note (${e.prenom})`} onPress={() => simulerNouvelleNote(e.id)} />)
+          : null}
         <T>Client non officiel, non affilié à EcoleDirecte.</T>
       </ScrollView>
     </SafeAreaView>
