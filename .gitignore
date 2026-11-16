@@ -40,3 +40,6 @@ yarn-error.*
 /ios
 /android
 coverage/
+
+# données réelles (anonymisées) : jamais dans le dépôt
+/fixtures/prive/

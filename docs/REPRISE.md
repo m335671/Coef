@@ -4,7 +4,9 @@
 
 ## Où on en est
 - **Étape 1 (squelette)** : validée. Expo SDK 58, TS strict, lint, Jest, CI GitHub Actions verte, mode démo web.
-- **Étape 2 (client ED)** : code et 34 tests faits, CI verte. **Reste : l'essai réel**, puis la validation de l'utilisateur. Ne pas commencer l'étape 3 avant.
+- **Étape 2 (client ED)** : validée le 16/11/2026 après essai réel sur Android (GTK, QCM, notes, reconnexion). Prochaine : **étape 3, moteur de moyenne**.
+- Capture réelle de `notes.awp` (anonymisée) : `fixtures/prive/notes-reelles.json`, **ignorée par git, sur cette machine seulement**. Sert au test de calibration réelle (ignoré si absent). La fixture commitée sera fabriquée.
+- Règles de calcul déjà vérifiées sur données réelles : `docs/API-ED.md`, section notes.awp.
 - Décision : **aucune copie** de code GPL (Papillon, Pawdirecte) : on réécrit à partir du protocole.
 - Décision : le mot de passe n'est **jamais** stocké ; « rester connecté » garde l'`accessToken` de reconnexion dans SecureStore.
 - L'historique de la branche a été réécrit une fois (ajout du co-auteur) : repartir de `origin`, pas d'une ancienne copie.
