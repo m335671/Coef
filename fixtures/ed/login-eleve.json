@@ -1,0 +1,25 @@
+{
+  "code": 200,
+  "token": "jeton-session-eleve",
+  "message": "",
+  "data": {
+    "changementMDP": false,
+    "accounts": [
+      {
+        "idLogin": 1001,
+        "id": 4242,
+        "uid": "00000000000000000000000000000000",
+        "identifiant": "camille.exemple",
+        "typeCompte": "E",
+        "main": true,
+        "prenom": "Camille",
+        "nom": "EXEMPLE",
+        "anneeScolaireCourante": "2026-2027",
+        "nomEtablissement": "Collège Imaginaire",
+        "accessToken": "acces-1",
+        "modules": [{ "code": "NOTES", "enable": true, "ordre": 1, "badge": 0, "params": {} }],
+        "profile": { "classe": { "id": 1, "code": "3A", "libelle": "3ème A" }, "nomEtablissement": "Collège Imaginaire" }
+      }
+    ]
+  }
+}

@@ -29,3 +29,20 @@ export type DonneesNotes = {
   matieres: Matiere[];
   notes: Note[];
 };
+
+export type Eleve = {
+  id: string;
+  prenom: string;
+  nom: string;
+  classe?: string;
+  etablissement?: string;
+};
+
+/** Un compte de connexion : un élève (eleves = lui-même) ou un parent (eleves = ses enfants). */
+export type Profil = {
+  id: string;
+  type: 'eleve' | 'parent';
+  prenom: string;
+  nom: string;
+  eleves: Eleve[];
+};

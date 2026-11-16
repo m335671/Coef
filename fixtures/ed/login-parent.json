@@ -1,0 +1,24 @@
+{
+  "code": 200,
+  "token": "jeton-session-parent",
+  "data": {
+    "accounts": [
+      {
+        "idLogin": 2002,
+        "id": 777,
+        "typeCompte": "1",
+        "main": true,
+        "prenom": "Dominique",
+        "nom": "FICTIF",
+        "nomEtablissement": "Lycée de Nulle Part",
+        "accessToken": "acces-parent-1",
+        "profile": {
+          "eleves": [
+            { "id": 501, "prenom": "Alex", "nom": "FICTIF", "classe": { "id": 9, "libelle": "2nde 4" } },
+            { "id": 502, "prenom": "Sam", "nom": "FICTIF", "classe": { "id": 3, "libelle": "6ème B" } }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "code": 200,
+  "token": "",
+  "data": {
+    "question": "UXVlbGxlIGVzdCB2b3RyZSBhbm7DqWUgZGUgbmFpc3NhbmNlID8=",
+    "propositions": [
+      "MjAxMA==",
+      "MjAxMQ==",
+      "MjAxMg=="
+    ]
+  }
+}

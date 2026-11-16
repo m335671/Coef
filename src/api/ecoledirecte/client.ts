@@ -1,0 +1,183 @@
+// Client EcoleDirecte, parcours « application mobile » (voir docs/API-ED.md pour chaque hypothèse).
+import type { z } from 'zod';
+
+import { ErreurReseau, requete } from '../http';
+import { decoderBase64, encoderBase64 } from './base64';
+import { ErreurED } from './erreurs';
+import { cleAppareil, type CompteED, donneesConnexion, enveloppe, questionQCM } from './schemas';
+
+export const API = 'https://api.ecoledirecte.com/v3';
+/** Paramètre v= : hypothèse, à corriger ici si ED renvoie le code 517. */
+export const VERSION_API = '8.0.0';
+const USER_AGENT = `ED-Clone EDMOBILE v${VERSION_API}`;
+
+const CODE = { OK: 200, VIDE: 210, QCM: 250, IDENTIFIANTS: 505, VERSION: 517, JETON_INVALIDE: 520, JETON_EXPIRE: 525 };
+
+export type CleAppareil = z.infer<typeof cleAppareil>;
+
+/** De quoi se reconnecter sans mot de passe. À ranger dans SecureStore uniquement. */
+export type Acces = {
+  identifiant: string;
+  uuid: string;
+  typeCompte: string;
+  accessToken: string;
+  appareil?: CleAppareil;
+};
+
+export type Session = { token: string; comptes: CompteED[]; acces: Acces };
+
+export type ResultatConnexion =
+  | { etape: 'connecte'; session: Session }
+  | { etape: 'qcm'; jeton2fa: string; question: string; propositions: string[] };
+
+type Reponse = { code: number; token?: string; data: unknown; entetes: Headers };
+
+async function appel(chemin: string, verbe: string | undefined, data: object, entetes: Record<string, string>): Promise<Reponse> {
+  const url = `${API}${chemin}?${verbe ? `verbe=${verbe}&` : ''}v=${VERSION_API}`;
+  let rep: Response;
+  try {
+    rep = await requete(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': USER_AGENT, ...entetes },
+      body: `data=${encodeURIComponent(JSON.stringify(data))}`,
+    });
+  } catch (e) {
+    if (e instanceof ErreurReseau) throw new ErreurED('reseau');
+    throw e;
+  }
+  if (rep.status >= 500) throw new ErreurED('serveur', `HTTP ${rep.status}`);
+  let json: unknown;
+  try {
+    json = await rep.json();
+  } catch {
+    throw new ErreurED('reponse-inattendue', `${chemin} : pas du JSON (HTTP ${rep.status})`);
+  }
+  const env = valider(enveloppe, json, chemin);
+  // Le jeton est renouvelé à chaque réponse : en-tête x-token, sinon champ token du corps.
+  const token = rep.headers.get('x-token') || env.token || undefined;
+  return { code: env.code, token, data: env.data, entetes: rep.headers };
+}
+
+function valider<T>(schema: z.ZodType<T>, valeur: unknown, ou: string): T {
+  const r = schema.safeParse(valeur);
+  if (!r.success) {
+    // Seuls les chemins des champs fautifs sont gardés, jamais les valeurs.
+    const champs = r.error.issues.map((i) => i.path.join('.') || '(racine)').join(', ');
+    throw new ErreurED('reponse-inattendue', `${ou} : ${champs}`);
+  }
+  return r.data;
+}
+
+function verifierCode(code: number): void {
+  if (code === CODE.OK || code === CODE.VIDE) return;
+  if (code === CODE.IDENTIFIANTS) throw new ErreurED('identifiants');
+  if (code === CODE.VERSION) throw new ErreurED('version-api');
+  if (code === CODE.JETON_INVALIDE || code === CODE.JETON_EXPIRE) throw new ErreurED('session-expiree', `code ${code}`);
+  throw new ErreurED('serveur', `code ${code}`);
+}
+
+function ouvrirSession(r: Reponse, acces: Omit<Acces, 'accessToken' | 'typeCompte'>): Session {
+  const { accounts } = valider(donneesConnexion, r.data, 'login');
+  const principal = accounts.find((c) => c.main) ?? accounts[0]!;
+  if (!r.token || !principal.accessToken) throw new ErreurED('reponse-inattendue', 'login : jeton absent');
+  return {
+    token: r.token,
+    comptes: accounts,
+    acces: { ...acces, typeCompte: principal.typeCompte, accessToken: principal.accessToken },
+  };
+}
+
+/**
+ * Connexion par mot de passe. Le mot de passe n'est ni stocké ni journalisé ici :
+ * la reconnexion se fait ensuite avec l'accessToken (Acces).
+ */
+export async function connexion(p: { identifiant: string; motDePasse: string; uuid: string; appareil?: CleAppareil }): Promise<ResultatConnexion> {
+  const r = await appel('/login.awp', undefined, {
+    identifiant: p.identifiant,
+    motdepasse: p.motDePasse,
+    isReLogin: false,
+    sesouvenirdemoi: true,
+    uuid: p.uuid,
+    cn: p.appareil?.cn,
+    cv: p.appareil?.cv,
+    fa: p.appareil ? [p.appareil] : undefined,
+  }, {});
+
+  if (r.code === CODE.QCM) {
+    const jeton2fa = r.entetes.get('2fa-token') ?? r.token;
+    if (!jeton2fa) throw new ErreurED('reponse-inattendue', 'login : jeton 2FA absent');
+    const q = await appel('/connexion/doubleauth.awp', 'get', {}, { '2fa-token': jeton2fa });
+    verifierCode(q.code);
+    const { question, propositions } = valider(questionQCM, q.data, 'doubleauth');
+    return { etape: 'qcm', jeton2fa, question: decoderBase64(question), propositions: propositions.map(decoderBase64) };
+  }
+  verifierCode(r.code);
+  return { etape: 'connecte', session: ouvrirSession(r, { identifiant: p.identifiant, uuid: p.uuid, appareil: p.appareil }) };
+}
+
+/** Réponse au QCM. Rend la clé d'appareil (cn/cv) à repasser à connexion() puis à conserver. */
+export async function repondreQCM(jeton2fa: string, choix: string): Promise<CleAppareil> {
+  const r = await appel('/connexion/doubleauth.awp', 'post', { choix: encoderBase64(choix) }, { '2fa-token': jeton2fa });
+  if (r.code === CODE.IDENTIFIANTS) throw new ErreurED('qcm-echoue');
+  verifierCode(r.code);
+  return valider(cleAppareil, r.data, 'doubleauth');
+}
+
+/** Reconnexion silencieuse. L'accessToken est à usage unique : le nouveau doit être sauvegardé. */
+export async function reconnexion(acces: Acces): Promise<Session> {
+  const r = await appel('/login.awp', undefined, {
+    identifiant: acces.identifiant,
+    uuid: acces.uuid,
+    isReLogin: true,
+    motdepasse: '???',
+    typeCompte: acces.typeCompte,
+    accesstoken: acces.accessToken,
+    fa: acces.appareil ? [acces.appareil] : undefined,
+  }, {});
+  if (r.code !== CODE.OK) throw new ErreurED('session-expiree', `relogin code ${r.code}`);
+  return ouvrirSession(r, acces);
+}
+
+/** Appels authentifiés, avec reconnexion silencieuse une fois si le jeton a expiré. */
+export class ClientED {
+  private renouvellement?: Promise<void>;
+
+  constructor(
+    private session: Session,
+    /** Appelé à chaque rotation de l'accessToken, pour le sauvegarder. */
+    private readonly surNouvelAcces: (acces: Acces) => Promise<void> | void,
+  ) {}
+
+  get comptes(): CompteED[] {
+    return this.session.comptes;
+  }
+
+  async post(chemin: string, data: object = {}): Promise<unknown> {
+    let r = await appel(chemin, 'get', data, { 'X-Token': this.session.token });
+    if (r.code === CODE.JETON_INVALIDE || r.code === CODE.JETON_EXPIRE) {
+      await this.renouveler();
+      r = await appel(chemin, 'get', data, { 'X-Token': this.session.token });
+    }
+    verifierCode(r.code);
+    if (r.token) this.session.token = r.token;
+    return r.data;
+  }
+
+  /** Une seule reconnexion à la fois : l'accessToken ne sert qu'une fois. */
+  private renouveler(): Promise<void> {
+    this.renouvellement ??= (async () => {
+      try {
+        this.session = await reconnexion(this.session.acces);
+        await this.surNouvelAcces(this.session.acces);
+      } finally {
+        this.renouvellement = undefined;
+      }
+    })();
+    return this.renouvellement;
+  }
+
+  /** Notes brutes d'un élève (validées et traduites à l'étape 3). */
+  notesBrutes(eleveId: string): Promise<unknown> {
+    return this.post(`/eleves/${eleveId}/notes.awp`, { anneeScolaire: '' });
+  }
+}
