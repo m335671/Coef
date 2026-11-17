@@ -8,7 +8,18 @@ import { decoderBase64, encoderBase64 } from './base64';
 import { CAPTURE, capturer } from './capture';
 import { ErreurED } from './erreurs';
 import { versCours, versDevoirs, versDonneesNotes, versVieScolaire } from './mapping';
-import { cahierDuJour, cleAppareil, type CompteED, devoirsAFaire, donneesConnexion, donneesNotes, emploiDuTemps, enveloppe, questionQCM, vieScolaire } from './schemas';
+import {
+  cahierDuJour,
+  cleAppareil,
+  type CompteED,
+  devoirsAFaire,
+  donneesConnexion,
+  donneesNotes,
+  emploiDuTemps,
+  enveloppe,
+  questionQCM,
+  vieScolaire,
+} from './schemas';
 
 export const API = 'https://api.ecoledirecte.com/v3';
 /** Paramètre v= : hypothèse, à corriger ici si ED renvoie le code 517. */
@@ -31,9 +42,7 @@ export type Acces = {
 
 export type Session = { token: string; comptes: CompteED[]; acces: Acces };
 
-export type ResultatConnexion =
-  | { etape: 'connecte'; session: Session }
-  | { etape: 'qcm'; jeton2fa: string; question: string; propositions: string[] };
+export type ResultatConnexion = { etape: 'connecte'; session: Session } | { etape: 'qcm'; jeton2fa: string; question: string; propositions: string[] };
 
 type Reponse = { code: number; token?: string; data: unknown; entetes: Headers };
 
@@ -114,16 +123,21 @@ function ouvrirSession(r: Reponse, acces: Omit<Acces, 'accessToken' | 'typeCompt
  */
 export async function connexion(p: { identifiant: string; motDePasse: string; uuid: string; appareil?: CleAppareil }): Promise<ResultatConnexion> {
   await preparerGTK();
-  const r = await appel('/login.awp', undefined, {
-    identifiant: p.identifiant,
-    motdepasse: p.motDePasse,
-    isReLogin: false,
-    sesouvenirdemoi: true,
-    uuid: p.uuid,
-    cn: p.appareil?.cn,
-    cv: p.appareil?.cv,
-    fa: p.appareil ? [p.appareil] : undefined,
-  }, {});
+  const r = await appel(
+    '/login.awp',
+    undefined,
+    {
+      identifiant: p.identifiant,
+      motdepasse: p.motDePasse,
+      isReLogin: false,
+      sesouvenirdemoi: true,
+      uuid: p.uuid,
+      cn: p.appareil?.cn,
+      cv: p.appareil?.cv,
+      fa: p.appareil ? [p.appareil] : undefined,
+    },
+    {},
+  );
 
   if (r.code === CODE.QCM) {
     const jeton2fa = r.entetes.get('2fa-token') ?? r.token;
@@ -148,15 +162,20 @@ export async function repondreQCM(jeton2fa: string, choix: string): Promise<CleA
 /** Reconnexion silencieuse. L'accessToken est à usage unique : le nouveau doit être sauvegardé. */
 export async function reconnexion(acces: Acces): Promise<Session> {
   await preparerGTK();
-  const r = await appel('/login.awp', undefined, {
-    identifiant: acces.identifiant,
-    uuid: acces.uuid,
-    isReLogin: true,
-    motdepasse: '???',
-    typeCompte: acces.typeCompte,
-    accesstoken: acces.accessToken,
-    fa: acces.appareil ? [acces.appareil] : undefined,
-  }, {});
+  const r = await appel(
+    '/login.awp',
+    undefined,
+    {
+      identifiant: acces.identifiant,
+      uuid: acces.uuid,
+      isReLogin: true,
+      motdepasse: '???',
+      typeCompte: acces.typeCompte,
+      accesstoken: acces.accessToken,
+      fa: acces.appareil ? [acces.appareil] : undefined,
+    },
+    {},
+  );
   if (r.code !== CODE.OK) throw new ErreurED('session-expiree', `relogin code ${r.code}`);
   return ouvrirSession(r, acces);
 }
@@ -206,13 +225,17 @@ export class ClientED {
   }
 
   /**
-   * Devoirs à faire, avec la consigne des `joursDetailles` premiers jours (une requête par jour, en file :
-   * pas de rafale). Chemins et formats supposés : docs/API-ED.md.
+   * Devoirs à faire, avec la consigne des `joursDetailles` prochains jours à partir d'aujourd'hui (une requête
+   * par jour, en file : pas de rafale). La liste d'ED contient aussi les jours passés (capture réelle) : sans ce
+   * filtre, le détail chargé était celui des devoirs déjà rendus. Chemins : docs/API-ED.md.
    */
-  async devoirs(eleveId: string, joursDetailles = 7): Promise<Devoir[]> {
+  async devoirs(eleveId: string, joursDetailles = 7, aujourdhui = jourLocal()): Promise<Devoir[]> {
     const liste = valider(devoirsAFaire, await this.post(`/Eleves/${eleveId}/cahierdetexte.awp`, {}), 'cahierdetexte');
     const jours = [];
-    for (const date of Object.keys(liste).sort().slice(0, joursDetailles)) {
+    for (const date of Object.keys(liste)
+      .filter((j) => j >= aujourdhui)
+      .sort()
+      .slice(0, joursDetailles)) {
       jours.push(valider(cahierDuJour, await this.post(`/Eleves/${eleveId}/cahierdetexte/${date}.awp`, {}), 'cahierdetexte/jour'));
     }
     return versDevoirs(liste, jours);
@@ -236,4 +259,10 @@ export class ClientED {
     const data = await this.post(`/eleves/${eleveId}/notes.awp`, { anneeScolaire: '' });
     return versDonneesNotes(valider(donneesNotes, data, 'notes'));
   }
+}
+
+/** Date du jour (AAAA-MM-JJ) dans le fuseau du téléphone. */
+function jourLocal(): string {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
 }

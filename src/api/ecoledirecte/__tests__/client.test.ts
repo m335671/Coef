@@ -70,7 +70,10 @@ describe('connexion', () => {
     expect(r.session.acces.typeCompte).toBe('1');
     const p = versProfil(r.session.comptes[0]!);
     expect(p.type).toBe('parent');
-    expect(p.eleves.map((e) => [e.id, e.classe])).toEqual([['501', '2nde 4'], ['502', '6ème B']]);
+    expect(p.eleves.map((e) => [e.id, e.classe])).toEqual([
+      ['501', '2nde 4'],
+      ['502', '6ème B'],
+    ]);
   });
 
   test('profils avec champs null ou absents (vu chez ED) : rien d’inventé', () => {
@@ -92,14 +95,15 @@ describe('connexion', () => {
   });
 
   test('double authentification : QCM décodé, réponse encodée, clé d’appareil réutilisée', async () => {
-    const s = fauxServeur()
-      .repond(loginQcm, { '2fa-token': 'jeton-2fa' })
-      .repond(doubleauthGet)
-      .repond(doubleauthPost)
-      .repond(loginEleve);
+    const s = fauxServeur().repond(loginQcm, { '2fa-token': 'jeton-2fa' }).repond(doubleauthGet).repond(doubleauthPost).repond(loginEleve);
 
     const r = await connexion(IDS);
-    expect(r).toEqual({ etape: 'qcm', jeton2fa: 'jeton-2fa', question: 'Quelle est votre année de naissance ?', propositions: Array.from({ length: 15 }, (_, i) => String(2004 + i)) });
+    expect(r).toEqual({
+      etape: 'qcm',
+      jeton2fa: 'jeton-2fa',
+      question: 'Quelle est votre année de naissance ?',
+      propositions: Array.from({ length: 15 }, (_, i) => String(2004 + i)),
+    });
     expect(s.envois[1]!.url.searchParams.get('verbe')).toBe('get');
     expect(s.envois[1]!.entetes['2fa-token']).toBe('jeton-2fa');
 
@@ -156,7 +160,9 @@ describe('session', () => {
   const loginRenouvele = { ...loginEleve, token: 'jeton-neuf', data: { accounts: [{ ...loginEleve.data.accounts[0], accessToken: 'acces-2' }] } };
 
   test('renouvelle le jeton à chaque réponse', async () => {
-    const s = fauxServeur().repond({ code: 200, data: { a: 1 } }, { 'x-token': 'jeton-2' }).repond({ code: 200, data: {} });
+    const s = fauxServeur()
+      .repond({ code: 200, data: { a: 1 } }, { 'x-token': 'jeton-2' })
+      .repond({ code: 200, data: {} });
     const c = new ClientED({ ...session(), token: 'jeton-1' }, jest.fn());
     await c.post('/eleves/4242/notes.awp');
     await c.post('/eleves/4242/notes.awp');
@@ -165,7 +171,10 @@ describe('session', () => {
   });
 
   test('session expirée : reconnexion silencieuse sans mot de passe, nouvel accès sauvegardé', async () => {
-    const s = fauxServeur().repond({ code: 525, data: {} }).repond(loginRenouvele).repond({ code: 200, data: { ok: true } });
+    const s = fauxServeur()
+      .repond({ code: 525, data: {} })
+      .repond(loginRenouvele)
+      .repond({ code: 200, data: { ok: true } });
     const sauver = jest.fn();
     const c = new ClientED(session(), sauver);
     expect(await c.post('/eleves/4242/notes.awp')).toEqual({ ok: true });
@@ -209,6 +218,15 @@ describe('session', () => {
     expect(s.envois[0]!.url.searchParams.get('verbe')).toBe('put');
     expect(s.envois[0]!.url.pathname).toBe('/v3/Eleves/4242/cahierdetexte.awp');
     expect(s.envois[0]!.data).toEqual({ idDevoirsEffectues: [501], idDevoirsNonEffectues: [502] });
+  });
+
+  test('devoirs : la consigne est demandée pour les prochains jours, pas pour les jours passés', async () => {
+    const s = fauxServeur()
+      .repond({ code: 200, data: { '2026-11-02': [{ idDevoir: 1, matiere: 'A' }], '2026-11-18': [{ idDevoir: 2, matiere: 'B' }] } })
+      .repond({ code: 200, data: { date: '2026-11-18', matieres: [] } });
+    const d = await new ClientED({ ...session(), token: 'jeton-1' }, jest.fn()).devoirs('4242', 7, '2026-11-17');
+    expect(s.envois.map((e) => e.url.pathname)).toEqual(['/v3/Eleves/4242/cahierdetexte.awp', '/v3/Eleves/4242/cahierdetexte/2026-11-18.awp']);
+    expect(d.map((x) => x.id)).toEqual(['1', '2']);
   });
 
   test('reconnexion directe', async () => {

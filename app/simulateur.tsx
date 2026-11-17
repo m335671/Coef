@@ -6,7 +6,8 @@ import { StyleSheet, View } from 'react-native';
 
 import { leviers } from '@/domain/moyennes/impact';
 import { calculer } from '@/domain/moyennes/moteur';
-import { avecHypotheses, type NoteHypothetique } from '@/domain/moyennes/simulateur';
+import { avecHypotheses, noteNecessaire, type NoteHypothetique } from '@/domain/moyennes/simulateur';
+import type { Note, Periode } from '@/domain/types';
 import { cleSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
 import {
@@ -35,7 +36,7 @@ import Svg, { Path } from 'react-native-svg';
 
 const POIDS = [0.5, 1, 2, 3, 4];
 const AUCUNE: NoteHypothetique[] = [];
-type Onglet = 'ajouter' | 'objectif';
+type Onglet = 'ajouter' | 'calcul' | 'objectif';
 type Saisie = { code: string; valeur: number; sur: number; poids: number };
 
 export default function Simulation() {
@@ -160,7 +161,8 @@ export default function Simulation() {
         <Segments
           libelle="Mode de simulation"
           options={[
-            { cle: 'ajouter' as const, libelle: 'Ajouter des notes' },
+            { cle: 'ajouter' as const, libelle: 'Ajouter' },
+            { cle: 'calcul' as const, libelle: 'Calculateur' },
             { cle: 'objectif' as const, libelle: 'Objectif' },
           ]}
           valeur={onglet}
@@ -233,6 +235,20 @@ export default function Simulation() {
             })}
           </View>
         </Section>
+      ) : onglet === 'calcul' ? (
+        <Calculateur
+          p={p}
+          notes={notesSimulees}
+          periodes={d.periodes}
+          options={options}
+          matieres={apres.matieres.filter((m) => m.coef > 0).map((m) => ({ code: m.code, libelle: m.libelle, moyenne: m.moyenne }))}
+          generale={apres.generale}
+          depart={{ code: params.code, objectif }}
+          onAjouter={(code, valeur, sur, poids) => {
+            ajouter({ code, valeur, sur, poids });
+            setOnglet('ajouter');
+          }}
+        />
       ) : (
         <Objectif
           objectif={objectif}
@@ -357,6 +373,130 @@ export default function Simulation() {
         ) : null}
       </Feuille>
     </Ecran>
+  );
+}
+
+/**
+ * Onglet Calculateur : une matière, une moyenne visée (générale ou de la matière), le barème et le poids de la
+ * prochaine évaluation → la note qu'il y faut. Part de la moyenne prévue, notes simulées comprises.
+ */
+function Calculateur({
+  p,
+  notes,
+  periodes,
+  options,
+  matieres,
+  generale,
+  depart,
+  onAjouter,
+}: {
+  p: Periode;
+  notes: Note[];
+  periodes: Periode[];
+  options: Parameters<typeof noteNecessaire>[6];
+  matieres: { code: string; libelle: string; moyenne?: number }[];
+  generale?: number;
+  depart: { code?: string; objectif: number };
+  onAjouter: (code: string, valeur: number, sur: number, poids: number) => void;
+}) {
+  const c = useCouleurs();
+  const [code, setCode] = useState(matieres.some((m) => m.code === depart.code) ? depart.code! : matieres[0]?.code);
+  const [portee, setPortee] = useState<'generale' | 'matiere'>('generale');
+  const [vise, setVise] = useState(Math.min(20, Math.round(depart.objectif * 4) / 4));
+  const [sur, setSur] = useState(20);
+  const [poids, setPoids] = useState(1);
+  const m = matieres.find((x) => x.code === code);
+  if (!m) return null;
+  const actuelle = portee === 'generale' ? generale : m.moyenne;
+  const note = noteNecessaire(
+    p,
+    notes,
+    periodes,
+    { matiereCode: m.code, noteSur: sur, coef: poids },
+    portee === 'generale' ? { portee: 'generale' } : { portee: 'matiere', code: m.code },
+    vise,
+    options,
+  );
+  const quart = note === undefined ? undefined : Math.min(sur, Math.ceil(note * 4) / 4);
+  return (
+    <Section titre="Combien me faut-il ?" aide="À la prochaine évaluation, dans la matière choisie." rang={3}>
+      <View style={styles.puces}>
+        {matieres.map((x) => (
+          <Presse
+            key={x.code}
+            role="radio"
+            selectionne={x.code === code}
+            libelleAccessible={x.libelle}
+            onPress={() => setCode(x.code)}
+            style={[styles.puce, { backgroundColor: x.code === code ? c.accent : c.teinte50 }]}>
+            <Texte variante="petit" numberOfLines={1} style={{ color: x.code === code ? c.surAccent : c.accentEncre, fontFamily: police.fort }}>
+              {x.libelle}
+            </Texte>
+          </Presse>
+        ))}
+      </View>
+      <Segments
+        libelle="Moyenne visée"
+        plein
+        options={[
+          { cle: 'generale' as const, libelle: 'Générale' },
+          { cle: 'matiere' as const, libelle: 'De la matière' },
+        ]}
+        valeur={portee}
+        onChange={setPortee}
+      />
+      <Curseur
+        libelle={portee === 'generale' ? 'Moyenne générale visée' : `Moyenne visée en ${m.libelle}`}
+        texteValeur={`${moyenne(vise)} sur 20`}
+        valeur={vise}
+        min={0}
+        max={20}
+        pas={0.25}
+        onChange={setVise}
+      />
+      <View style={styles.rangee}>
+        <Texte variante="liste" moyen style={{ flex: 1 }}>
+          Viser {moyenne(vise)}
+        </Texte>
+        <Segments libelle="Barème" options={[20, 10].map((v) => ({ cle: v, libelle: `sur ${v}` }))} valeur={sur} onChange={setSur} />
+      </View>
+      <Segments
+        libelle="Poids de l’évaluation"
+        plein
+        options={POIDS.map((v) => ({ cle: v, libelle: `×${formatCoef(v)}` }))}
+        valeur={poids}
+        onChange={setPoids}
+      />
+      <Panneau teinte style={{ paddingVertical: espace.l, gap: espace.s }}>
+        <Texte variante="liste" style={{ color: c.accentEncre }}>
+          {portee === 'generale' ? 'Générale' : m.libelle} : {actuelle === undefined ? '—' : moyenne(actuelle)} aujourd’hui
+        </Texte>
+        {note === undefined ? (
+          <Texte variante="section">
+            Même {sur}/{sur} n’y suffit pas avec un poids ×{formatCoef(poids)}.
+          </Texte>
+        ) : note === 0 ? (
+          <Texte variante="section">Déjà acquis : n’importe quelle note suffit.</Texte>
+        ) : (
+          <>
+            <View style={styles.phare}>
+              <Texte variante="liste" attenue>
+                il te faut
+              </Texte>
+              <ChiffreAnime valeur={note} taillePx={taille.geant} couleur={c.accent} />
+              <Texte variante="section" attenue>
+                /{sur}
+              </Texte>
+            </View>
+            <Bouton
+              variante="texte"
+              titre={`Simuler ${moyenne(quart!).replace(/,00$/, '')}/${sur} en ${m.libelle}`}
+              onPress={() => onAjouter(m.code, quart!, sur, poids)}
+            />
+          </>
+        )}
+      </Panneau>
+    </Section>
   );
 }
 

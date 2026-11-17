@@ -26,11 +26,12 @@ export default function Devoirs() {
 
   const aujourdhui = iso(new Date());
   const demain = ajouterJours(aujourdhui, 1);
-  const devoirs = etat?.valeur ?? [];
-  const parJour = [...new Set(devoirs.map((d) => d.pour))].map((pour) => ({
-    pour,
-    liste: devoirs.filter((d) => d.pour === pour),
-  }));
+  const tous = etat?.valeur ?? [];
+  const [voirPasses, setVoirPasses] = useState(false);
+  const devoirs = tous.filter((d) => d.pour >= aujourdhui);
+  const passes = tous.filter((d) => d.pour < aujourdhui);
+  const grouper = (l: Devoir[]) => [...new Set(l.map((d) => d.pour))].map((pour) => ({ pour, liste: l.filter((d) => d.pour === pour) }));
+  const parJour = [...grouper(devoirs), ...(voirPasses ? grouper(passes).reverse() : [])];
   const restants = devoirs.filter((d) => !d.effectue).length;
   const [erreurCoche, setErreurCoche] = useState<string>();
   const cocher = (id: string, fait: boolean) => {
@@ -69,61 +70,76 @@ export default function Devoirs() {
         <Texte variante="liste" attenue>
           Chargement du cahier de textes…
         </Texte>
-      ) : parJour.length === 0 ? (
-        <Texte variante="liste" attenue>
-          Aucun devoir à venir.
-        </Texte>
       ) : (
-        parJour.map(({ pour, liste }, i) => (
-          <Section key={pour} titre={pour === aujourdhui ? 'Pour aujourd’hui' : pour === demain ? 'Pour demain' : `Pour ${jourLong(pour)}`} rang={2 + i}>
-            <View style={{ gap: espace.s }}>
-              {liste.map((d) => {
-                return (
-                  <Presse
-                    key={d.id}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/devoir/[id]',
-                        params: { id: d.id, eleve: eleve!.id },
-                      })
-                    }
-                    libelleAccessible={`${d.matiere}${d.interrogation ? ', interrogation' : ''}${d.effectue ? ', fait' : ''}. ${d.contenu ?? ''}. Ouvrir le détail`}
-                    style={[
-                      styles.carte,
-                      {
-                        backgroundColor: d.effectue ? c.surface : c.teinte50,
-                        borderColor: d.effectue ? c.bord : 'transparent',
-                      },
-                    ]}>
-                    <View style={styles.rangee}>
-                      <Texte
-                        variante="liste"
-                        moyen
-                        numberOfLines={1}
-                        style={{
-                          flex: 1,
-                          color: d.effectue ? c.attenue : c.texte,
-                        }}>
-                        {d.matiere}
-                      </Texte>
-                      {d.interrogation ? <Pastille texte="Interro" fond={c.surface} encre={c.negatif} /> : null}
-                      <Coche libelle="Fait" coche={d.effectue} onChange={(v) => cocher(d.id, v)} />
-                    </View>
-                    {d.contenu ? (
-                      <Texte variante="liste" numberOfLines={3} style={{ color: d.effectue ? c.attenue : c.texte }}>
-                        {d.contenu}
-                      </Texte>
-                    ) : (
-                      <Texte variante="petit" attenue>
-                        Consigne pas encore chargée.
-                      </Texte>
-                    )}
-                  </Presse>
-                );
-              })}
-            </View>
-          </Section>
-        ))
+        <>
+          {devoirs.length === 0 ? (
+            <Texte variante="liste" attenue>
+              Aucun devoir à venir.
+            </Texte>
+          ) : null}
+          {parJour.map(({ pour, liste }, i) => (
+            <Section
+              key={pour}
+              titre={
+                pour === aujourdhui ? 'Pour aujourd’hui' : pour === demain ? 'Pour demain' : `${pour < aujourdhui ? 'Était pour' : 'Pour'} ${jourLong(pour)}`
+              }
+              rang={2 + i}>
+              <View style={{ gap: espace.s }}>
+                {liste.map((d) => {
+                  return (
+                    <Presse
+                      key={d.id}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/devoir/[id]',
+                          params: { id: d.id, eleve: eleve!.id },
+                        })
+                      }
+                      libelleAccessible={`${d.matiere}${d.interrogation ? ', interrogation' : ''}${d.effectue ? ', fait' : ''}. ${d.contenu ?? ''}. Ouvrir le détail`}
+                      style={[
+                        styles.carte,
+                        {
+                          backgroundColor: d.effectue ? c.surface : c.teinte50,
+                          borderColor: d.effectue ? c.bord : 'transparent',
+                        },
+                      ]}>
+                      <View style={styles.rangee}>
+                        <Texte
+                          variante="liste"
+                          moyen
+                          numberOfLines={1}
+                          style={{
+                            flex: 1,
+                            color: d.effectue ? c.attenue : c.texte,
+                          }}>
+                          {d.matiere}
+                        </Texte>
+                        {d.interrogation ? <Pastille texte="Interro" fond={c.surface} encre={c.negatif} /> : null}
+                        <Coche libelle="Fait" coche={d.effectue} onChange={(v) => cocher(d.id, v)} />
+                      </View>
+                      {d.contenu ? (
+                        <Texte variante="liste" numberOfLines={3} style={{ color: d.effectue ? c.attenue : c.texte }}>
+                          {d.contenu}
+                        </Texte>
+                      ) : (
+                        <Texte variante="petit" attenue>
+                          Consigne pas encore chargée.
+                        </Texte>
+                      )}
+                    </Presse>
+                  );
+                })}
+              </View>
+            </Section>
+          ))}
+          {passes.length > 0 ? (
+            <Bouton
+              variante="texte"
+              titre={voirPasses ? 'Masquer les jours passés' : `Voir les jours passés (${passes.length} devoir${passes.length > 1 ? 's' : ''})`}
+              onPress={() => setVoirPasses(!voirPasses)}
+            />
+          ) : null}
+        </>
       )}
     </Ecran>
   );
