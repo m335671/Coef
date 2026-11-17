@@ -528,33 +528,86 @@ const CheminAnime = Animated.createAnimatedComponent(Path);
  * Courbe d'évolution d'une moyenne (reprise de la v1 enrichie) : elle se trace à l'arrivée, un point marque
  * la dernière valeur. `points` en ordre chronologique.
  */
-export function Courbe({ points, hauteur = 64, libelle, couleur }: { points: number[]; hauteur?: number; libelle: string; couleur?: string }) {
+/**
+ * Courbe d'évolution. Avec `onSurvol`, elle se parcourt au doigt (glisser à l'horizontale) : un point suit le
+ * doigt, la suite de la courbe s'estompe, et le parent reçoit l'indice du point (undefined au lâcher).
+ */
+export function Courbe({
+  points,
+  hauteur = 64,
+  libelle,
+  couleur,
+  onSurvol,
+}: {
+  points: number[];
+  hauteur?: number;
+  libelle: string;
+  couleur?: string;
+  onSurvol?: (i: number | undefined) => void;
+}) {
   const c = useCouleurs();
   const reduit = useReducedMotion();
   const largeur = 320;
   const trace = useSharedValue(reduit ? 1 : 0);
-  const { d, longueur, fin, milieu } = useMemo(() => {
+  const [survol, setSurvol] = useState<number>();
+  const largeurVue = useRef(0);
+  const dernier = useRef<number>(undefined);
+  const { xy, d, longueur, fin, milieu } = useMemo(() => {
     const min = Math.min(...points) - 0.3;
     const max = Math.max(...points) + 0.3;
     const xy = points.map((p, i) => [points.length === 1 ? largeur : (i / (points.length - 1)) * (largeur - 8) + 4, hauteur - 6 - ((p - min) / (max - min)) * (hauteur - 12)] as const);
     let l = 0;
     for (let i = 1; i < xy.length; i++) l += Math.hypot(xy[i]![0] - xy[i - 1]![0], xy[i]![1] - xy[i - 1]![1]);
-    return { d: xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' '), longueur: Math.max(l, 1), fin: xy.at(-1)!, milieu: hauteur / 2 };
+    return { xy, d: xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' '), longueur: Math.max(l, 1), fin: xy.at(-1)!, milieu: hauteur / 2 };
   }, [points, hauteur]);
   useEffect(() => {
     trace.value = 0;
     trace.value = reduit ? 1 : withDelay(200, withTiming(1, { duration: 1200, easing: Easing.bezier(0.4, 0, 0.2, 1) }));
   }, [d, reduit, trace]);
   const props = useAnimatedProps(() => ({ strokeDashoffset: longueur * (1 - trace.value) }));
+  const choisir = (x: number | undefined) => {
+    const i = x === undefined || largeurVue.current <= 0 ? undefined : Math.round(Math.min(Math.max(((x / largeurVue.current) * largeur - 4) / (largeur - 8), 0), 1) * (points.length - 1));
+    if (i === dernier.current) return;
+    dernier.current = i;
+    setSurvol(i);
+    onSurvol?.(i);
+  };
+  // Glisser à l'horizontale seulement : le défilement vertical de l'écran reste libre.
+  const geste = usePanGesture({
+    runOnJS: true,
+    enabled: !!onSurvol && points.length > 1,
+    activeOffsetX: [-6, 6],
+    failOffsetY: [-14, 14],
+    onActivate: (e) => choisir(e.x),
+    onUpdate: (e) => choisir(e.x),
+    onFinalize: () => choisir(undefined),
+  });
   if (points.length < 2) return null;
+  const teinte = couleur ?? c.accent;
+  const p = survol === undefined ? undefined : xy[survol];
+  const chemin = (l: typeof xy) => l.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={libelle}>
-      <Svg width="100%" height={hauteur} viewBox={`0 0 ${largeur} ${hauteur}`} preserveAspectRatio="none">
-        <Line x1={0} y1={milieu} x2={largeur} y2={milieu} stroke={c.teinte100} strokeDasharray="3 5" />
-        <CheminAnime d={d} fill="none" stroke={couleur ?? c.accent} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={longueur} animatedProps={props} />
-        <Circle cx={fin[0]} cy={fin[1]} r={4} fill={couleur ?? c.accent} />
-      </Svg>
-    </View>
+    <GestureDetector gesture={geste}>
+      <View accessible accessibilityRole="image" accessibilityLabel={libelle} onLayout={(e) => (largeurVue.current = e.nativeEvent.layout.width)}>
+        <Svg width="100%" height={hauteur} viewBox={`0 0 ${largeur} ${hauteur}`} preserveAspectRatio="none">
+          <Line x1={0} y1={milieu} x2={largeur} y2={milieu} stroke={c.teinte100} strokeDasharray="3 5" />
+          {p === undefined ? (
+            <>
+              <CheminAnime d={d} fill="none" stroke={teinte} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={longueur} animatedProps={props} />
+              <Circle cx={fin[0]} cy={fin[1]} r={4} fill={teinte} />
+            </>
+          ) : (
+            <>
+              <Path d={chemin(xy.slice(survol))} fill="none" stroke={teinte} strokeOpacity={0.25} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+              <Path d={chemin(xy.slice(0, survol! + 1))} fill="none" stroke={teinte} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+              <Line x1={p[0]} y1={0} x2={p[0]} y2={hauteur} stroke={teinte} strokeOpacity={0.25} />
+              <Circle cx={p[0]} cy={p[1]} r={12} fill={teinte} fillOpacity={0.15} />
+              <Circle cx={p[0]} cy={p[1]} r={5} fill={teinte} />
+            </>
+          )}
+        </Svg>
+      </View>
+    </GestureDetector>
   );
 }
 

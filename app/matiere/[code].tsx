@@ -1,6 +1,7 @@
 // Détail d'une matière. Sa question : « D'où vient cette moyenne ? » Chaque note, ce qu'elle pèse, et pourquoi
 // certaines ne comptent pas.
 import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import type { DetailNote, Exclusion, ResultatMatiere } from '@/domain/moyennes/moteur';
@@ -21,6 +22,7 @@ const RAISON: Record<Exclusion, string> = {
 
 export default function DetailMatiere() {
   const c = useCouleurs();
+  const [survol, setSurvol] = useState<number>();
   const { code, periode, eleve } = useLocalSearchParams<{ code: string; periode: string; eleve: string }>();
   const instantane = useNotes((s) => s.eleves[eleve]?.instantane);
   const vue = instantane ? vueNotes(instantane, periode) : undefined;
@@ -56,10 +58,10 @@ export default function DetailMatiere() {
             <Pastille texte={`coef ${coef(m.matiere.coef)}`} />
           </View>
           <View style={styles.phare}>
-            <ChiffreAnime valeur={m.matiere.moyenne} taillePx={taille.phare} couleur={c.accent} />
+            <ChiffreAnime valeur={survol === undefined ? m.matiere.moyenne : courbe[survol]?.moyenne} taillePx={taille.phare} couleur={c.accent} />
             {m.matiere.moyenne !== undefined ? (
               <Texte variante="liste" attenue>
-                /20
+                /20{survol !== undefined && courbe[survol] ? ` au ${jour(courbe[survol].date)}` : ''}
               </Texte>
             ) : null}
           </View>
@@ -70,7 +72,9 @@ export default function DetailMatiere() {
               libelle={`Ta moyenne ${moyenne(m.matiere.moyenne)} sur 20${classe?.moyenne !== undefined ? `, classe ${moyenne(classe.moyenne)}` : ''}${classe?.min !== undefined && classe.max !== undefined ? `, de ${moyenne(classe.min)} à ${moyenne(classe.max)}` : ''}`}
             />
           ) : null}
-          {courbe.length > 1 ? <Courbe points={courbe.map((x) => x.moyenne)} libelle={`Évolution de la moyenne de ${m.matiere.libelle}`} /> : null}
+          {courbe.length > 1 ? (
+            <Courbe points={courbe.map((x) => x.moyenne)} onSurvol={setSurvol} libelle={`Évolution de la moyenne de ${m.matiere.libelle}`} />
+          ) : null}
           <Texte variante="petit" style={{ color: c.accentEncre }}>
             {m.matiere.officielle === undefined ? 'Pas encore de moyenne officielle ED' : `Officielle ED ${moyenne(m.matiere.officielle)}`}
           </Texte>

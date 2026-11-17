@@ -515,6 +515,8 @@ function Moyenne({
   onReessayer: () => void;
 }) {
   const c = useCouleurs();
+  const [survol, setSurvol] = useState<number>();
+  const pointSurvole = survol === undefined ? undefined : courbe[survol];
   const g = vue?.resultat.generale;
   const officielle = vue?.resultat.officielleGenerale;
   const cal = vue?.calibration;
@@ -560,14 +562,14 @@ function Moyenne({
       </View>
       {vue ? (
         <Anneau
-          valeur={g}
+          valeur={pointSurvole?.moyenne ?? g}
           couleur={teinte}
           fond={simule ? c.surface : c.teinte50}
           reperes={reperes}
           libelle={`Moyenne générale ${simule ? 'simulée' : 'prévue'} ${g === undefined ? 'absente' : `${moyenne(g)} sur 20`}${reperes.map((x) => `, ${x.libelle}`).join('')}`}>
-          <ChiffreAnime valeur={g} taillePx={taille.phare} couleur={teinte} />
+          <ChiffreAnime valeur={pointSurvole?.moyenne ?? g} taillePx={taille.phare} couleur={teinte} />
           <Texte variante="petit" attenue style={{ fontVariant: ['tabular-nums'] }}>
-            {simule ? `réelle ${moyenne(reelle)}` : 'sur 20'}
+            {pointSurvole ? `au ${jour(pointSurvole.date)}` : simule ? `réelle ${moyenne(reelle)}` : 'sur 20'}
           </Texte>
         </Anneau>
       ) : (
@@ -610,6 +612,7 @@ function Moyenne({
           <Courbe
             couleur={teinte}
             points={courbe.map((p) => p.moyenne)}
+            onSurvol={setSurvol}
             libelle={`Évolution de la moyenne prévue, de ${moyenne(courbe[0]!.moyenne)} le ${jour(courbe[0]!.date)} à ${moyenne(courbe.at(-1)!.moyenne)} le ${jour(courbe.at(-1)!.date)}`}
           />
           <View style={styles.rangee}>
