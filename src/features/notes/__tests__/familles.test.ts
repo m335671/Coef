@@ -1,7 +1,7 @@
 import { instantaneDemo } from '@/demo/notes';
 
 import { familleDe } from '../familles';
-import { evolution } from '../vue';
+import { evolution, evolutionsMatieres } from '../vue';
 
 test.each([
   ['MATHS', 'MATHEMATIQUES TC', 'sciences'],
@@ -29,4 +29,13 @@ test('évolution : une valeur par date de note, la dernière égale à la moyenn
   const m = evolution(i.donnees, p, 'MATHS');
   expect(m.at(-1)!.moyenne).toBeGreaterThan(0);
   expect(evolution(i.donnees, p, 'INCONNUE')).toEqual([]);
+});
+
+test('évolutions par matière : même dernière valeur que la courbe de la matière', () => {
+  const i = instantaneDemo();
+  const p = i.donnees.periodes[0]!;
+  const e = evolutionsMatieres(i.donnees, p);
+  expect(e.MATHS!.at(-1)).toBeCloseTo(evolution(i.donnees, p, 'MATHS').at(-1)!.moyenne, 10);
+  expect(e.MATHS!.length).toBeLessThanOrEqual(evolution(i.donnees, p, 'MATHS').length);
+  expect(e.INCONNUE).toBeUndefined();
 });

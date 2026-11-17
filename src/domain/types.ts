@@ -26,6 +26,8 @@ export type Periode = {
   /** Dernier calcul des moyennes par ED (« AAAA-MM-JJ HH:MM ») : les notes saisies après n'y sont pas. */
   dateCalcul?: string;
   officielleGenerale?: number;
+  /** Moyenne générale de la classe, sa plus basse et sa plus haute (vu sur données réelles le 17/11/2026). */
+  classeGenerale?: StatsClasse;
   matieres: MatierePeriode[];
 };
 

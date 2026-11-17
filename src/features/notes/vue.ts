@@ -72,3 +72,15 @@ export function evolution(d: DonneesNotes, periode: Periode, matiere?: string): 
   }
   return points;
 }
+
+/** Évolution de chaque matière en une passe (mini-courbes) : un point par date où la matière a reçu une note. */
+export function evolutionsMatieres(d: DonneesNotes, periode: Periode): Record<string, number[]> {
+  const notes = notesDeLaPeriode(periode, d.notes, d.periodes);
+  const sortie: Record<string, number[]> = {};
+  for (const date of [...new Set(notes.map((n) => n.date))].sort()) {
+    const touchees = new Set(notes.filter((n) => n.date === date).map((n) => n.matiereCode));
+    const r = calculer(periode, notes.filter((n) => n.date <= date), d.periodes, { parametrage: d.parametrage });
+    for (const m of r.matieres) if (m.moyenne !== undefined && touchees.has(m.code)) (sortie[m.code] ??= []).push(m.moyenne);
+  }
+  return sortie;
+}

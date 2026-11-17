@@ -71,6 +71,9 @@ const periodeED = z.object({
   ensembleMatieres: z.object({
     dateCalcul: z.string().nullish(),
     moyenneGenerale: z.string().nullish(),
+    moyenneClasse: z.string().nullish(),
+    moyenneMin: z.string().nullish(),
+    moyenneMax: z.string().nullish(),
     disciplines: z.array(disciplineED),
   }),
 });

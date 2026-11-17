@@ -60,6 +60,7 @@ export function versDonneesNotes(d: DonneesNotesED): DonneesNotes {
       cloture: p.cloture ?? false,
       dateCalcul: p.ensembleMatieres.dateCalcul || undefined,
       officielleGenerale: nombre(p.ensembleMatieres.moyenneGenerale, 'moyenneGenerale'),
+      classeGenerale: stats(p.ensembleMatieres.moyenneClasse, p.ensembleMatieres.moyenneMin, p.ensembleMatieres.moyenneMax),
       matieres: p.ensembleMatieres.disciplines.map((m) => ({
         code: m.codeMatiere,
         sousCode: (m.sousMatiere && m.codeSousMatiere) || undefined,

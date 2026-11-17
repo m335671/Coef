@@ -10,6 +10,8 @@ const PREF = 'simulation';
 type Enregistre = {
   active: boolean;
   notes: Record<string, NoteHypothetique[]>;
+  /** Moyenne générale visée (onglet Objectif), repère sur l'anneau de l'écran Notes. */
+  objectif?: number;
 };
 
 type EtatSimulation = Enregistre & {
@@ -19,6 +21,7 @@ type EtatSimulation = Enregistre & {
   charger: () => Promise<void>;
   definir: (cle: string, notes: NoteHypothetique[]) => void;
   activer: (active: boolean) => void;
+  viser: (objectif: number) => void;
   enregistrer: () => Promise<void>;
 };
 
@@ -35,13 +38,14 @@ export const useSimulation = create<EtatSimulation>((set, get) => ({
     set({ charge: true });
     const e = await lirePreference<Enregistre | undefined>(PREF, undefined).catch(() => undefined);
     // Ce qui a été saisi avant la fin de la lecture l'emporte.
-    if (e && Object.keys(get().notes).length === 0) set({ active: e.active, notes: e.notes });
+    if (e && Object.keys(get().notes).length === 0 && get().objectif === undefined) set({ active: e.active, notes: e.notes, objectif: e.objectif });
   },
   definir: (cle, notes) => set((s) => ({ notes: { ...s.notes, [cle]: notes }, modifie: true })),
   activer: (active) => set({ active, modifie: true }),
+  viser: (objectif) => set({ objectif, modifie: true }),
   async enregistrer() {
-    const { active, notes } = get();
-    if (!MODE_DEMO) await ecrirePreference(PREF, { active, notes } satisfies Enregistre);
+    const { active, notes, objectif } = get();
+    if (!MODE_DEMO) await ecrirePreference(PREF, { active, notes, objectif } satisfies Enregistre);
     set({ modifie: false });
   },
 }));
