@@ -1,7 +1,7 @@
 // Composants du design system v2. Aucun kit UI : React Native, Reanimated (animations sur le thread UI),
 // Gesture Handler et react-native-svg. Tout mouvement respecte « réduire les animations » du système.
 import { router } from 'expo-router';
-import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef } from 'react';
+import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type LayoutChangeEvent,
   type StyleProp,
@@ -20,7 +20,9 @@ import Animated, {
   Easing,
   FadeInDown,
   ReduceMotion,
+  runOnJS,
   useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -74,11 +76,10 @@ export function Entree({ rang = 0, children, style }: { rang?: number; children:
   );
 }
 
-const TexteAnime = Animated.createAnimatedComponent(TextInput);
-
 /**
- * Une moyenne qui « roule » jusqu'à sa valeur (au montage, puis à chaque changement). Affichée par un champ
- * en lecture seule piloté sur le thread UI ; le lecteur d'écran lit la valeur finale.
+ * Une moyenne qui « roule » jusqu'à sa valeur (au montage, puis à chaque changement). La valeur est animée sur
+ * le thread UI ; chaque centième franchi est renvoyé à un Text ordinaire (un champ piloté directement ne
+ * s'affichait pas sur Android, nouvelle architecture : essai du 17/11/2026). Le lecteur d'écran lit la valeur finale.
  */
 export function ChiffreAnime({
   valeur,
@@ -93,15 +94,18 @@ export function ChiffreAnime({
 }) {
   const c = useCouleurs();
   const reduit = useReducedMotion();
+  const [affiche, setAffiche] = useState(reduit ? (valeur ?? 0) : 0);
   const v = useSharedValue(reduit ? (valeur ?? 0) : 0);
   useEffect(() => {
     if (valeur === undefined) return;
     v.value = reduit ? valeur : withTiming(valeur, { duration: duree.compteur, easing: EASE });
   }, [valeur, reduit, v]);
-  const props = useAnimatedProps(() => {
-    const x = Math.round(v.value * 100 + 1e-7) / 100;
-    return { text: x.toFixed(2).replace('.', ','), defaultValue: '' } as never;
-  });
+  useAnimatedReaction(
+    () => Math.round(v.value * 100) / 100,
+    (x, avant) => {
+      if (x !== avant) runOnJS(setAffiche)(x);
+    },
+  );
   if (valeur === undefined) {
     return (
       <Text accessibilityLabel="pas de moyenne" style={{ fontFamily: police.normal, fontSize: taille.liste, color: c.attenue }}>
@@ -109,23 +113,19 @@ export function ChiffreAnime({
       </Text>
     );
   }
-  const style = {
-    fontFamily: gras ? police.gras : police.fort,
-    fontSize: taillePx,
-    letterSpacing: taillePx >= taille.chiffre ? -0.03 * taillePx : 0,
-    fontVariant: ['tabular-nums' as const],
-    color: couleur ?? c.texte,
-    padding: 0,
-    margin: 0,
-    // Un champ prend sa taille par défaut (large sur le web) : on la fixe pour « 12,34 », chiffres tabulaires.
-    width: Math.ceil(taillePx * (valeur >= 9.995 ? 2.75 : 2.2)),
-    height: Math.ceil(taillePx * 1.2),
-    borderWidth: 0,
-  };
   return (
-    <View accessible accessibilityLabel={formatMoyenne(valeur)} pointerEvents="none">
-      <TexteAnime editable={false} underlineColorAndroid="transparent" animatedProps={props} style={style} defaultValue={formatMoyenne(valeur)} />
-    </View>
+    <Text
+      accessibilityLabel={formatMoyenne(valeur)}
+      style={{
+        fontFamily: gras ? police.gras : police.fort,
+        fontSize: taillePx,
+        lineHeight: Math.ceil(taillePx * 1.15),
+        letterSpacing: taillePx >= taille.chiffre ? -0.03 * taillePx : 0,
+        fontVariant: ['tabular-nums'],
+        color: couleur ?? c.texte,
+      }}>
+      {formatMoyenne(affiche)}
+    </Text>
   );
 }
 
@@ -182,13 +182,14 @@ export function Barre({ ratio, delai = 0, hauteur = 6, fond, plein }: { ratio: n
   );
 }
 
-/** Le point d'une nouvelle note : il pulse doucement. */
+/** Le point d'une nouvelle note : il pulse trois fois à l'arrivée. */
 export function Pulsation() {
   const c = useCouleurs();
   const reduit = useReducedMotion();
   const s = useSharedValue(0);
   useEffect(() => {
-    if (!reduit) s.value = withRepeat(withSequence(withTiming(1, { duration: 1400 }), withTiming(0, { duration: 0 })), -1);
+    // Trois pulsations puis repos : une boucle infinie userait la batterie et empêcherait l'UI d'être « au repos ».
+    if (!reduit) s.value = withDelay(600, withRepeat(withSequence(withTiming(1, { duration: 1400 }), withTiming(0, { duration: 0 })), 3));
   }, [reduit, s]);
   const anneau = useAnimatedStyle(() => ({ opacity: 0.45 * (1 - s.value), transform: [{ scale: 1 + s.value * 1.6 }] }));
   return (
