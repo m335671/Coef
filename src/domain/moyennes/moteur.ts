@@ -1,7 +1,7 @@
 // Moteur de moyenne : fonction pure, notes + structure de la période + paramétrage → moyennes et détail.
 // Règles vérifiées sur une classe réelle (docs/API-ED.md, « Règles de calcul vérifiées ») ; précision
 // complète partout, sauf là où ED arrondit lui-même (moyennes de matière avant agrégation).
-import type { MatierePeriode, Note, Parametrage, Periode } from '../types';
+import type { MatierePeriode, Note, Parametrage, Periode, StatsClasse } from '../types';
 
 /**
  * Variantes de calcul, liste fermée. « ed » est la règle vérifiée ; les autres servent à la calibration
@@ -26,6 +26,7 @@ export type ResultatMatiere = {
   /** Moyenne prévue sur 20, précision complète ; undefined si aucune note comptée. */
   moyenne?: number;
   officielle?: number;
+  classe?: StatsClasse;
   notes: DetailNote[];
   sousMatieres: ResultatMatiere[];
 };

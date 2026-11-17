@@ -10,7 +10,11 @@ export type MatierePeriode = {
   coef: number;
   /** Moyenne affichée par ED, si elle existe. */
   officielle?: number;
+  /** Statistiques de la classe affichées par ED (absentes si l'établissement les masque). */
+  classe?: StatsClasse;
 };
+
+export type StatsClasse = { moyenne?: number; min?: number; max?: number };
 
 export type Periode = {
   code: string;
@@ -39,6 +43,9 @@ export type Note = {
   noteSur: number;
   coef: number;
   nonSignificative: boolean;
+  typeDevoir?: string;
+  /** Moyenne, minimum et maximum de la classe à ce devoir, dans le barème de la note. */
+  classe?: StatsClasse;
 };
 
 /** Drapeaux du paramétrage d'établissement que le calcul respecte. */

@@ -55,6 +55,9 @@ const disciplineED = z.object({
   coef: nombreTexte,
   sousMatiere: z.boolean().nullish(),
   moyenne: z.string().nullish(),
+  moyenneClasse: z.string().nullish(),
+  moyenneMin: z.string().nullish(),
+  moyenneMax: z.string().nullish(),
 });
 
 const periodeED = z.object({
@@ -84,6 +87,10 @@ const noteED = z.object({
   noteSur: nombreTexte,
   valeur: z.string(),
   nonSignificatif: z.boolean().nullish(),
+  typeDevoir: z.string().nullish(),
+  moyenneClasse: z.string().nullish(),
+  minClasse: z.string().nullish(),
+  maxClasse: z.string().nullish(),
 });
 
 export const donneesNotes = z.object({

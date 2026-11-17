@@ -19,9 +19,14 @@ function versNote(p: Periode, h: NoteHypothetique, i: number): Note {
   };
 }
 
+/** Les notes réelles plus les notes hypothétiques, prêtes pour le moteur. */
+export function avecHypotheses(p: Periode, notes: Note[], hypotheses: NoteHypothetique[]): Note[] {
+  return [...notes, ...hypotheses.map((h, i) => versNote(p, h, i))];
+}
+
 /** Moyennes de la période si l'on ajoute ces notes. */
 export function simuler(p: Periode, notes: Note[], periodes: Periode[], hypotheses: NoteHypothetique[], options?: Options): Resultat {
-  return calculer(p, [...notes, ...hypotheses.map((h, i) => versNote(p, h, i))], periodes, options);
+  return calculer(p, avecHypotheses(p, notes, hypotheses), periodes, options);
 }
 
 export type Cible = { portee: 'generale' } | { portee: 'matiere'; code: string };

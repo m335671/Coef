@@ -35,6 +35,12 @@ const requis = (v: string | number, champ: string): number => {
   return n;
 };
 
+/** Statistiques de classe : absentes (chaînes vides) → undefined plutôt qu'un objet vide. */
+function stats(moy?: string | null, min?: string | null, max?: string | null) {
+  const s = { moyenne: nombre(moy, 'moyenne de classe'), min: nombre(min, 'minimum de classe'), max: nombre(max, 'maximum de classe') };
+  return s.moyenne === undefined && s.min === undefined && s.max === undefined ? undefined : s;
+}
+
 function typePeriode(p: DonneesNotesED['periodes'][number]): TypePeriode {
   if (p.annuel) return 'annee';
   if (p.examenBlanc) return 'examen';
@@ -58,6 +64,7 @@ export function versDonneesNotes(d: DonneesNotesED): DonneesNotes {
         libelle: m.discipline,
         coef: requis(m.coef, 'coef de matière'),
         officielle: nombre(m.moyenne, 'moyenne'),
+        classe: stats(m.moyenneClasse, m.moyenneMin, m.moyenneMax),
       })),
     }),
   );
@@ -73,6 +80,8 @@ export function versDonneesNotes(d: DonneesNotesED): DonneesNotes {
     noteSur: requis(n.noteSur, 'noteSur'),
     coef: requis(n.coef, 'coef de note'),
     nonSignificative: n.nonSignificatif ?? false,
+    typeDevoir: n.typeDevoir || undefined,
+    classe: stats(n.moyenneClasse, n.minClasse, n.maxClasse),
   }));
   return { periodes, notes, parametrage: { moyenneCoefMatiere: d.parametrage?.moyenneCoefMatiere ?? true } };
 }
