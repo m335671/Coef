@@ -1,85 +1,39 @@
 # Reprise de session
 
-État au 17 novembre 2026, branche `main`. Les règles du projet sont dans `CLAUDE.md` ; ce fichier ne dit que **où on en est**.
+Ce fichier dit **où on en est** ; les règles du projet sont dans `CLAUDE.md`, l'avancement dans `docs/PLAN.md`.
 
-## Où on en est
-- **Étape 1 (squelette)** : validée. Expo SDK 58, TS strict, lint, Jest, CI GitHub Actions verte, mode démo web.
-- **Étape 2 (client ED)** : validée le 16/11/2026 après essai réel sur Android (GTK, QCM, notes, reconnexion). **Étape 3 (moteur de moyenne)** : validée le 16/11/2026 (APK n°5 : calcul identique à ED). **Étape 4 (stockage, synchro, notifications)** : validée le 17/11/2026 (APK n°7). **Étape 5 (écrans, design)** : faite, en attente de validation.
-- **Interface v2 (en cours)** : base taste-skill `accent-ladder` (vert d'eau #0f766e, teintes pâles sur les surfaces), affichage « par famille » repris de `pastel-consumer`, courbe d'évolution toujours visible ; animations Reanimated partout (entrées échelonnées, compteurs, barres, courbe, point qui pulse), coupées si le système réduit les animations. Maquettes comparées : https://claude.ai/artifact/S4PkzANHyrgv6FBvZZG9u4. La v1 ci-dessous est gardée (tag `interface-v1`, `docs/INTERFACE-V1.md`).
-- v1 — direction : taste-skill, app, style `achromatic-ledger` (graine 721322393) ; fond bleu-gris de cahier, une seule teinte (#1d5fbf) sur la moyenne prévue, Geist embarquée. Signature : la réglette 0–20 par matière. Design system : `src/ui/` (theme, composants, format).
-- Écrans : `app/index.tsx` (notes), `app/matiere/[code].tsx`, `app/simulateur.tsx` (modal), `app/reglages.tsx`, `app/connexion.tsx`. Démo web : fixture fabriquée `fixtures/ed/notes-eleve.json` via `src/demo/notes.ts`.
-- Vérifié : inspecteur taste-skill `--app` 0 FAIL 0 WARN à 1440/768/390, captures claires et sombres relues.
-- Notifications : module maison `modules/notifications-locales` (expo-notifications écarté : Firebase). Android : rien sur l'écran verrouillé (VISIBILITY_SECRET). iOS écrit, non essayé.
-- Comment arrive une nouvelle note : tâche périodique WorkManager (expo-background-task), au plus une fois par heure, moment choisi par Android (Doze) ; reconnexion par accessToken, un appel `notes.awp`, comparaison avec la base, notification locale. Aucun service permanent, aucun serveur, aucun jeton push. À l'ouverture de l'app : synchro immédiate (puis 5 min mini) et notifications déjà affichées retirées.
-- **Pas encore vérifié** : la synchro en arrière-plan en conditions réelles (WorkManager décide du moment) ; à surveiller à la prochaine vraie note.
-- Piège connu : `withExclusiveTransactionAsync` d'expo-sqlite ouvre une connexion sans la clé SQLCipher, ne pas l'utiliser. `src/domain/moyennes/` (moteur, calibration, simulateur), 100 % des branches couvertes ; fixture dorée fabriquée et calibration réelle locale au centième.
-- Capture réelle de `notes.awp` (anonymisée) : `fixtures/prive/notes-reelles.json`, **ignorée par git, sur cette machine seulement**. Sert au test de calibration réelle (ignoré si absent). La fixture commitée sera fabriquée.
-- Règles de calcul déjà vérifiées sur données réelles : `docs/API-ED.md`, section notes.awp.
-- Décision : **aucune copie** de code GPL (Papillon, Pawdirecte) : on réécrit à partir du protocole.
-- Décision : le mot de passe n'est **jamais** stocké ; « rester connecté » garde l'`accessToken` de reconnexion dans SecureStore.
-- L'historique de la branche a été réécrit une fois (ajout du co-auteur) : repartir de `origin`, pas d'une ancienne copie.
+## Où on en est (17/11/2026)
+- Étapes 1 à 7 validées sur Android (essais réels, formats ED confirmés par des captures). Reste l'étape 8 (stores). iOS écrit, jamais essayé.
+- Écrans : onglets `app/(onglets)/` (Accueil, Notes, Agenda, Devoirs, Vie scolaire) ; messages, documents et réglages rangés dans Vie scolaire ; simulateur en modal (`app/simulateur.tsx`).
+- Design system maison dans `src/ui/` (thème clair/sombre, composants, graphiques). Animations Reanimated, coupées si le système réduit les animations.
+- Démarrage : l'app s'ouvre tout de suite sur le cache chiffré et se reconnecte en fond (`src/features/compte/store.ts`, `demarrer`).
+- Réseau : `src/api/http.ts`, une requête à la fois, la plus récente servie d'abord (l'écran qu'on vient d'ouvrir passe devant).
+- Notifications : module maison `modules/notifications-locales` (expo-notifications écarté : Firebase). Synchro en arrière-plan par WorkManager (expo-background-task), au plus une fois par heure.
+- Captures réelles anonymisées : `fixtures/prive/`, **ignoré par git**, sur la machine de dev seulement. Le test de calibration réelle est sauté si le dossier est absent.
 
-## État au 17/11/2026, après-midi
-- L'app s'appelle **Coef** (identifiant `app.coef`, icône C² : `assets/logo.svg`), licence GPL-3.0, branche `main`.
-- Pistes graphiques P1 à P6 faites : onglet Accueil en tuiles (premier onglet), anneau de la générale (repères classe et objectif), bande de famille et mini-courbe par matière, règle face à la classe, agenda en frise, simulé hachuré orange. Maquettes : https://claude.ai/artifact/5ReTr92EHFQ9GDvzFcdWB9
-- Releases : workflow `release` (tag `vX.Y.Z` → APK signé en release GitHub, Obtainium). Clé de signature à créer une fois avec `scripts/cle-de-signature.sh` (hors dépôt, secrets GitHub).
+## Pièges connus
+- `withExclusiveTransactionAsync` d'expo-sqlite ouvre une connexion sans la clé SQLCipher : ne pas l'utiliser.
+- Android (Yoga) : pas de `flexWrap` avec des largeurs en % et `gap` (tuiles qui se chevauchent) ; des rangées explicites.
+- Pas d'animation de mise en page (`entering`) sur des vues dont les voisines changent de taille : elles gardent leur ancienne position. `Entree` anime opacité et translation.
+- ED envoie les documents en `application/octet-stream` : le type se lit dans les premiers octets (`src/features/vie/fichiers.ts`).
 
-## À la reprise (17/11/2026, matin)
-- Retour étape 5 traité : menu déroulant des périodes, vue « par note », détail d'une note (classe, impact), simulation par matière + onglet Objectif (leviers).
-- Étape 6 faite sur formats **supposés** : onglets Agenda, Devoirs, Vie scolaire (`app/(onglets)/`), cache chiffré schéma v3. À valider par une capture réelle (APK n°10, bouton d'export dans Réglages > Essai).
-- Petits restes : cocher un devoir comme fait (écriture ED) ; icône monochrome des notifications ; iOS non essayé.
-
-## Fichiers clés de l'étape 2
-- `src/api/http.ts` : seule sortie réseau, liste blanche `api.ecoledirecte.com`, une requête à la fois.
-- `src/api/ecoledirecte/client.ts` : connexion, QCM, reconnexion silencieuse, `ClientED`. Constantes `API`, `VERSION_API` et `USER_AGENT` en haut du fichier.
-- `src/api/ecoledirecte/{schemas,mapping,erreurs,base64}.ts`, `src/storage/secrets.ts`, `src/features/compte/store.ts`.
-- `app/connexion.tsx`, `app/index.tsx` : écrans **bruts** pour l'essai (le design viendra à l'étape 5).
-- `docs/API-ED.md` : tout le protocole supposé, avec ses hypothèses.
-- `fixtures/ed/` : réponses **inventées**.
-
-## Sources étudiées (lecture seule)
-- `@blockshub/blocksdirecte` 0.0.10-alpha (npm, ISC) : la bibliothèque qu'utilise Papillon 8.6.2 ; parcours « app mobile ».
-- `github.com/hacf-fr/ecoledirecte_api` (Python) : parcours « site web » avec jeton GTK.
-- `LiterateInk/Pawdirecte` n'existe plus à cette adresse.
-
-## Prochaine action : essai réel de l'étape 2
-1. `npm ci`, puis `npm run typecheck && npm run lint && npm test` (34 tests attendus).
-2. Faire tourner l'app sur un vrai appareil ou un émulateur :
-   - **build EAS** : `npx eas-cli init` (une fois), puis `npx eas-cli build -p android --profile test` (APK interne) ;
-   - **ou en local**, si l'utilisateur accepte d'installer le SDK Android ou Xcode sur cette machine : `npx expo run:android` ou `npx expo run:ios` dans un émulateur. Ne jamais commiter `android/` ni `ios/` (déjà dans `.gitignore`, CNG).
-3. **C'est l'utilisateur qui tape ses identifiants dans l'app.** Ne jamais lui demander son mot de passe, ne jamais l'écrire dans un fichier, une commande, un log ou un prompt.
-4. Scénarios à tester :
-   - connexion ;
-   - question de sécurité (QCM) ;
-   - bouton « Notes de … » ;
-   - fermer et rouvrir l'app (reconnexion sans mot de passe) ;
-   - « Tout effacer » ;
-   - compte parent s'il y en a un ;
-   - mot de passe contenant `%`, `+` ou des accents, si possible.
-5. Capturer de vraies réponses pour remplacer les fixtures inventées, **anonymisées avant tout commit** (noms, établissements, identifiants, jetons) : la connexion, et surtout `notes.awp`, indispensable à l'étape 3.
-6. Mettre `docs/API-ED.md` à jour : passer chaque point vérifié de « supposé » à « confirmé ».
-
-## Construire l'APK sous Windows (sans EAS)
+## Construire l'APK sous Windows
 Les chemins CMake dépassent 260 caractères : `subst` ne suffit pas (Node résout les vrais chemins).
 1. Worktree à chemin court : `git worktree add --detach C:/edw HEAD`, puis `npm ci` dedans.
-2. `npx expo prebuild -p android --no-install` (annuler la modif de `package.json` qu'il fait).
-3. Dans `android/local.properties` : `sdk.dir=C:/Users/<toi>/AppData/Local/Android/Sdk` et `cmake.dir=C:/Users/<toi>/AppData/Local/Android/Sdk/cmake/3.31.6` (Ninja 1.12, chemins longs ; la 3.22.1 par défaut échoue).
-4. `JAVA_HOME` = JBR d'Android Studio, `EXPO_PUBLIC_CAPTURE=1` pour la capture, puis
-   `./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,x86_64`.
-APK : `C:/edw/android/app/build/outputs/apk/release/app-release.apk` (signé avec la clé de debug : essais seulement).
+2. `npx expo prebuild -p android --no-install` (annuler la modif de `package.json` qu'il fait). À refaire après chaque changement de config native (`app.json`, `plugins/`).
+3. Dans `android/local.properties` : `sdk.dir=C:/Users/<toi>/AppData/Local/Android/Sdk` et `cmake.dir=C:/Users/<toi>/AppData/Local/Android/Sdk/cmake/3.31.6` (la 3.22.1 par défaut échoue).
+4. `JAVA_HOME` = JBR d'Android Studio, `NODE_ENV=production` (et `EXPO_PUBLIC_CAPTURE=1` pour l'export de captures), puis
+   `./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a`.
+APK : `C:/edw/android/app/build/outputs/apk/release/app-release.apk` (clé de debug : essais seulement).
 
-## En cas d'échec de l'essai
+## En cas d'échec avec EcoleDirecte
 | Symptôme | Piste |
 |---|---|
-| Erreur « version d'API » (code 517) | Corriger `VERSION_API` dans `client.ts`. |
+| Erreur « version d'API » (code 517) | Corriger `VERSION_API` dans `src/api/ecoledirecte/client.ts`. |
 | Identifiants refusés alors qu'ils sont bons | Encodage du mot de passe (voir `docs/API-ED.md`), ou User-Agent. |
-| Le parcours mobile ne fonctionne pas du tout | Passer au parcours web avec jeton GTK, décrit dans `docs/API-ED.md`. Demander à l'utilisateur avant de changer. |
-| Compte parent sans enfants listés | Vérifier le chemin `profile.eleves` dans la vraie réponse. |
+| Réponse inattendue | Le schéma Zod la refuse avec une erreur claire : comparer à une capture (Réglages > Essai), corriger `schemas.ts` et `mapping.ts`. |
 
-## Points ouverts pour plus tard
-- **Raccourcis notés dans le code** (`grep -rn "shortcut:" src app`) :
-  - au démarrage, l'app reprend le premier compte enregistré ;
-  - une panne réseau au démarrage renvoie vers l'écran de connexion.
-- Pas encore de `LICENSE` : le choix de licence est libre, puisqu'on ne copie aucun code.
-- Design (étape 5) : plugin taste-skill, déclaré dans `.claude/settings.json`. L'installer s'il manque :
-  `claude plugin marketplace add Leonxlnx/taste-skill && claude plugin install taste-skill@taste-skill`.
+## Points ouverts
+- Raccourcis assumés dans le code : `grep -rn "ponytail:\|shortcut:" src app`.
+- Synchro en arrière-plan : le moment dépend d'Android (Doze), à surveiller.
+- Design : plugin taste-skill, déclaré dans `.claude/settings.json`.

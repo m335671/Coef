@@ -17,7 +17,6 @@ import { libelleMatiere } from '@/sync/annonce';
 import {
   Bouton,
   BoutonRond,
-  Coche,
   Chiffre,
   ChiffreAnime,
   Courbe,
@@ -170,7 +169,6 @@ export default function Notes() {
           reelle={simule ? reelle?.resultat.generale : undefined}
           objectif={simulation.objectif}
           objectifAffiche={simulation.objectifAffiche ?? true}
-          onObjectif={simulation.afficherObjectif}
           onModifierObjectif={() => router.push({ pathname: '/simulateur', params: { periode: vue!.periode.code, eleve: eleveId, onglet: 'objectif' } })}
           courbe={courbe}
           chargement={etat?.chargement ?? true}
@@ -496,7 +494,6 @@ function Moyenne({
   reelle,
   objectif,
   objectifAffiche,
-  onObjectif,
   onModifierObjectif,
 }: {
   vue?: VueNotes;
@@ -505,8 +502,7 @@ function Moyenne({
   /** Moyenne générale visée (simulateur, onglet Objectif). */
   objectif?: number;
   objectifAffiche: boolean;
-  onObjectif: (v: boolean) => void;
-  /** Appui long sur l'objectif : la simulation s'ouvre sur l'onglet Objectif. */
+  /** Toucher l'objectif : la simulation s'ouvre sur l'onglet Objectif. */
   onModifierObjectif: () => void;
   courbe: { date: string; moyenne: number }[];
   chargement: boolean;
@@ -587,23 +583,15 @@ function Moyenne({
           libelle={`Zoom : moyenne ${moyenne(g)}${reperes.map((x) => `, ${x.libelle}`).join('')}`}
         />
       ) : null}
-      {objectif !== undefined ? (
-        <View style={styles.rangee}>
-          <View style={{ flex: 1 }}>
-            <Coche
-              libelle={`Objectif ${moyenne(objectif)}`}
-              coche={objectifAffiche}
-              onChange={onObjectif}
-              couleur={c.objectif}
-              onLongPress={onModifierObjectif}
-            />
-          </View>
-          {objectifAffiche && g !== undefined ? (
-            <Texte variante="petit" style={{ color: c.objectif, fontFamily: police.fort, fontVariant: ['tabular-nums'] }}>
-              {g >= objectif ? 'atteint' : `il manque ${moyenne(objectif - g)}`}
-            </Texte>
-          ) : null}
-        </View>
+      {/* L'objectif se règle et s'affiche ou se masque dans Simulation, onglet Objectif : masqué, il n'apparaît nulle part ici. */}
+      {objectif !== undefined && objectifAffiche ? (
+        <Presse onPress={onModifierObjectif} libelleAccessible={`Objectif ${moyenne(objectif)}. Modifier dans la simulation`} style={[styles.rangee, { minHeight: 44 }]}>
+          <View style={[styles.pointObjectif, { backgroundColor: c.objectif }]} />
+          <Texte variante="petit" style={{ flex: 1, color: c.objectif, fontFamily: police.fort, fontVariant: ['tabular-nums'] }}>
+            Objectif {moyenne(objectif)}
+            {g !== undefined ? ` · ${g >= objectif ? 'atteint' : `il manque ${moyenne(objectif - g)}`}` : ''}
+          </Texte>
+        </Presse>
       ) : null}
       {reelle !== undefined && g !== undefined ? <Ecart valeur={g - reelle} suffixe={`par rapport à ta moyenne prévue (${moyenne(reelle)})`} /> : null}
       {vue?.ecart !== undefined && vue.depuis ? <Ecart valeur={vue.ecart} suffixe={`depuis la synchro du ${jour(vue.depuis)}`} /> : null}
@@ -651,6 +639,7 @@ const styles = StyleSheet.create({
   bande: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
   simulee: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 12, paddingHorizontal: espace.s, marginVertical: 2, overflow: 'hidden' },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
+  pointObjectif: { width: 8, height: 8, borderRadius: 4 },
   attente: { width: 184, height: 184, borderRadius: 92, alignSelf: 'center' },
   colonne: { minWidth: 64, alignItems: 'flex-end', gap: 2 },
   note: { fontFamily: police.fort, fontVariant: ['tabular-nums'] },
