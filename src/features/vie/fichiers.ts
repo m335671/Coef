@@ -9,7 +9,29 @@ import type { Fichier } from '@/domain/types';
 
 import { useCompte } from '../compte/store';
 
-const EXTENSIONS: Record<string, string> = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'text/plain': 'txt' };
+const EXTENSIONS: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'text/plain': 'txt',
+  'application/msword': 'doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.oasis.opendocument.text': 'odt',
+};
+const TYPES = Object.fromEntries(Object.entries(EXTENSIONS).map(([t, e]) => [e, t]));
+
+/**
+ * Type réel du fichier : ED répond souvent `application/octet-stream` (le certificat de scolarité arrivait sans
+ * extension, et le téléphone ne proposait pas de lecteur PDF). Les premiers octets font foi, puis l'en-tête.
+ */
+export function typeDe(octets: Uint8Array, typeMime?: string): string | undefined {
+  const debut = String.fromCharCode(...octets.subarray(0, 8));
+  if (debut.startsWith('%PDF')) return 'application/pdf';
+  if (debut.slice(1, 4) === 'PNG') return 'image/png';
+  if (octets[0] === 0xff && octets[1] === 0xd8) return 'image/jpeg';
+  const t = typeMime?.split(';')[0]!.trim().toLowerCase();
+  return t && t !== 'application/octet-stream' ? t : undefined;
+}
 
 /** Nom de fichier sûr, avec une extension tirée du type si le libellé n'en a pas. */
 export function nomFichier(libelle: string, typeMime?: string): string {
@@ -20,6 +42,11 @@ export function nomFichier(libelle: string, typeMime?: string): string {
       .slice(0, 120) || 'document';
   const ext = typeMime ? EXTENSIONS[typeMime] : undefined;
   return ext && !/\.[a-z0-9]{2,5}$/i.test(base) ? `${base}.${ext}` : base;
+}
+
+/** Type à annoncer au téléphone : celui détecté, sinon celui de l'extension du nom. */
+function typeAnnonce(nom: string, type?: string): string | undefined {
+  return type ?? TYPES[nom.split('.').pop()!.toLowerCase()];
 }
 
 const dossier = () => new Directory(Paths.cache, 'fichiers-ed');
@@ -43,7 +70,9 @@ export async function ouvrirFichier(f: Fichier): Promise<void> {
   effacerFichiers();
   const d = dossier();
   d.create();
-  const fichier = new File(d, nomFichier(f.libelle, typeMime));
+  const type = typeDe(octets, typeMime);
+  const nom = nomFichier(f.libelle, type);
+  const fichier = new File(d, nom);
   fichier.create({ overwrite: true });
   await fichier.write(octets);
   try {
@@ -51,5 +80,5 @@ export async function ouvrirFichier(f: Fichier): Promise<void> {
   } catch {
     // pas d'aperçu : menu de partage
   }
-  await shareAsync(fichier.uri, { mimeType: typeMime, dialogTitle: f.libelle });
+  await shareAsync(fichier.uri, { mimeType: typeAnnonce(nom, type), dialogTitle: f.libelle });
 }

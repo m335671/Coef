@@ -1,4 +1,5 @@
 // Vie scolaire. Sa question : « Où j'en suis côté absences, retards et sanctions, et qu'est-ce qui reste à justifier ? »
+// Chaque carte ouvre son détail ; messages, documents et réglages sont rangés ici plutôt que dans un onglet de plus.
 import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -6,31 +7,24 @@ import Svg, { Path, Rect } from 'react-native-svg';
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { messagesDemo, vieScolaireDemo } from '@/demo/vie';
-import type { EvenementVieScolaire, Message, TypeEvenement } from '@/domain/types';
+import type { EvenementVieScolaire, Message } from '@/domain/types';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
+import { aJustifier, dansGroupe, type Groupe, GROUPES } from '@/features/vie/groupes';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
-import { Bouton, BoutonRond, Ecran, EnTete, Entree, IconeReglages, Ligne, Panneau, Pastille, Section, Segments, Texte } from '@/ui/composants';
-import { jour } from '@/ui/format';
-import { espace, police, rayon, useCouleurs } from '@/ui/theme';
-
-const GROUPES: { titre: string; types: TypeEvenement[] }[] = [
-  { titre: 'Absences', types: ['absence'] },
-  { titre: 'Retards', types: ['retard'] },
-  { titre: 'Punitions et sanctions', types: ['punition', 'sanction'] },
-  { titre: 'Encouragements', types: ['encouragement'] },
-  { titre: 'Dispenses et autres', types: ['dispense', 'autre'] },
-];
+import { Bouton, BoutonRond, Ecran, EnTete, Entree, IconeReglages, Segments, Texte } from '@/ui/composants';
+import { espace, police, useCouleurs } from '@/ui/theme';
+import { Tuile } from '@/ui/Tuile';
 
 export default function VieScolaire() {
   const c = useCouleurs();
   const eleves = useEleves();
   const [eleve, choisirEleve] = useEleveActif();
   const cle = `vie:${eleve?.id}`;
+  const cleMessages = `messages:${eleve?.id}`;
   const etat = useDonnee<EvenementVieScolaire[]>(cle);
+  const nonLus = (useDonnee<Message[]>(cleMessages)?.valeur ?? []).filter((m) => !m.lu);
   const charger = useDonneesED((s) => s.charger);
 
-  const cleMessages = `messages:${eleve?.id}`;
-  const nonLus = (useDonnee<Message[]>(cleMessages)?.valeur ?? []).filter((m) => !m.lu);
   useEffect(() => {
     if (!eleve) return;
     void charger(cle, (cl) => cl.vieScolaire(eleve.id), vieScolaireDemo);
@@ -38,14 +32,31 @@ export default function VieScolaire() {
   }, [cle, cleMessages, eleve, charger]);
 
   const evts = etat?.valeur ?? [];
-  const compte = (t: TypeEvenement[]) => evts.filter((e) => t.includes(e.type)).length;
-  const aJustifier = evts.filter((e) => (e.type === 'absence' || e.type === 'retard') && e.justifie === false).length;
-  const tuiles = [
-    { titre: 'Absences', n: compte(['absence']) },
-    { titre: 'Retards', n: compte(['retard']) },
-    { titre: 'Sanctions', n: compte(['punition', 'sanction']) },
-    { titre: 'Encouragements', n: compte(['encouragement']) },
-  ];
+  const pret = !!etat?.valeur || etat?.chargement === false;
+  const [absences, retards, sanctions, encouragements, autres] = GROUPES;
+
+  const carte = (g: Groupe, rang: number) => {
+    const n = evts.filter((e) => dansGroupe(g, e)).length;
+    const nJ = evts.filter((e) => dansGroupe(g, e) && aJustifier(e)).length;
+    const titre = 'court' in g ? g.court : g.titre;
+    return (
+      <Tuile
+        rang={rang}
+        fond={c.teinte50}
+        onPress={() => router.push({ pathname: '/evenements', params: { groupe: g.cle } })}
+        libelle={`${n} ${g.titre.toLowerCase()}${nJ ? `, dont ${nJ} à justifier` : ''}. Voir le détail`}>
+        <Texte style={{ fontFamily: police.gras, fontSize: 34, lineHeight: 40, color: n ? c.accent : c.attenue, fontVariant: ['tabular-nums'] }}>
+          {pret ? n : '–'}
+        </Texte>
+        <Texte variante="liste" moyen style={{ color: c.accentEncre }}>
+          {titre}
+        </Texte>
+        <Texte variante="petit" style={{ color: nJ ? c.negatif : c.attenue }}>
+          {nJ ? `${nJ} à justifier` : n ? 'Voir le détail' : 'Aucun'}
+        </Texte>
+      </Tuile>
+    );
+  };
 
   return (
     <Ecran>
@@ -62,109 +73,62 @@ export default function VieScolaire() {
           <Segments libelle="Élève" options={eleves.map((e) => ({ cle: e.id, libelle: e.prenom }))} valeur={eleve.id} onChange={choisirEleve} />
         </Entree>
       ) : null}
-      <Entree rang={1}>
-        <Panneau>
-          <Ligne
-            onPress={() => router.push('/messages')}
-            libelleAccessible={nonLus.length ? `Messages, ${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''}` : 'Messages, tout est lu'}>
-            <IconeEnveloppe />
-            <View style={{ flex: 1 }}>
-              <Texte variante="liste" moyen>
-                Messages
-              </Texte>
-              <Texte variante="petit" attenue numberOfLines={1}>
-                {nonLus.length ? `De ${nonLus[0]!.de}` : 'Tout est lu'}
-              </Texte>
-            </View>
-            {nonLus.length ? <Pastille texte={`${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''}`} fond={c.surface} encre={c.negatif} /> : null}
-          </Ligne>
-          <Ligne dernier onPress={() => router.push('/documents')} libelleAccessible="Documents : bulletins, certificats">
-            <IconeDocument />
-            <View style={{ flex: 1 }}>
-              <Texte variante="liste" moyen>
-                Documents
-              </Texte>
-              <Texte variante="petit" attenue numberOfLines={1}>
-                Bulletins, certificats
-              </Texte>
-            </View>
-          </Ligne>
-        </Panneau>
-      </Entree>
       {etat?.erreur ? (
         <View style={{ gap: espace.xs }}>
           <Texte variante="liste">{etat.erreur instanceof ErreurED ? etat.erreur.message : 'La vie scolaire n’a pas pu être chargée.'}</Texte>
           <Bouton variante="texte" titre="Réessayer" onPress={() => eleve && charger(cle, (cl) => cl.vieScolaire(eleve.id), vieScolaireDemo, true)} />
         </View>
       ) : null}
-      {!etat?.valeur && etat?.chargement !== false ? (
-        <Texte variante="liste" attenue>
-          Chargement de la vie scolaire…
-        </Texte>
-      ) : (
-        <>
-          <Entree rang={2} style={[styles.compteurs, { backgroundColor: c.teinte50 }]}>
-            {tuiles.map((t) => (
-              <View key={t.titre} style={styles.compteur} accessible accessibilityLabel={`${t.n} ${t.titre.toLowerCase()}`}>
-                <Texte style={{ fontFamily: police.gras, fontSize: 20, lineHeight: 24, color: t.n ? c.accent : c.attenue, fontVariant: ['tabular-nums'] }}>
-                  {t.n}
-                </Texte>
-                <Texte variante="petit" numberOfLines={1} adjustsFontSizeToFit style={{ color: c.accentEncre }}>
-                  {t.titre}
-                </Texte>
-              </View>
-            ))}
-          </Entree>
-          {aJustifier > 0 ? (
-            <Entree rang={2}>
-              <Texte variante="liste">
-                {aJustifier} absence{aJustifier > 1 ? 's' : ''} ou retard{aJustifier > 1 ? 's' : ''} non justifié{aJustifier > 1 ? 's' : ''}.
-              </Texte>
-            </Entree>
-          ) : null}
-          {evts.length === 0 ? (
-            <Texte variante="liste" attenue>
-              Rien à signaler pour l’instant.
+
+      <View style={styles.colonne}>
+        <View style={styles.paire}>
+          {carte(absences, 1)}
+          {carte(retards, 2)}
+        </View>
+        <View style={styles.paire}>
+          {carte(sanctions, 3)}
+          {carte(encouragements, 4)}
+        </View>
+        {evts.some((e) => dansGroupe(autres, e)) ? (
+          <View style={styles.paire}>
+            {carte(autres, 5)}
+            <View style={{ flex: 1 }} />
+          </View>
+        ) : null}
+
+        <View style={styles.paire}>
+          <Tuile
+            rang={6}
+            fond={c.surface}
+            bord={c.bord}
+            onPress={() => router.push('/messages')}
+            libelle={nonLus.length ? `Messages : ${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''}` : 'Messages : tout est lu'}>
+            <IconeEnveloppe />
+            <Texte variante="liste" moyen style={{ marginTop: espace.s }}>
+              Messages
             </Texte>
-          ) : null}
-          {GROUPES.map((g, i) => {
-            const liste = evts.filter((e) => g.types.includes(e.type));
-            if (liste.length === 0) return null;
-            return (
-              <Section key={g.titre} titre={g.titre} rang={3 + i}>
-                <Panneau>
-                  {liste.map((e, j) => (
-                    <Ligne key={e.id} dernier={j === liste.length - 1}>
-                      <View style={{ flex: 1, gap: 2 }}>
-                        <Texte variante="liste" moyen>
-                          {e.libelle}
-                        </Texte>
-                        <Texte variante="petit" attenue>
-                          {[jour(e.date), e.motif, e.par].filter(Boolean).join(' · ')}
-                        </Texte>
-                      </View>
-                      {e.type === 'absence' || e.type === 'retard' ? (
-                        e.justifie ? (
-                          <Pastille texte="Justifié" />
-                        ) : (
-                          <Pastille texte="À justifier" fond={c.surface} encre={c.negatif} />
-                        )
-                      ) : null}
-                    </Ligne>
-                  ))}
-                </Panneau>
-              </Section>
-            );
-          })}
-        </>
-      )}
+            <Texte variante="petit" numberOfLines={2} style={{ color: nonLus.length ? c.negatif : c.attenue }}>
+              {nonLus.length ? `${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''} · ${nonLus[0]!.de}` : 'Tout est lu'}
+            </Texte>
+          </Tuile>
+          <Tuile rang={7} fond={c.surface} bord={c.bord} onPress={() => router.push('/documents')} libelle="Documents : bulletins, certificats">
+            <IconeDocument />
+            <Texte variante="liste" moyen style={{ marginTop: espace.s }}>
+              Documents
+            </Texte>
+            <Texte variante="petit" attenue numberOfLines={2}>
+              Bulletins, certificats
+            </Texte>
+          </Tuile>
+        </View>
+      </View>
     </Ecran>
   );
 }
 
 const styles = StyleSheet.create({
-  compteurs: { flexDirection: 'row', borderRadius: rayon.carte, paddingVertical: espace.s, paddingHorizontal: espace.xs },
-  compteur: { flex: 1, alignItems: 'center', gap: 2, paddingHorizontal: 2 },
+  colonne: { gap: espace.m },
+  paire: { flexDirection: 'row', gap: espace.m },
 });
 
 function IconeEnveloppe() {

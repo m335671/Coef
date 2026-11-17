@@ -1,7 +1,7 @@
 // Accueil. Sa question : « Qu'est-ce qui m'attend aujourd'hui, et où en sont mes moyennes ? » Chaque tuile ouvre son onglet.
 // Pas de nom affiché en grand : l'écran doit pouvoir passer en capture d'écran.
 import { router } from 'expo-router';
-import { type ReactNode, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { MODE_DEMO } from '@/demo';
@@ -17,7 +17,8 @@ import { libelleMatiere } from '@/sync/annonce';
 import { Courbe, Ecart, Ecran, EnTete, Entree, Pastille, Presse, Pulsation, Texte, useMinute } from '@/ui/composants';
 import { ajouterJours, brute, ecart, heure, iso, jour, jourCourt, jourLong, lundiDe, moyenne } from '@/ui/format';
 import { Anneau } from '@/ui/graphiques';
-import { espace, police, rayon, useCouleurs, useFamilles } from '@/ui/theme';
+import { Tuile } from '@/ui/Tuile';
+import { espace, police, useCouleurs, useFamilles } from '@/ui/theme';
 
 export default function Accueil() {
   const c = useCouleurs();
@@ -322,48 +323,9 @@ export default function Accueil() {
   );
 }
 
-function Tuile({
-  children,
-  rang,
-  large,
-  fond,
-  bord,
-  onPress,
-  onLongPress,
-  libelle,
-}: {
-  children: ReactNode;
-  rang: number;
-  large?: boolean;
-  fond: string;
-  bord?: string;
-  onPress?: () => void;
-  onLongPress?: () => void;
-  libelle: string;
-}) {
-  const style = [styles.tuile, { backgroundColor: fond, borderColor: bord ?? fond, minHeight: large ? undefined : 132 }];
-  if (!onPress) {
-    return (
-      <Entree rang={rang} style={large ? styles.large : styles.demi}>
-        <View style={style}>{children}</View>
-      </Entree>
-    );
-  }
-  return (
-    <Entree rang={rang} style={large ? styles.large : styles.demi}>
-      <Presse onPress={onPress} onLongPress={onLongPress} libelleAccessible={libelle} style={style}>
-        {children}
-      </Presse>
-    </Entree>
-  );
-}
-
 const styles = StyleSheet.create({
   bento: { gap: espace.m },
   paire: { flexDirection: 'row', gap: espace.m },
-  large: { alignSelf: 'stretch' },
-  demi: { flex: 1 },
-  tuile: { borderRadius: rayon.phare, borderWidth: 1, padding: espace.l, gap: espace.xs },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.m },
   ligne: { flexDirection: 'row', alignItems: 'center', gap: espace.s, minHeight: 40 },
   heure: { width: 52, fontVariant: ['tabular-nums'] },

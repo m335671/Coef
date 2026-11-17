@@ -16,5 +16,6 @@ export async function exporterCaptures(): Promise<void> {
   const fichier = new File(Paths.cache, 'coef-capture.json');
   fichier.create({ overwrite: true });
   await fichier.write(texteCaptures());
-  await shareAsync(fichier.uri, { mimeType: 'application/json', dialogTitle: 'Captures Coef (anonymisées)' });
+  // text/plain : toutes les applis de notes et de fichiers l'acceptent (application/json n'en propose presque aucune).
+  await shareAsync(fichier.uri, { mimeType: 'text/plain', dialogTitle: 'Captures Coef (anonymisées)' });
 }
