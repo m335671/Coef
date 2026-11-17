@@ -5,9 +5,10 @@ import { StyleSheet, View } from 'react-native';
 
 import type { DetailNote, Exclusion, ResultatMatiere } from '@/domain/moyennes/moteur';
 import type { Note } from '@/domain/types';
+import { impactMatiere } from '@/domain/moyennes/impact';
 import { useNotes } from '@/features/notes/store';
 import { evolution, vueNotes } from '@/features/notes/vue';
-import { Barre, Bouton, Chiffre, ChiffreAnime, Courbe, Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
+import { Barre, Bouton, Chiffre, ChiffreAnime, Courbe, Ecart, Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
 import { brute, coef, jour, moyenne } from '@/ui/format';
 import { espace, taille, useCouleurs } from '@/ui/theme';
 
@@ -34,6 +35,8 @@ export default function DetailMatiere() {
   }
 
   const courbe = evolution(instantane.donnees, vue.periode, code);
+  const poids = impactMatiere(vue.periode, instantane.donnees.notes, instantane.donnees.periodes, code, { parametrage: instantane.donnees.parametrage });
+  const classe = m.matiere.classe;
   const parId = new Map(instantane.donnees.notes.map((n) => [n.id, n]));
   const lignes = [m.matiere, ...m.matiere.sousMatieres].flatMap((s) =>
     s.notes.map((d) => ({ d, n: parId.get(d.id)!, sous: s.sousCode ? s.libelle : undefined })),
@@ -67,6 +70,32 @@ export default function DetailMatiere() {
         </Panneau>
       </Entree>
 
+      {classe || poids !== undefined ? (
+        <Section titre="Face à la classe" rang={2}>
+          <Panneau>
+            {classe ? (
+              <Ligne>
+                <Texte variante="liste" style={{ flex: 1 }}>
+                  Moyenne de la classe
+                </Texte>
+                <Texte variante="petit" attenue>
+                  {classe.min !== undefined && classe.max !== undefined ? `de ${moyenne(classe.min)} à ${moyenne(classe.max)}  ` : ''}
+                </Texte>
+                <Chiffre valeur={classe.moyenne} />
+              </Ligne>
+            ) : null}
+            {poids !== undefined ? (
+              <Ligne dernier>
+                <Texte variante="liste" style={{ flex: 1 }} numberOfLines={2}>
+                  Ce que cette matière fait à ta générale
+                </Texte>
+                <Ecart valeur={poids} />
+              </Ligne>
+            ) : null}
+          </Panneau>
+        </Section>
+      ) : null}
+
       {m.matiere.sousMatieres.length > 0 ? (
         <Section titre="Sous-matières" aide="La moyenne de la matière part de leurs moyennes arrondies, comme ED.">
           <Panneau>
@@ -96,23 +125,26 @@ export default function DetailMatiere() {
               </Texte>
             </Ligne>
           ) : (
-            lignes.map(({ d, n, sous }, i) => <LigneNote key={d.id} d={d} n={n} sous={sous} dernier={i === lignes.length - 1} />)
+            lignes.map(({ d, n, sous }, i) => (
+              <LigneNote key={d.id} d={d} n={n} sous={sous} dernier={i === lignes.length - 1} onPress={() => router.push({ pathname: '/note/[id]', params: { id: n.id, periode, eleve } })} />
+            ))
           )}
         </Panneau>
       </Section>
 
       <Bouton
-        titre={`Simuler une note en ${m.matiere.libelle}`}
+        variante="secondaire"
+        titre={`Simuler des notes en ${m.matiere.libelle}`}
         onPress={() => router.push({ pathname: '/simulateur', params: { periode, eleve, code } })}
       />
     </Ecran>
   );
 }
 
-function LigneNote({ d, n, sous, dernier }: { d: DetailNote; n: Note; sous?: string; dernier: boolean }) {
+function LigneNote({ d, n, sous, dernier, onPress }: { d: DetailNote; n: Note; sous?: string; dernier: boolean; onPress: () => void }) {
   const meta = [jour(n.date), sous, `coef ${coef(n.coef)}`].filter(Boolean).join(' · ');
   return (
-    <Ligne dernier={dernier}>
+    <Ligne dernier={dernier} onPress={onPress}>
       <View style={{ flex: 1 }}>
         <Texte variante="liste" numberOfLines={2}>
           {n.devoir || 'Devoir'}

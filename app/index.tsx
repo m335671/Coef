@@ -6,7 +6,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
 import { ELEVE_DEMO } from '@/demo/notes';
-import type { Eleve } from '@/domain/types';
+import type { Eleve, Note, Periode } from '@/domain/types';
 import { useCompte } from '@/features/compte/store';
 import { familleDe, NOM_FAMILLE, ORDRE_FAMILLES } from '@/features/notes/familles';
 import { useNotes } from '@/features/notes/store';
@@ -20,6 +20,7 @@ import {
   Chiffre,
   ChiffreAnime,
   Courbe,
+  Deroulant,
   Ecart,
   Ecran,
   EnTete,
@@ -34,9 +35,11 @@ import {
   Texte,
 } from '@/ui/composants';
 import { brute, coef, jour, moyenne } from '@/ui/format';
+import Svg, { Path } from 'react-native-svg';
+
 import { espace, police, rayon, taille, useCouleurs, useFamilles } from '@/ui/theme';
 
-type Affichage = 'liste' | 'familles';
+type Affichage = 'liste' | 'familles' | 'notes';
 const PREF_AFFICHAGE = 'notes.affichage';
 
 export default function Accueil() {
@@ -87,15 +90,23 @@ function Notes({ eleves }: { eleves: Eleve[] }) {
   const vue = useMemo(() => (instantane && periode ? vueNotes(instantane, periode) : undefined), [instantane, periode]);
   const courbe = useMemo(() => (instantane && vue ? evolution(instantane.donnees, vue.periode) : []), [instantane, vue]);
   const ouvrir = (code: string) => router.push({ pathname: '/matiere/[code]', params: { code, periode: vue!.periode.code, eleve: eleveId } });
+  const ouvrirNote = (id: string) => router.push({ pathname: '/note/[id]', params: { id, periode: vue!.periode.code, eleve: eleveId } });
 
   return (
     <Ecran>
       <EnTete
         titre="Notes"
         action={
-          <BoutonRond libelle="Réglages" onPress={() => router.push('/reglages')}>
-            <IconeReglages />
-          </BoutonRond>
+          <View style={{ flexDirection: 'row', gap: espace.s }}>
+            {vue ? (
+              <BoutonRond libelle="Simulation" onPress={() => router.push({ pathname: '/simulateur', params: { periode: vue.periode.code, eleve: eleveId } })}>
+                <IconeSimulation />
+              </BoutonRond>
+            ) : null}
+            <BoutonRond libelle="Réglages" onPress={() => router.push('/reglages')}>
+              <IconeReglages />
+            </BoutonRond>
+          </View>
         }
       />
       {eleves.length > 1 ? (
@@ -105,7 +116,7 @@ function Notes({ eleves }: { eleves: Eleve[] }) {
       ) : null}
       {periodes.length > 0 && periode ? (
         <Entree rang={1}>
-          <Segments libelle="Période" options={periodes.map((p) => ({ cle: p.code, libelle: p.libelle }))} valeur={periode} onChange={setPeriode} />
+          <Deroulant libelle="Période" groupes={groupesPeriodes(periodes)} valeur={periode} onChange={setPeriode} />
         </Entree>
       ) : null}
       <Entree rang={2}>
@@ -118,7 +129,7 @@ function Notes({ eleves }: { eleves: Eleve[] }) {
               <View style={{ gap: espace.s }}>
                 {vue.nouvelles.slice(0, 5).map((n, i) => (
                   <Entree key={n.id} rang={4 + i}>
-                    <Presse onPress={() => ouvrir(n.matiereCode)} style={[styles.carteNote, { borderColor: c.bord }]}>
+                    <Presse onPress={() => ouvrirNote(n.id)} style={[styles.carteNote, { borderColor: c.bord }]}>
                       <Pulsation />
                       <View style={{ flex: 1 }}>
                         <Texte variante="liste" moyen numberOfLines={1}>
@@ -146,6 +157,7 @@ function Notes({ eleves }: { eleves: Eleve[] }) {
               options={[
                 { cle: 'liste' as const, libelle: 'Liste' },
                 { cle: 'familles' as const, libelle: 'Par famille' },
+                { cle: 'notes' as const, libelle: 'Par note' },
               ]}
               valeur={affichage}
               onChange={changerAffichage}
@@ -156,19 +168,94 @@ function Notes({ eleves }: { eleves: Eleve[] }) {
                   <LigneMatiereListe key={l.matiere.code} l={l} rang={6 + i} onPress={() => ouvrir(l.matiere.code)} />
                 ))}
               </View>
-            ) : (
+            ) : affichage === 'familles' ? (
               <ParFamille vue={vue} onPress={ouvrir} />
+            ) : (
+              <ParNote vue={vue} notes={instantane.donnees.notes} onMatiere={ouvrir} onNote={ouvrirNote} />
             )}
           </Section>
-          <Entree rang={8}>
-            <Bouton titre="Simuler une note" onPress={() => router.push({ pathname: '/simulateur', params: { periode: vue.periode.code, eleve: eleveId } })} />
-          </Entree>
           <Texte variante="petit" attenue>
             Moyennes prévues par ED-Clone à partir de tes notes. Client non officiel, non affilié à EcoleDirecte.
           </Texte>
         </>
       ) : null}
     </Ecran>
+  );
+}
+
+/** Périodes du menu, regroupées : trimestres et année, relevés, examens blancs. */
+function groupesPeriodes(periodes: Periode[]) {
+  const de = (types: Periode['type'][]) => periodes.filter((p) => types.includes(p.type)).map((p) => ({ cle: p.code, libelle: p.libelle, aide: `${jour(p.debut)} – ${jour(p.fin)}` }));
+  return [
+    { titre: 'Trimestres', options: de(['trimestre', 'annee']) },
+    { titre: 'Relevés', options: de(['releve']) },
+    { titre: 'Examens blancs', options: de(['examen']) },
+  ].filter((g) => g.options.length > 0);
+}
+
+/** Toutes les notes de la période, rangées par matière, de la plus récente à la plus ancienne. */
+function ParNote({ vue, notes, onMatiere, onNote }: { vue: VueNotes; notes: Note[]; onMatiere: (code: string) => void; onNote: (id: string) => void }) {
+  const c = useCouleurs();
+  const parId = new Map(notes.map((n) => [n.id, n]));
+  const groupes = vue.matieres
+    .map(({ matiere: m }) => ({
+      m,
+      lignes: [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)]
+        .map((d) => ({ d, n: parId.get(d.id)! }))
+        .sort((a, b) => b.n.date.localeCompare(a.n.date)),
+    }))
+    .filter((g) => g.lignes.length > 0);
+  if (groupes.length === 0) {
+    return (
+      <Texte variante="liste" attenue>
+        Aucune note pour l’instant dans cette période.
+      </Texte>
+    );
+  }
+  return (
+    <View style={{ gap: espace.l }}>
+      {groupes.map(({ m, lignes }, i) => (
+        <Entree key={m.code} rang={6 + i} style={{ gap: espace.xs }}>
+          <Presse onPress={() => onMatiere(m.code)} libelleAccessible={`${m.libelle}, voir le détail`} style={styles.rangee}>
+            <Texte variante="section" style={{ flex: 1 }} numberOfLines={1}>
+              {m.libelle}
+            </Texte>
+            <Chiffre valeur={m.moyenne} couleur={c.accent} />
+          </Presse>
+          <Panneau>
+            {lignes.map(({ d, n }, j) => (
+              <Presse key={n.id} onPress={() => onNote(n.id)} style={[styles.ligneNote, { borderBottomColor: c.filet, borderBottomWidth: j === lignes.length - 1 ? 0 : StyleSheet.hairlineWidth }]}>
+                <View style={{ flex: 1 }}>
+                  <Texte variante="liste" numberOfLines={1}>
+                    {n.devoir || 'Devoir'}
+                  </Texte>
+                  <Texte variante="petit" attenue numberOfLines={1}>
+                    {jour(n.date)} · coef {coef(n.coef)}
+                    {d.exclue ? ' · non comptée' : ''}
+                  </Texte>
+                </View>
+                <Texte variante="liste" attenue={!!d.exclue} style={styles.note}>
+                  {brute(n.valeurBrute)}
+                  <Texte variante="liste" attenue>
+                    /{n.noteSur}
+                  </Texte>
+                </Texte>
+              </Presse>
+            ))}
+          </Panneau>
+        </Entree>
+      ))}
+    </View>
+  );
+}
+
+function IconeSimulation() {
+  const c = useCouleurs();
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M4 20l5-6 4 3 7-9" />
+      <Path d="M16 8h4v4" />
+    </Svg>
   );
 }
 
@@ -326,5 +413,6 @@ const styles = StyleSheet.create({
   carteNote: { flexDirection: 'row', alignItems: 'center', gap: espace.m, paddingHorizontal: 14, paddingVertical: espace.m, borderRadius: 14, borderWidth: 1 },
   ligneMatiere: { paddingVertical: espace.m, gap: espace.s },
   famille: { borderRadius: rayon.phare, padding: espace.l, gap: espace.s },
+  ligneNote: { flexDirection: 'row', alignItems: 'center', gap: espace.m, minHeight: 52, paddingVertical: espace.s },
   tuile: { flexDirection: 'row', alignItems: 'center', gap: espace.s, paddingHorizontal: espace.m, paddingVertical: 10, borderRadius: 12 },
 });

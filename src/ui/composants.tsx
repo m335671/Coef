@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type LayoutChangeEvent,
+  Modal,
   type StyleProp,
   Pressable,
   ScrollView,
@@ -18,7 +19,9 @@ import {
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
+  FadeIn,
   FadeInDown,
+  SlideInDown,
   ReduceMotion,
   runOnJS,
   useAnimatedProps,
@@ -379,6 +382,107 @@ export function Segments<T extends string | number>({
   );
 }
 
+/** Feuille qui monte du bas, sur un voile : choix ou saisie rapide sans quitter l'écran. */
+export function Feuille({ visible, onFermer, titre, children }: { visible: boolean; onFermer: () => void; titre: string; children: ReactNode }) {
+  const c = useCouleurs();
+  return (
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onFermer} statusBarTranslucent>
+      <Animated.View entering={FadeIn.duration(180)} style={styles.voile}>
+        <Pressable accessibilityLabel="Fermer" style={StyleSheet.absoluteFill} onPress={onFermer} />
+        <Animated.View entering={SlideInDown.duration(300).easing(EASE).reduceMotion(ReduceMotion.System)} style={[styles.feuille, { backgroundColor: c.surface, paddingBottom: espace.xxl }]}>
+          <View style={[styles.poignee, { backgroundColor: c.controle }]} />
+          <Texte variante="section" role="heading" aria-level={2}>
+            {titre}
+          </Texte>
+          {children}
+        </Animated.View>
+      </Animated.View>
+    </Modal>
+  );
+}
+
+export type GroupeOptions<T> = { titre?: string; options: { cle: T; libelle: string; aide?: string }[] };
+
+/**
+ * Menu déroulant : un bouton qui montre le choix courant ; il ouvre une feuille qui monte du bas, options
+ * regroupées (trimestres, relevés…). Fermeture au choix, au fond ou au retour Android.
+ */
+export function Deroulant<T extends string | number>({
+  groupes,
+  valeur,
+  onChange,
+  libelle,
+}: {
+  groupes: GroupeOptions<T>[];
+  valeur: T;
+  onChange: (v: T) => void;
+  libelle: string;
+}) {
+  const c = useCouleurs();
+  const [ouvert, setOuvert] = useState(false);
+  const courant = groupes.flatMap((g) => g.options).find((o) => o.cle === valeur);
+  return (
+    <>
+      <Presse libelleAccessible={`${libelle} : ${courant?.libelle ?? ''}. Changer`} onPress={() => setOuvert(true)} style={[styles.deroulant, { backgroundColor: c.teinte100 }]}>
+        <Text style={{ fontFamily: police.fort, fontSize: 15, color: c.accentEncre }}>{courant?.libelle ?? libelle}</Text>
+        <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={c.accentEncre} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+          <Path d="M6 9l6 6 6-6" />
+        </Svg>
+      </Presse>
+      <Modal visible={ouvert} transparent animationType="none" onRequestClose={() => setOuvert(false)} statusBarTranslucent>
+        <Animated.View entering={FadeIn.duration(180)} style={styles.voile}>
+          <Pressable accessibilityLabel="Fermer" style={StyleSheet.absoluteFill} onPress={() => setOuvert(false)} />
+          <Animated.View entering={SlideInDown.duration(300).easing(EASE).reduceMotion(ReduceMotion.System)} style={[styles.feuille, { backgroundColor: c.surface }]}>
+            <View style={[styles.poignee, { backgroundColor: c.controle }]} />
+            <Texte variante="section" role="heading" aria-level={2}>
+              {libelle}
+            </Texte>
+            <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ gap: espace.m, paddingBottom: espace.xl }}>
+              {groupes.map((g, i) => (
+                <View key={i} style={{ gap: 2 }}>
+                  {g.titre ? (
+                    <Texte variante="petit" attenue style={{ marginTop: espace.s }}>
+                      {g.titre}
+                    </Texte>
+                  ) : null}
+                  {g.options.map((o) => {
+                    const actif = o.cle === valeur;
+                    return (
+                      <Presse
+                        key={String(o.cle)}
+                        role="radio"
+                        selectionne={actif}
+                        onPress={() => {
+                          onChange(o.cle);
+                          setOuvert(false);
+                        }}
+                        style={[styles.option, { backgroundColor: actif ? c.teinte50 : 'transparent' }]}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontFamily: actif ? police.fort : police.normal, fontSize: 16, color: actif ? c.accentEncre : c.texte }}>{o.libelle}</Text>
+                          {o.aide ? (
+                            <Texte variante="petit" attenue>
+                              {o.aide}
+                            </Texte>
+                          ) : null}
+                        </View>
+                        {actif ? (
+                          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+                            <Path d="M5 12l5 5 9-10" />
+                          </Svg>
+                        ) : null}
+                      </Presse>
+                    );
+                  })}
+                </View>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        </Animated.View>
+      </Modal>
+    </>
+  );
+}
+
 const CheminAnime = Animated.createAnimatedComponent(Path);
 
 /**
@@ -566,6 +670,11 @@ const styles = StyleSheet.create({
   segments: { gap: 6, paddingVertical: 2 },
   segment: { minHeight: 38, paddingHorizontal: 14, borderRadius: rayon.controle, justifyContent: 'center' },
   curseur: { height: 44, justifyContent: 'center' },
+  deroulant: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 14, borderRadius: rayon.controle, alignSelf: 'flex-start' },
+  voile: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(4,20,18,0.45)' },
+  feuille: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: espace.l, paddingTop: espace.s, gap: espace.m, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  poignee: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: espace.s },
+  option: { flexDirection: 'row', alignItems: 'center', gap: espace.m, minHeight: 48, paddingHorizontal: espace.m, borderRadius: 12 },
   piste: { height: 8, borderRadius: 4, overflow: 'hidden' },
   pouce: { position: 'absolute', top: 8, width: 28, height: 28, marginLeft: -14, borderRadius: 14, borderWidth: 4, shadowOpacity: 1, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   champ: { minHeight: CIBLE + 4, borderWidth: 1, borderRadius: 14, paddingHorizontal: espace.m, fontFamily: police.normal, fontSize: taille.corps },
