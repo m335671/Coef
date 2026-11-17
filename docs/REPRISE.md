@@ -19,6 +19,11 @@
 - Décision : le mot de passe n'est **jamais** stocké ; « rester connecté » garde l'`accessToken` de reconnexion dans SecureStore.
 - L'historique de la branche a été réécrit une fois (ajout du co-auteur) : repartir de `origin`, pas d'une ancienne copie.
 
+## État au 17/11/2026, après-midi
+- L'app s'appelle **Coef** (identifiant `app.coef`, icône C² : `assets/logo.svg`), licence GPL-3.0, branche `main`.
+- Pistes graphiques P1 à P6 faites : onglet Accueil en tuiles (premier onglet), anneau de la générale (repères classe et objectif), bande de famille et mini-courbe par matière, règle face à la classe, agenda en frise, simulé hachuré orange. Maquettes : https://claude.ai/artifact/5ReTr92EHFQ9GDvzFcdWB9
+- Releases : workflow `release` (tag `vX.Y.Z` → APK signé en release GitHub, Obtainium). Clé de signature à créer une fois avec `scripts/cle-de-signature.sh` (hors dépôt, secrets GitHub).
+
 ## À la reprise (17/11/2026, matin)
 - Retour étape 5 traité : menu déroulant des périodes, vue « par note », détail d'une note (classe, impact), simulation par matière + onglet Objectif (leviers).
 - Étape 6 faite sur formats **supposés** : onglets Agenda, Devoirs, Vie scolaire (`app/(onglets)/`), cache chiffré schéma v3. À valider par une capture réelle (APK n°10, bouton d'export dans Réglages > Essai).
