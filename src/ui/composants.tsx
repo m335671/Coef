@@ -20,7 +20,6 @@ import { GestureDetector, GestureHandlerRootView, usePanGesture } from 'react-na
 import Animated, {
   Easing,
   FadeIn,
-  FadeInDown,
   SlideInDown,
   ReduceMotion,
   runOnJS,
@@ -70,13 +69,16 @@ export function Texte({
 
 /** Entrée échelonnée : chaque bloc monte de quelques pixels en apparaissant, `rang` × 50 ms après le premier. */
 export function Entree({ rang = 0, children, style }: { rang?: number; children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  return (
-    <Animated.View
-      entering={FadeInDown.delay(rang * duree.pas).duration(duree.entree).easing(EASE).reduceMotion(ReduceMotion.System)}
-      style={style}>
-      {children}
-    </Animated.View>
-  );
+  // Pas d'animation de mise en page (`entering`) : sur Android, si un voisin grandit pendant l'entrée (données
+  // arrivées du cache), la vue garde son ancienne position et chevauche (essai du 17/11/2026). Un style animé
+  // (opacité, translation) ne touche pas à la mise en page.
+  const reduit = useReducedMotion();
+  const p = useSharedValue(reduit ? 1 : 0);
+  useEffect(() => {
+    if (!reduit) p.value = withDelay(rang * duree.pas, withTiming(1, { duration: duree.entree, easing: EASE }));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const anime = useAnimatedStyle(() => ({ opacity: p.value, transform: [{ translateY: (1 - p.value) * 16 }] }));
+  return <Animated.View style={[style, anime]}>{children}</Animated.View>;
 }
 
 /**
