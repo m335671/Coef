@@ -16,6 +16,7 @@ const MIGRATIONS = [
      nouveautes TEXT NOT NULL
    );`,
   `CREATE TABLE preferences (cle TEXT PRIMARY KEY NOT NULL, valeur TEXT NOT NULL);`,
+  `CREATE TABLE cache (cle TEXT PRIMARY KEY NOT NULL, valeur TEXT NOT NULL, maj TEXT NOT NULL);`,
 ];
 
 let ouverture: Promise<SQLite.SQLiteDatabase> | undefined;
@@ -99,6 +100,16 @@ export async function lirePreference<T>(cle: string, defaut: T): Promise<T> {
 
 export async function ecrirePreference(cle: string, valeur: unknown): Promise<void> {
   await (await base()).runAsync('INSERT OR REPLACE INTO preferences (cle, valeur) VALUES (?, ?)', cle, JSON.stringify(valeur));
+}
+
+/** Cache des autres données ED (emploi du temps, devoirs, vie scolaire), avec leur date de mise à jour. */
+export async function lireCache<T>(cle: string): Promise<{ valeur: T; maj: string } | undefined> {
+  const l = await (await base()).getFirstAsync<{ valeur: string; maj: string }>('SELECT valeur, maj FROM cache WHERE cle = ?', cle);
+  return l ? { valeur: JSON.parse(l.valeur) as T, maj: l.maj } : undefined;
+}
+
+export async function ecrireCache(cle: string, valeur: unknown, maj: string): Promise<void> {
+  await (await base()).runAsync('INSERT OR REPLACE INTO cache (cle, valeur, maj) VALUES (?, ?, ?)', cle, JSON.stringify(valeur), maj);
 }
 
 /** Essai : ouvre (et migre) la base, rend la version de SQLCipher et du schéma. */

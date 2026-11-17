@@ -30,3 +30,29 @@ export function lireNombre(s: string): number | undefined {
   if (!/^\d+(\.\d+)?$/.test(t)) return undefined;
   return Number(t);
 }
+
+const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+
+/** Date locale à midi (pas de décalage de fuseau) depuis « AAAA-MM-JJ… ». */
+export const dateDe = (iso: string) => new Date(`${iso.slice(0, 10)}T12:00:00`);
+
+/** « AAAA-MM-JJ » d'une date locale. */
+export const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+export const ajouterJours = (j: string, n: number) => {
+  const d = dateDe(j);
+  d.setDate(d.getDate() + n);
+  return iso(d);
+};
+
+/** Le lundi de la semaine de `j`. */
+export const lundiDe = (j: string) => ajouterJours(j, -((dateDe(j).getDay() + 6) % 7));
+
+/** « jeudi 19 nov. » */
+export const jourLong = (j: string) => `${JOURS[dateDe(j).getDay()]} ${jour(j)}`;
+
+/** « lun. » */
+export const jourCourt = (j: string) => `${JOURS[dateDe(j).getDay()]!.slice(0, 3)}.`;
+
+/** « 08:00 » depuis « AAAA-MM-JJ HH:MM ». */
+export const heure = (dt: string) => dt.slice(11, 16).replace(':', ' h ').replace(/ h 00$/, ' h');

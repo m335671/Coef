@@ -1,13 +1,12 @@
 // Écran des notes, la vitrine. Sa question : « Où en est ma moyenne ce trimestre, et qu'est-ce qui l'a fait bouger ? »
-import { Redirect, router } from 'expo-router';
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
-import { ELEVE_DEMO } from '@/demo/notes';
-import type { Eleve, Note, Periode } from '@/domain/types';
-import { useCompte } from '@/features/compte/store';
+import type { Note, Periode } from '@/domain/types';
+import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { familleDe, NOM_FAMILLE, ORDRE_FAMILLES } from '@/features/notes/familles';
 import { useNotes } from '@/features/notes/store';
 import { evolution, type LigneMatiere, periodeParDefaut, periodesAffichees, type VueNotes, vueNotes } from '@/features/notes/vue';
@@ -42,32 +41,11 @@ import { espace, police, rayon, taille, useCouleurs, useFamilles } from '@/ui/th
 type Affichage = 'liste' | 'familles' | 'notes';
 const PREF_AFFICHAGE = 'notes.affichage';
 
-export default function Accueil() {
-  const { client, profils, horsLigne, restaurer } = useCompte();
-  const [etat, setEtat] = useState<'attente' | 'connexion' | 'pret'>(MODE_DEMO || client || horsLigne ? 'pret' : 'attente');
-
-  useEffect(() => {
-    if (etat !== 'attente') return;
-    restaurer().then(
-      (ok) => setEtat(ok ? 'pret' : 'connexion'),
-      () => setEtat('connexion'), // session expirée ou refusée : on repasse par la connexion
-    );
-  }, [etat, restaurer]);
-
-  if (etat === 'connexion') return <Redirect href="/connexion" />;
-  if (etat === 'attente') return <Attente />;
-  const eleves = MODE_DEMO ? [ELEVE_DEMO] : profils.flatMap((p) => p.eleves);
-  return <Notes eleves={eleves} />;
-}
-
-function Attente() {
+export default function Notes() {
   const c = useCouleurs();
-  return <ActivityIndicator color={c.accent} accessibilityLabel="Reconnexion à EcoleDirecte" style={{ flex: 1, backgroundColor: c.fond }} />;
-}
-
-function Notes({ eleves }: { eleves: Eleve[] }) {
-  const c = useCouleurs();
-  const [eleveId, setEleveId] = useState(eleves[0]?.id ?? '');
+  const eleves = useEleves();
+  const [eleve, setEleveId] = useEleveActif();
+  const eleveId = eleve?.id ?? '';
   const etat = useNotes((s) => s.eleves[eleveId]);
   const charger = useNotes((s) => s.charger);
   const [periodeChoisie, setPeriode] = useState<string>();

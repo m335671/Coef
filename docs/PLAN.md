@@ -8,6 +8,6 @@
   Fin : les fixtures dorées passent.
 - [x] **4. Synchro et stockage** (validée le 17/11/2026 sur Android : base chiffrée, synchro, notification) — stockage chiffré ; synchro incrémentale ; notifications locales des nouvelles notes.
 - [ ] **5. Écrans** notes, moyennes et simulateur, finition du design (fait, en attente de validation). Inclut le réglage de confidentialité des notifications (écran verrouillé : rien / « Nouvelle note » / détail ; défaut : rien).
-- [ ] **6. Autres données** — emploi du temps, devoirs, vie scolaire.
+- [ ] **6. Autres données** — emploi du temps, devoirs, vie scolaire. (Fait sur formats supposés, en attente de capture réelle et de validation.)
 - [ ] **7. Messagerie et documents.**
 - [ ] **8. Stores** — icône et captures ; déclarations de confidentialité ; profils EAS.
