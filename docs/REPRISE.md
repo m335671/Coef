@@ -19,6 +19,11 @@
 - Décision : le mot de passe n'est **jamais** stocké ; « rester connecté » garde l'`accessToken` de reconnexion dans SecureStore.
 - L'historique de la branche a été réécrit une fois (ajout du co-auteur) : repartir de `origin`, pas d'une ancienne copie.
 
+## À la reprise (17/11/2026, 1 h 30)
+- APK n°9 (interface v2) envoyé à l'utilisateur, **retours attendus** ; étape 5 pas encore validée.
+- Si validée : cocher l'étape 5 dans PLAN.md, puis étape 6 (emploi du temps, devoirs, vie scolaire).
+- Petits restes connus : icône monochrome des notifications ; « quelle note pour atteindre » ignore les notes gardées du simulateur ; iOS non essayé.
+
 ## Fichiers clés de l'étape 2
 - `src/api/http.ts` : seule sortie réseau, liste blanche `api.ecoledirecte.com`, une requête à la fois.
 - `src/api/ecoledirecte/client.ts` : connexion, QCM, reconnexion silencieuse, `ClientED`. Constantes `API`, `VERSION_API` et `USER_AGENT` en haut du fichier.
