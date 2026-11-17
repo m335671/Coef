@@ -55,9 +55,11 @@ jobs:
           COEF_KEYSTORE: ${{ secrets.COEF_KEYSTORE }}
           COEF_KEYSTORE_PASS: ${{ secrets.COEF_KEYSTORE_PASS }}
         run: |
+          # Pas encore de clé : release « dev », signée avec la clé de debug du modèle Expo (la même à chaque build,
+          # donc les mises à jour dev s'enchaînent ; passer à la vraie clé demandera une réinstallation).
           if [ -z "$COEF_KEYSTORE" ]; then
-            echo "::warning::Secret COEF_KEYSTORE absent (scripts/cle-de-signature.sh) : APK signé avec la clé de debug."
-            [ "$GITHUB_REF_TYPE" != tag ] || exit 1
+            echo "::warning::Secret COEF_KEYSTORE absent : APK dev, signé avec la clé de debug."
+            echo "DEV=1" >> "$GITHUB_ENV"
             cp android/app/build/outputs/apk/release/app-release.apk "coef-$V.apk"; exit 0
           fi
           echo "$COEF_KEYSTORE" | base64 -d > "$RUNNER_TEMP/coef.jks"
@@ -68,7 +70,13 @@ jobs:
           rm "$RUNNER_TEMP/coef.jks"
 
       - if: github.ref_type == 'tag'
-        run: gh release create "$GITHUB_REF_NAME" "coef-$V.apk" --title "Coef $V" --generate-notes
+        run: |
+          if [ -n "$DEV" ]; then
+            gh release create "$GITHUB_REF_NAME" "coef-$V.apk" --title "Coef $V (dev)" --prerelease --generate-notes \
+              --notes "Version de développement, signée avec une clé de debug : à réinstaller quand les versions signées arriveront."
+          else
+            gh release create "$GITHUB_REF_NAME" "coef-$V.apk" --title "Coef $V" --generate-notes
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
       - if: github.ref_type != 'tag'

@@ -15,9 +15,9 @@ Une app Android (et iOS, pas encore essayée) pour suivre sa scolarité sur Ecol
 
 ## Installer
 
-Les APK signés sont publiés dans les [releases](../../releases).
+Les APK sont publiés dans les [releases](../../releases). Pour l'instant ce sont des versions de développement, marquées « pre-release » et signées avec une clé de debug. Il faudra réinstaller l'app quand les versions signées arriveront.
 
-Pour recevoir les mises à jour automatiquement, ajoute ce dépôt dans [Obtainium](https://github.com/ImranR98/Obtainium) : « Ajouter une app », puis colle l'adresse du dépôt.
+Pour recevoir les mises à jour automatiquement, ajoute ce dépôt dans [Obtainium](https://github.com/ImranR98/Obtainium) : « Ajouter une app », colle l'adresse du dépôt, puis coche « Inclure les pre-releases » tant qu'il n'y a que des versions de développement.
 
 ## Développer
 
