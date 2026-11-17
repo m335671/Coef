@@ -14,7 +14,7 @@ import { useSimulation } from '@/features/notes/simulation';
 import { evolution, periodeParDefaut, vueNotes } from '@/features/notes/vue';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
 import { libelleMatiere } from '@/sync/annonce';
-import { Courbe, Ecart, Ecran, EnTete, Entree, Pastille, Presse, Pulsation, Texte, useMinute } from '@/ui/composants';
+import { Courbe, Ecart, Ecran, EnTete, Entree, Pastille, Presse, Pulsation, Squelette, Texte, useMinute } from '@/ui/composants';
 import { ajouterJours, brute, ecart, heure, iso, jour, jourCourt, jourLong, lundiDe, moyenne } from '@/ui/format';
 import { Anneau } from '@/ui/graphiques';
 import { Tuile } from '@/ui/Tuile';
@@ -67,7 +67,12 @@ export default function Accueil() {
     ...(classe !== undefined ? [{ valeur: classe, couleur: c.attenue }] : []),
     ...(objectif !== undefined ? [{ valeur: objectif, couleur: c.objectif }] : []),
   ];
-  const courbe = useMemo(() => (instantane && vue ? evolution(instantane.donnees, vue.periode).map((x) => x.moyenne) : []), [instantane, vue]);
+  // Le premier quart de la période est retiré : la moyenne y saute d'une note à l'autre et écrase l'échelle
+  // (courbe plate ensuite). L'écran Notes garde la courbe entière.
+  const courbe = useMemo(() => {
+    const m = instantane && vue ? evolution(instantane.donnees, vue.periode).map((x) => x.moyenne) : [];
+    return m.slice(Math.floor(m.length / 4));
+  }, [instantane, vue]);
   const recentes = useMemo(() => {
     if (!vue || !instantane) return [];
     const ids = new Set(vue.matieres.flatMap(({ matiere: m }) => [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)].map((n) => n.id)));
@@ -245,9 +250,15 @@ export default function Accueil() {
               </Texte>
             </Presse>
           </View>
-          {recentes.length === 0 ? (
+          {!instantane ? (
+            <View style={{ gap: espace.m, paddingVertical: espace.s }}>
+              {[60, 45, 55].map((l) => (
+                <Squelette key={l} largeur={`${l}%`} />
+              ))}
+            </View>
+          ) : recentes.length === 0 ? (
             <Texte variante="liste" attenue>
-              {instantane ? 'Pas encore de note ce trimestre.' : 'Synchronisation…'}
+              Pas encore de note ce trimestre.
             </Texte>
           ) : (
             recentes.map((n) => (

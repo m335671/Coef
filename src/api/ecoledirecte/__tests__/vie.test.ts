@@ -14,7 +14,7 @@ test('HTML ED → texte : paragraphes, listes, entités', () => {
 test('emploi du temps : cours triés, annulés et modifiés repérés, horaires courts', () => {
   const c = versCours(emploiDuTemps.parse(edt.data));
   expect(c).toHaveLength(17);
-  expect(c[0]).toMatchObject({ debut: '2026-11-16 08:00', fin: '2026-11-16 10:00', matiere: 'MATHEMATIQUES', salle: 'B204', annule: false });
+  expect(c[0]).toMatchObject({ debut: '2026-11-16 08:00', fin: '2026-11-16 10:00', matiere: 'Mathématiques', salle: 'B204', annule: false });
   expect(c.filter((x) => x.annule).map((x) => x.codeMatiere)).toEqual(['ALL2']);
   expect(c.filter((x) => x.modifie).map((x) => x.codeMatiere)).toEqual(['HI-GE']);
 });

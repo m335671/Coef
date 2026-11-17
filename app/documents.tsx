@@ -8,7 +8,7 @@ import type { DocumentEleve } from '@/domain/types';
 import { useEleveActif } from '@/features/compte/eleves';
 import { LigneFichier } from '@/features/vie/LigneFichier';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
-import { Bouton, BoutonRond, Ecran, EnTete, IconeActualiser, Panneau, Section, Texte } from '@/ui/composants';
+import { Bouton, BoutonRond, Ecran, EnTete, IconeActualiser, ListeSquelette, Panneau, Section, Texte } from '@/ui/composants';
 import { espace } from '@/ui/theme';
 
 export default function Documents() {
@@ -43,9 +43,7 @@ export default function Documents() {
       ) : null}
       {!etat?.valeur ? (
         etat?.chargement === false ? null : (
-          <Texte variante="liste" attenue>
-            Chargement des documents…
-          </Texte>
+          <ListeSquelette libelle="Chargement des documents" />
         )
       ) : docs.length === 0 ? (
         <Texte variante="liste" attenue>

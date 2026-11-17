@@ -1,4 +1,5 @@
 // Seul module qui traduit le format ED vers le domaine.
+import { nomMatiere } from '@/domain/matieres';
 import type {
   Cours,
   Devoir,
@@ -85,7 +86,7 @@ export function versDonneesNotes(d: DonneesNotesED): DonneesNotes {
     matieres: p.ensembleMatieres.disciplines.map((m) => ({
       code: m.codeMatiere,
       sousCode: (m.sousMatiere && m.codeSousMatiere) || undefined,
-      libelle: m.discipline,
+      libelle: nomMatiere(m.discipline),
       coef: requis(m.coef, 'coef de matière'),
       officielle: nombre(m.moyenne, 'moyenne'),
       classe: stats(m.moyenneClasse, m.moyenneMin, m.moyenneMax),
@@ -157,7 +158,7 @@ export function versCours(d: z.infer<typeof emploiDuTemps>): Cours[] {
   return d
     .map((c) => ({
       id: String(c.id),
-      matiere: c.matiere || c.text || 'Cours',
+      matiere: nomMatiere(c.matiere || c.text || 'Cours'),
       codeMatiere: c.codeMatiere || undefined,
       debut: c.start_date.slice(0, 16),
       fin: c.end_date.slice(0, 16),
@@ -189,7 +190,7 @@ export function versDevoirs(liste: z.infer<typeof devoirsAFaire>, jours: z.infer
       devoirs.map((dv) => ({
         id: String(dv.idDevoir),
         pour,
-        matiere: dv.matiere,
+        matiere: nomMatiere(dv.matiere),
         codeMatiere: dv.codeMatiere || undefined,
         donneLe: dv.donneLe || undefined,
         effectue: dv.effectue ?? false,

@@ -8,7 +8,7 @@ import { devoirsDemo } from '@/demo/vie';
 import type { Devoir } from '@/domain/types';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { marquerDevoir, useDonnee, useDonneesED } from '@/features/vie/store';
-import { Bouton, BoutonRond, Coche, Ecran, EnTete, Entree, IconeActualiser, Pastille, Presse, Section, Segments, Texte } from '@/ui/composants';
+import { Bouton, BoutonRond, Coche, Ecran, EnTete, Entree, IconeActualiser, ListeSquelette, Pastille, Presse, Section, Segments, Texte } from '@/ui/composants';
 import { ajouterJours, iso, jourLong } from '@/ui/format';
 import { espace, rayon, useCouleurs } from '@/ui/theme';
 
@@ -80,9 +80,7 @@ export default function Devoirs() {
         </View>
       ) : null}
       {!etat?.valeur && etat?.chargement !== false ? (
-        <Texte variante="liste" attenue>
-          Chargement du cahier de textes…
-        </Texte>
+        <ListeSquelette lignes={4} libelle="Chargement du cahier de textes" />
       ) : (
         <>
           {devoirs.length === 0 ? (

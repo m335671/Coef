@@ -3,6 +3,7 @@
 import { router } from 'expo-router';
 import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  type DimensionValue,
   type LayoutChangeEvent,
   Modal,
   type StyleProp,
@@ -296,6 +297,34 @@ export function Panneau({ children, style, teinte }: { children: ReactNode; styl
         style,
       ]}>
       {children}
+    </View>
+  );
+}
+
+/** Bloc gris qui pulse doucement à la place d'un contenu en chargement (fixe si le système réduit les animations). */
+export function Squelette({ largeur = '100%', hauteur = 14, style }: { largeur?: DimensionValue; hauteur?: number; style?: ViewStyle }) {
+  const c = useCouleurs();
+  const reduit = useReducedMotion();
+  const o = useSharedValue(1);
+  useEffect(() => {
+    if (!reduit) o.value = withRepeat(withSequence(withTiming(0.45, { duration: 700 }), withTiming(1, { duration: 700 })), -1);
+  }, [reduit, o]);
+  const anime = useAnimatedStyle(() => ({ opacity: o.value }));
+  return <Animated.View style={[{ width: largeur, height: hauteur, borderRadius: hauteur / 2, backgroundColor: c.bord }, style, anime]} />;
+}
+
+/** Liste en chargement : des lignes squelettes dans un panneau, à la forme de la liste à venir. Annoncée au lecteur d'écran. */
+export function ListeSquelette({ lignes = 3, libelle = 'Chargement' }: { lignes?: number; libelle?: string }) {
+  return (
+    <View accessible accessibilityLabel={libelle} accessibilityRole="progressbar">
+      <Panneau>
+        {Array.from({ length: lignes }, (_, i) => (
+          <View key={i} style={[styles.ligne, { gap: espace.s, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }]}>
+            <Squelette largeur={`${70 - ((i * 17) % 30)}%`} />
+            <Squelette largeur={`${40 - ((i * 11) % 15)}%`} hauteur={10} />
+          </View>
+        ))}
+      </Panneau>
     </View>
   );
 }

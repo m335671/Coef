@@ -12,7 +12,21 @@ import { aJustifier, dansGroupe, type Groupe, GROUPES } from '@/features/vie/gro
 import { LigneFichier } from '@/features/vie/LigneFichier';
 import { LigneMessage } from '@/features/vie/LigneMessage';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
-import { Bouton, BoutonRond, Ecran, EnTete, Entree, IconeReglages, Panneau, Presse, Section, Segments, Texte } from '@/ui/composants';
+import {
+  Bouton,
+  BoutonRond,
+  Ecran,
+  EnTete,
+  Entree,
+  IconeReglages,
+  ListeSquelette,
+  Panneau,
+  Presse,
+  Section,
+  Segments,
+  Squelette,
+  Texte,
+} from '@/ui/composants';
 import { espace, police, useCouleurs } from '@/ui/theme';
 import { Tuile } from '@/ui/Tuile';
 
@@ -54,9 +68,11 @@ export default function VieScolaire() {
         fond={c.teinte50}
         onPress={() => router.push({ pathname: '/evenements', params: { groupe: g.cle } })}
         libelle={`${n} ${g.titre.toLowerCase()}${nJ ? `, dont ${nJ} à justifier` : ''}. Voir le détail`}>
-        <Texte style={{ fontFamily: police.gras, fontSize: 34, lineHeight: 40, color: n ? c.accent : c.attenue, fontVariant: ['tabular-nums'] }}>
-          {pret ? n : '–'}
-        </Texte>
+        {pret ? (
+          <Texte style={{ fontFamily: police.gras, fontSize: 34, lineHeight: 40, color: n ? c.accent : c.attenue, fontVariant: ['tabular-nums'] }}>{n}</Texte>
+        ) : (
+          <Squelette largeur={36} hauteur={28} style={{ marginVertical: 6 }} />
+        )}
         <Texte variante="liste" moyen style={{ color: c.accentEncre }}>
           {titre}
         </Texte>
@@ -108,7 +124,7 @@ export default function VieScolaire() {
 
       <Section
         titre="Messages"
-        aide={!messages ? 'Chargement…' : nonLus.length ? `${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''}` : 'Tout est lu'}
+        aide={!messages ? undefined : nonLus.length ? `${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''}` : 'Tout est lu'}
         rang={6}
         action={messages?.length ? <LienToutVoir libelle={`Tous les messages (${messages.length})`} onPress={() => router.push('/messages')} /> : undefined}>
         {messages?.length ? (
@@ -121,7 +137,9 @@ export default function VieScolaire() {
           <Texte variante="liste" attenue>
             Aucun message cette année.
           </Texte>
-        ) : null}
+        ) : (
+          <ListeSquelette libelle="Chargement des messages" />
+        )}
       </Section>
 
       <Section
@@ -139,10 +157,12 @@ export default function VieScolaire() {
               <LigneFichier key={`${d.type}-${d.id}`} f={d} dernier={i === l.length - 1} />
             ))}
           </Panneau>
-        ) : (
+        ) : docs ? (
           <Texte variante="liste" attenue>
-            {docs ? 'Aucun document pour l’instant.' : 'Chargement…'}
+            Aucun document pour l’instant.
           </Texte>
+        ) : (
+          <ListeSquelette libelle="Chargement des documents" />
         )}
       </Section>
     </Ecran>

@@ -24,7 +24,7 @@ Les chemins CMake dépassent 260 caractères : `subst` ne suffit pas (Node réso
 3. Dans `android/local.properties` : `sdk.dir=C:/Users/<toi>/AppData/Local/Android/Sdk` et `cmake.dir=C:/Users/<toi>/AppData/Local/Android/Sdk/cmake/3.31.6` (la 3.22.1 par défaut échoue).
 4. `JAVA_HOME` = JBR d'Android Studio, `NODE_ENV=production` (et `EXPO_PUBLIC_CAPTURE=1` pour l'export de captures), puis
    `./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a`.
-APK : `C:/edw/android/app/build/outputs/apk/release/app-release.apk` (clé de debug : essais seulement).
+APK : `C:/edw/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk` (un APK par architecture, `plugins/allegement.js`) (clé de debug : essais seulement).
 
 ## En cas d'échec avec EcoleDirecte
 | Symptôme | Piste |

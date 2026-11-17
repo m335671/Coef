@@ -15,9 +15,13 @@ Une app Android (et iOS, pas encore essayée) pour suivre sa scolarité sur Ecol
 
 ## Installer
 
-Les APK sont publiés dans les [releases](../../releases). Pour l'instant ce sont des versions de développement, marquées « pre-release » et signées avec une clé de debug. Il faudra réinstaller l'app quand les versions signées arriveront.
+Les APK sont publiés dans les [releases](../../releases), un par type de processeur :
 
-Pour recevoir les mises à jour automatiquement, ajoute ce dépôt dans [Obtainium](https://github.com/ImranR98/Obtainium) : « Ajouter une app », colle l'adresse du dépôt, puis coche « Inclure les pre-releases » tant qu'il n'y a que des versions de développement.
+- `arm64-v8a` : presque tous les téléphones Android récents. Dans le doute, c'est celui-là.
+- `armeabi-v7a` : anciens téléphones 32 bits.
+- `x86_64` : Chromebooks et émulateurs.
+
+Pour recevoir les mises à jour automatiquement, ajoute ce dépôt dans [Obtainium](https://github.com/ImranR98/Obtainium) : « Ajouter une app », colle l'adresse du dépôt. Obtainium choisit l'APK qui correspond à ton téléphone.
 
 ## Développer
 
@@ -33,11 +37,13 @@ npx expo start --web   # aperçu en mode démo, avec des données inventées
 
 ### Publier une version
 
+Dans l'onglet Actions : workflow `release`, « Run workflow », puis la version (`0.2.0`). Ou, en ligne de commande :
+
 ```sh
 git tag v0.2.0 && git push origin v0.2.0
 ```
 
-Le workflow `release` construit l'APK, le signe et crée la release. Le versionCode est calculé à partir du numéro de version : `1.2.3` donne `10203`.
+Le workflow construit les APK, les signe et crée la release. Le versionCode est calculé à partir du numéro de version : `1.2.3` donne `10203`. Sans version, « Run workflow » construit seulement des APK d'essai, gardés en artefact.
 
 La clé de signature se crée une seule fois, avec `bash scripts/cle-de-signature.sh`. Elle reste hors du dépôt, dans les secrets GitHub.
 

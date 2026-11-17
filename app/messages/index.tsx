@@ -8,7 +8,7 @@ import type { Message } from '@/domain/types';
 import { useEleveActif } from '@/features/compte/eleves';
 import { LigneMessage } from '@/features/vie/LigneMessage';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
-import { Bouton, BoutonRond, Ecran, EnTete, IconeActualiser, Panneau, Section, Texte } from '@/ui/composants';
+import { Bouton, BoutonRond, Ecran, EnTete, IconeActualiser, ListeSquelette, Panneau, Section, Texte } from '@/ui/composants';
 import { espace } from '@/ui/theme';
 
 export default function Messages() {
@@ -43,9 +43,7 @@ export default function Messages() {
       ) : null}
       {!etat?.valeur ? (
         etat?.chargement === false ? null : (
-          <Texte variante="liste" attenue>
-            Chargement de la messagerie…
-          </Texte>
+          <ListeSquelette lignes={4} libelle="Chargement de la messagerie" />
         )
       ) : messages.length === 0 ? (
         <Texte variante="liste" attenue>

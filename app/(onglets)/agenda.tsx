@@ -9,7 +9,7 @@ import type { Cours, Devoir } from '@/domain/types';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { familleDe } from '@/features/notes/familles';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
-import { Bouton, BoutonRond, Ecran, EnTete, Entree, Pastille, Segments, Texte, useMinute } from '@/ui/composants';
+import { Bouton, BoutonRond, Ecran, EnTete, Entree, ListeSquelette, Pastille, Segments, Texte, useMinute } from '@/ui/composants';
 import { ajouterJours, heure, iso, jour, jourCourt, jourLong, lundiDe } from '@/ui/format';
 import { Hachures } from '@/ui/graphiques';
 import { espace, police, rayon, useCouleurs, useFamilles } from '@/ui/theme';
@@ -90,9 +90,7 @@ export default function Agenda() {
         </View>
       ) : null}
       {!etat?.valeur && etat?.chargement !== false ? (
-        <Texte variante="liste" attenue>
-          Chargement de l’emploi du temps…
-        </Texte>
+        <ListeSquelette lignes={4} libelle="Chargement de l’emploi du temps" />
       ) : cours.length === 0 ? (
         <Texte variante="liste" attenue>
           Pas de cours ce jour-là.

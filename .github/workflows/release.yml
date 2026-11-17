@@ -1,10 +1,15 @@
 # APK signé publié en release GitHub à chaque tag vX.Y.Z (Obtainium suit ces releases).
-# Lancé à la main (workflow_dispatch) : construit l'APK et le garde en artefact, sans release.
+# Lancé à la main (Actions > release > Run workflow) : avec une version (ex. 0.2.0), crée le tag et la release ;
+# sans version, construit seulement les APK et les garde en artefact.
 name: release
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version à publier (X.Y.Z), vide = APK d’essai sans release'
+        required: false
 permissions:
   contents: write
 jobs:
@@ -24,12 +29,15 @@ jobs:
       - run: npm ci
       - run: npm run typecheck && npm run lint && npm test -- --ci
 
-      # Version : celle du tag (v1.2.3 → 1.2.3, versionCode 10203) ; à la main : celle d'app.json + numéro d'essai.
+      # Version : celle du tag ou celle donnée à la main (1.2.3 → versionCode 10203) ; sinon celle d'app.json + numéro d'essai.
       - name: Version
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            V="${GITHUB_REF_NAME#v}"
-            [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Tag attendu : vX.Y.Z (reçu $GITHUB_REF_NAME)"; exit 1; }
+          if [ "$GITHUB_REF_TYPE" = tag ] || [ -n "$VERSION" ]; then
+            V="${VERSION:-${GITHUB_REF_NAME#v}}"
+            [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Version attendue : X.Y.Z (reçu $V)"; exit 1; }
+            echo "TAG=v$V" >> "$GITHUB_ENV"
           else
             V="$(node -p "require('./app.json').expo.version")"
           fi
@@ -39,14 +47,15 @@ jobs:
             const fs = require('fs'); const a = JSON.parse(fs.readFileSync('app.json'));
             a.expo.version = '$V'; a.expo.android.versionCode = $CODE;
             fs.writeFileSync('app.json', JSON.stringify(a, null, 2));"
-          [ "$GITHUB_REF_TYPE" = tag ] || V="$V-essai.$GITHUB_RUN_NUMBER"
+          [ "$GITHUB_REF_TYPE" = tag ] || [ -n "$VERSION" ] || V="$V-essai.$GITHUB_RUN_NUMBER"
           echo "V=$V" >> "$GITHUB_ENV"
 
       - run: npx expo prebuild -p android --no-install
         env:
           NODE_ENV: production
-      # arm64 seulement : tous les téléphones Android récents ; moitié moins de code natif à compiler et à télécharger.
-      - run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+      # Un APK par architecture (splits ABI, plugins/allegement.js) : arm64 (téléphones récents), armv7 (anciens
+      # téléphones 32 bits), x86_64 (Chromebooks, émulateurs). Pas d'APK universel : il cumulerait les trois.
+      - run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a,x86_64 --no-daemon
         working-directory: android
         env:
           NODE_ENV: production
@@ -57,32 +66,35 @@ jobs:
           COEF_KEYSTORE: ${{ secrets.COEF_KEYSTORE }}
           COEF_KEYSTORE_PASS: ${{ secrets.COEF_KEYSTORE_PASS }}
         run: |
-          # Pas encore de clé : release « dev », signée avec la clé de debug du modèle Expo (la même à chaque build,
-          # donc les mises à jour dev s'enchaînent ; passer à la vraie clé demandera une réinstallation).
+          SORTIE=android/app/build/outputs/apk/release
+          # Pas de clé : release « dev », signée avec la clé de debug du modèle Expo.
           if [ -z "$COEF_KEYSTORE" ]; then
             echo "::warning::Secret COEF_KEYSTORE absent : APK dev, signé avec la clé de debug."
             echo "DEV=1" >> "$GITHUB_ENV"
-            cp android/app/build/outputs/apk/release/app-release.apk "coef-$V.apk"; exit 0
+            for a in arm64-v8a armeabi-v7a x86_64; do cp "$SORTIE/app-$a-release.apk" "coef-$V-$a.apk"; done; exit 0
           fi
           echo "$COEF_KEYSTORE" | base64 -d > "$RUNNER_TEMP/coef.jks"
           BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
-          "$BT/apksigner" sign --ks "$RUNNER_TEMP/coef.jks" --ks-pass env:COEF_KEYSTORE_PASS --ks-key-alias coef \
-            --out "coef-$V.apk" android/app/build/outputs/apk/release/app-release.apk
-          "$BT/apksigner" verify --print-certs "coef-$V.apk"
+          for a in arm64-v8a armeabi-v7a x86_64; do
+            "$BT/apksigner" sign --ks "$RUNNER_TEMP/coef.jks" --ks-pass env:COEF_KEYSTORE_PASS --ks-key-alias coef --out "coef-$V-$a.apk" "$SORTIE/app-$a-release.apk"
+            "$BT/apksigner" verify "coef-$V-$a.apk"
+          done
           rm "$RUNNER_TEMP/coef.jks"
+          ls -la coef-*.apk
 
-      - if: github.ref_type == 'tag'
+      # Tag poussé, ou version donnée à la main (le tag est alors créé sur le commit lancé).
+      - if: env.TAG != ''
         run: |
           if [ -n "$DEV" ]; then
-            gh release create "$GITHUB_REF_NAME" "coef-$V.apk" --title "Coef $V (dev)" --prerelease --generate-notes \
+            gh release create "$TAG" coef-*.apk --target "$GITHUB_SHA" --title "Coef $V (dev)" --prerelease --generate-notes \
               --notes "Version de développement, signée avec une clé de debug : à réinstaller quand les versions signées arriveront."
           else
-            gh release create "$GITHUB_REF_NAME" "coef-$V.apk" --title "Coef $V" --generate-notes
+            gh release create "$TAG" coef-*.apk --target "$GITHUB_SHA" --title "Coef $V" --generate-notes
           fi
         env:
           GH_TOKEN: ${{ github.token }}
-      - if: github.ref_type != 'tag'
+      - if: env.TAG == ''
         uses: actions/upload-artifact@v4
         with:
           name: coef-${{ env.V }}
-          path: coef-${{ env.V }}.apk
+          path: coef-${{ env.V }}-*.apk
