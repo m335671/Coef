@@ -12,3 +12,6 @@ export const devoirsDemo = () => versDevoirs(devoirsAFaire.parse(liste.data), [c
 export const vieScolaireDemo = () => versVieScolaire(vieScolaire.parse(vie.data));
 /** Le lundi de la semaine des données de démo. */
 export const LUNDI_DEMO = '2026-11-16';
+/** « Aujourd'hui » dans la démo : le mardi de cette semaine-là. */
+export const AUJOURDHUI_DEMO = '2026-11-17';
+export const MAINTENANT_DEMO = `${AUJOURDHUI_DEMO} 09:41`;

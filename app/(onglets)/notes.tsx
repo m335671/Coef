@@ -11,11 +11,10 @@ import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { familleDe, NOM_FAMILLE, ORDRE_FAMILLES } from '@/features/notes/familles';
 import { cleSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
-import { evolution, type LigneMatiere, periodeParDefaut, periodesAffichees, type VueNotes, vueNotes } from '@/features/notes/vue';
+import { evolution, evolutionsMatieres, type LigneMatiere, periodeParDefaut, periodesAffichees, type VueNotes, vueNotes } from '@/features/notes/vue';
 import { ecrirePreference, lirePreference } from '@/storage/base';
 import { libelleMatiere } from '@/sync/annonce';
 import {
-  Barre,
   Bouton,
   BoutonRond,
   Chiffre,
@@ -36,6 +35,7 @@ import {
   Texte,
 } from '@/ui/composants';
 import { brute, coef, jour, moyenne } from '@/ui/format';
+import { Anneau, Hachures, MiniCourbe } from '@/ui/graphiques';
 import Svg, { Path } from 'react-native-svg';
 
 import { espace, police, rayon, taille, useCouleurs, useFamilles } from '@/ui/theme';
@@ -100,6 +100,9 @@ export default function Notes() {
     };
   }, [reelle, simule, instantaneVu]);
   const courbe = useMemo(() => (instantaneVu && vue ? evolution(instantaneVu.donnees, vue.periode) : []), [instantaneVu, vue]);
+  const tendances = useMemo(() => (instantaneVu && vue ? evolutionsMatieres(instantaneVu.donnees, vue.periode) : {}), [instantaneVu, vue]);
+  /** Moyennes réelles par matière, quand la simulation est affichée (pour montrer « réelle » sous la simulée). */
+  const reellesMatieres = simule && reelle ? new Map(reelle.matieres.map((l) => [l.matiere.code, l.matiere.moyenne])) : undefined;
   const ouvrirSimulation = () =>
     router.push({
       pathname: '/simulateur',
@@ -152,6 +155,7 @@ export default function Notes() {
         <Moyenne
           vue={vue}
           reelle={simule ? reelle?.resultat.generale : undefined}
+          objectif={simulation.objectif}
           courbe={courbe}
           chargement={etat?.chargement ?? true}
           erreur={etat?.erreur}
@@ -205,7 +209,15 @@ export default function Notes() {
             {affichage === 'liste' ? (
               <View>
                 {vue.matieres.map((l, i) => (
-                  <LigneMatiereListe key={l.matiere.code} l={l} rang={6 + i} onPress={() => ouvrir(l.matiere.code)} />
+                  <LigneMatiereListe
+                    key={l.matiere.code}
+                    l={l}
+                    rang={6 + i}
+                    tendance={tendances[l.matiere.code] ?? []}
+                    reelle={reellesMatieres ? { valeur: reellesMatieres.get(l.matiere.code) } : undefined}
+                    dernier={i === vue.matieres.length - 1}
+                    onPress={() => ouvrir(l.matiere.code)}
+                  />
                 ))}
               </View>
             ) : affichage === 'familles' ? (
@@ -280,7 +292,9 @@ function ParNote({ vue, notes, onMatiere, onNote }: { vue: VueNotes; notes: Note
                       borderBottomColor: c.filet,
                       borderBottomWidth: j === lignes.length - 1 ? 0 : StyleSheet.hairlineWidth,
                     },
+                    simulee ? { ...styles.simulee, borderColor: c.negatif } : {},
                   ]}>
+                  {simulee ? <Hachures /> : null}
                   <View style={{ flex: 1 }}>
                     <Texte variante="liste" numberOfLines={1} style={simulee ? { color: c.negatif } : undefined}>
                       {simulee ? 'Note simulée' : n.devoir || 'Devoir'}
@@ -290,7 +304,7 @@ function ParNote({ vue, notes, onMatiere, onNote }: { vue: VueNotes; notes: Note
                       {d.exclue ? ' · non comptée' : ''}
                     </Texte>
                   </View>
-                  <Texte variante="liste" attenue={!!d.exclue} style={styles.note}>
+                  <Texte variante="liste" attenue={!!d.exclue} style={[styles.note, simulee ? { color: c.negatif } : undefined]}>
                     {brute(n.valeurBrute)}
                     <Texte variante="liste" attenue>
                       /{n.noteSur}
@@ -316,26 +330,56 @@ function IconeSimulation() {
   );
 }
 
-function LigneMatiereListe({ l, rang, onPress }: { l: LigneMatiere; rang: number; onPress: () => void }) {
+/** Une matière : bande de sa famille, mini-courbe de tendance, variation à sa dernière note ; simulée : sa moyenne réelle dessous. */
+function LigneMatiereListe({
+  l,
+  rang,
+  tendance,
+  reelle,
+  dernier,
+  onPress,
+}: {
+  l: LigneMatiere;
+  rang: number;
+  tendance: number[];
+  reelle?: { valeur?: number };
+  dernier: boolean;
+  onPress: () => void;
+}) {
+  const c = useCouleurs();
+  const famille = useFamilles()[familleDe(l.matiere.code, l.matiere.libelle)];
   const m = l.matiere;
+  const simulee = reelle !== undefined && reelle.valeur !== m.moyenne;
+  const variation = tendance.length > 1 ? tendance.at(-1)! - tendance.at(-2)! : undefined;
+  const etat = m.moyenne === undefined ? 'pas de note' : `moyenne ${simulee ? 'simulée' : 'prévue'} ${moyenne(m.moyenne)}`;
   return (
     <Entree rang={rang}>
       <Presse
         onPress={onPress}
-        libelleAccessible={`${m.libelle}, coefficient ${coef(m.coef)}, ${m.moyenne === undefined ? 'pas de note' : `moyenne prévue ${moyenne(m.moyenne)}`}`}
-        style={styles.ligneMatiere}>
-        <View style={styles.rangee}>
-          <Texte variante="liste" moyen numberOfLines={2} style={{ flex: 1 }}>
+        libelleAccessible={`${m.libelle}, coefficient ${coef(m.coef)}, ${etat}${simulee && reelle.valeur !== undefined ? `, réelle ${moyenne(reelle.valeur)}` : ''}`}
+        style={[styles.ligneMatiere, { borderBottomColor: c.filet, borderBottomWidth: dernier ? 0 : StyleSheet.hairlineWidth }]}>
+        <View style={[styles.bande, { backgroundColor: famille.trait }]} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Texte variante="liste" moyen numberOfLines={2}>
             {m.libelle}
           </Texte>
-          <Texte variante="petit" attenue>
-            coef {coef(m.coef)}
-          </Texte>
-          <View style={styles.colonne}>
-            <Chiffre valeur={m.moyenne} />
+          <View style={styles.rangee}>
+            <MiniCourbe points={tendance} couleur={famille.trait} />
+            <Texte variante="petit" attenue>
+              coef {coef(m.coef)}
+            </Texte>
           </View>
         </View>
-        <Barre ratio={(m.moyenne ?? 0) / 20} delai={(rang + 2) * 50} />
+        <View style={styles.colonne}>
+          <Chiffre valeur={m.moyenne} couleur={simulee ? c.negatif : undefined} />
+          {simulee ? (
+            <Texte variante="petit" attenue style={{ fontVariant: ['tabular-nums'] }}>
+              {reelle.valeur === undefined ? 'simulée' : `réelle ${moyenne(reelle.valeur)}`}
+            </Texte>
+          ) : variation !== undefined ? (
+            <Ecart valeur={variation} />
+          ) : null}
+        </View>
       </Presse>
     </Entree>
   );
@@ -416,10 +460,13 @@ function Moyenne({
   synchro,
   onReessayer,
   reelle,
+  objectif,
 }: {
   vue?: VueNotes;
   /** Moyenne prévue sans la simulation, quand la simulation est affichée. */
   reelle?: number;
+  /** Moyenne générale visée (simulateur, onglet Objectif). */
+  objectif?: number;
   courbe: { date: string; moyenne: number }[];
   chargement: boolean;
   erreur?: unknown;
@@ -440,10 +487,26 @@ function Moyenne({
       ? `Synchro ${jour(synchro)} à ${new Date(synchro).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
       : undefined;
 
+  const simule = reelle !== undefined;
+  const classe = vue?.periode.classeGenerale?.moyenne;
+  const reperes = [
+    ...(classe !== undefined ? [{ valeur: classe, couleur: c.attenue, libelle: `classe ${moyenne(classe)}` }] : []),
+    ...(objectif !== undefined ? [{ valeur: objectif, couleur: c.texte, libelle: `objectif ${moyenne(objectif)}` }] : []),
+  ];
+  const teinte = simule ? c.negatif : c.accent;
+
   return (
-    <Panneau teinte style={{ paddingVertical: espace.xl, gap: espace.m }}>
+    <Panneau
+      teinte={!simule}
+      style={{
+        paddingVertical: espace.xl,
+        gap: espace.m,
+        overflow: 'hidden',
+        ...(simule ? { borderColor: c.negatif, borderStyle: 'dashed', borderWidth: 1.5, borderRadius: rayon.phare } : {}),
+      }}>
+      {simule ? <Hachures opacite={0.08} /> : null}
       <View style={styles.rangee}>
-        <Texte variante="liste" style={{ flex: 1, color: c.accentEncre }}>
+        <Texte variante="liste" style={{ flex: 1, color: simule ? c.negatif : c.accentEncre }}>
           Moyenne générale {reelle !== undefined ? 'simulée' : 'prévue'}
         </Texte>
         {reelle !== undefined ? (
@@ -454,20 +517,39 @@ function Moyenne({
           <Pastille texte={`Écart ${moyenne(cal.ecartMax)} avec ED`} />
         ) : null}
       </View>
-      <View style={styles.phare}>
-        {vue ? <ChiffreAnime valeur={g} taillePx={taille.phare} couleur={c.accent} /> : <View style={[styles.attente, { backgroundColor: c.teinte100 }]} />}
-        {vue && g !== undefined ? (
-          <Texte variante="liste" attenue>
-            /20
+      {vue ? (
+        <Anneau
+          valeur={g}
+          couleur={teinte}
+          fond={simule ? c.surface : c.teinte50}
+          reperes={reperes}
+          libelle={`Moyenne générale ${simule ? 'simulée' : 'prévue'} ${g === undefined ? 'absente' : `${moyenne(g)} sur 20`}${reperes.map((x) => `, ${x.libelle}`).join('')}`}>
+          <ChiffreAnime valeur={g} taillePx={taille.phare} couleur={teinte} />
+          <Texte variante="petit" attenue style={{ fontVariant: ['tabular-nums'] }}>
+            {simule ? `réelle ${moyenne(reelle)}` : 'sur 20'}
           </Texte>
-        ) : null}
-      </View>
+        </Anneau>
+      ) : (
+        <View style={[styles.attente, { backgroundColor: c.teinte100 }]} />
+      )}
+      {reperes.length > 0 ? (
+        <View style={styles.legende} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          {reperes.map((x) => (
+            <View key={x.libelle} style={styles.rangee}>
+              <View style={[styles.marque, { backgroundColor: x.couleur }]} />
+              <Texte variante="petit" attenue style={{ fontVariant: ['tabular-nums'] }}>
+                {x.libelle}
+              </Texte>
+            </View>
+          ))}
+        </View>
+      ) : null}
       {reelle !== undefined && g !== undefined ? <Ecart valeur={g - reelle} suffixe={`par rapport à ta moyenne prévue (${moyenne(reelle)})`} /> : null}
       {vue?.ecart !== undefined && vue.depuis ? <Ecart valeur={vue.ecart} suffixe={`depuis la synchro du ${jour(vue.depuis)}`} /> : null}
-      {g !== undefined ? <Barre ratio={g / 20} hauteur={10} delai={150} /> : null}
       {courbe.length > 1 ? (
         <View style={{ gap: espace.xs }}>
           <Courbe
+            couleur={teinte}
             points={courbe.map((p) => p.moyenne)}
             libelle={`Évolution de la moyenne prévue, de ${moyenne(courbe[0]!.moyenne)} le ${jour(courbe[0]!.date)} à ${moyenne(courbe.at(-1)!.moyenne)} le ${jour(courbe.at(-1)!.date)}`}
           />
@@ -504,15 +586,13 @@ function Moyenne({
 }
 
 const styles = StyleSheet.create({
-  phare: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: espace.xs,
-    minHeight: 56,
-  },
+  legende: { flexDirection: 'row', justifyContent: 'center', gap: espace.l },
+  marque: { width: 4, height: 12, borderRadius: 2 },
+  bande: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
+  simulee: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 12, paddingHorizontal: espace.s, marginVertical: 2, overflow: 'hidden' },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
-  attente: { width: 140, height: 48, borderRadius: 8 },
-  colonne: { width: 52, alignItems: 'flex-end' },
+  attente: { width: 184, height: 184, borderRadius: 92, alignSelf: 'center' },
+  colonne: { minWidth: 64, alignItems: 'flex-end', gap: 2 },
   note: { fontFamily: police.fort, fontVariant: ['tabular-nums'] },
   carteNote: {
     flexDirection: 'row',
@@ -523,7 +603,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
   },
-  ligneMatiere: { paddingVertical: espace.m, gap: espace.s },
+  ligneMatiere: { flexDirection: 'row', alignItems: 'center', paddingVertical: espace.m, gap: espace.m },
   famille: { borderRadius: rayon.phare, padding: espace.l, gap: espace.s },
   ligneNote: {
     flexDirection: 'row',

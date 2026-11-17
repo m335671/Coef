@@ -8,8 +8,9 @@ import type { Note } from '@/domain/types';
 import { impactMatiere } from '@/domain/moyennes/impact';
 import { useNotes } from '@/features/notes/store';
 import { evolution, vueNotes } from '@/features/notes/vue';
-import { Barre, Bouton, Chiffre, ChiffreAnime, Courbe, Ecart, Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
+import { Bouton, Chiffre, ChiffreAnime, Courbe, Ecart, Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
 import { brute, coef, jour, moyenne } from '@/ui/format';
+import { Regle } from '@/ui/graphiques';
 import { espace, taille, useCouleurs } from '@/ui/theme';
 
 const RAISON: Record<Exclusion, string> = {
@@ -62,7 +63,13 @@ export default function DetailMatiere() {
               </Texte>
             ) : null}
           </View>
-          {m.matiere.moyenne !== undefined ? <Barre ratio={m.matiere.moyenne / 20} hauteur={10} delai={150} /> : null}
+          {m.matiere.moyenne !== undefined ? (
+            <Regle
+              valeur={m.matiere.moyenne}
+              classe={classe}
+              libelle={`Ta moyenne ${moyenne(m.matiere.moyenne)} sur 20${classe?.moyenne !== undefined ? `, classe ${moyenne(classe.moyenne)}` : ''}${classe?.min !== undefined && classe.max !== undefined ? `, de ${moyenne(classe.min)} à ${moyenne(classe.max)}` : ''}`}
+            />
+          ) : null}
           {courbe.length > 1 ? <Courbe points={courbe.map((x) => x.moyenne)} libelle={`Évolution de la moyenne de ${m.matiere.libelle}`} /> : null}
           <Texte variante="petit" style={{ color: c.accentEncre }}>
             {m.matiere.officielle === undefined ? 'Pas encore de moyenne officielle ED' : `Officielle ED ${moyenne(m.matiere.officielle)}`}
@@ -126,7 +133,14 @@ export default function DetailMatiere() {
             </Ligne>
           ) : (
             lignes.map(({ d, n, sous }, i) => (
-              <LigneNote key={d.id} d={d} n={n} sous={sous} dernier={i === lignes.length - 1} onPress={() => router.push({ pathname: '/note/[id]', params: { id: n.id, periode, eleve } })} />
+              <LigneNote
+                key={d.id}
+                d={d}
+                n={n}
+                sous={sous}
+                dernier={i === lignes.length - 1}
+                onPress={() => router.push({ pathname: '/note/[id]', params: { id: n.id, periode, eleve } })}
+              />
             ))
           )}
         </Panneau>

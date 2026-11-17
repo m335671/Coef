@@ -48,11 +48,11 @@ export default function Simulation() {
   const [onglet, setOnglet] = useState<Onglet>('ajouter');
   const cle = cleSimulation(params.eleve, params.periode);
   const hypotheses = useSimulation((s) => s.notes[cle]) ?? AUCUNE;
-  const { active, modifie, definir, activer, enregistrer, charger } = useSimulation();
+  const { active, modifie, definir, activer, enregistrer, charger, viser } = useSimulation();
+  const objectif = useSimulation((s) => s.objectif) ?? 14;
   const setHypotheses = (h: NoteHypothetique[]) => definir(cle, h);
   useEffect(() => void charger(), [charger]);
   const [saisie, setSaisie] = useState<Saisie | undefined>(params.code ? { code: params.code, valeur: 14, sur: 20, poids: 1 } : undefined);
-  const [objectif, setObjectif] = useState(14);
 
   const fermer = (
     <BoutonRond libelle="Fermer la simulation" onPress={() => router.back()}>
@@ -196,7 +196,7 @@ export default function Simulation() {
       ) : (
         <Objectif
           objectif={objectif}
-          setObjectif={setObjectif}
+          setObjectif={viser}
           generale={apres.generale}
           liste={leviers(p, notesSimulees, d.periodes, objectif, options)}
           onChoisir={(code, note) => {

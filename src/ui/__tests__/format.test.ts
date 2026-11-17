@@ -8,7 +8,7 @@ test('dates : lundi de la semaine, jours relatifs, libellés', () => {
   expect(jourLong('2026-11-19')).toBe('jeudi 19 nov.');
   expect(jourCourt('2026-11-16')).toBe('lun.');
   expect(jour('2026-01-05')).toBe('5 janv.');
-  expect(heure('2026-11-16 08:00')).toBe('08 h');
+  expect(heure('2026-11-16 08:00')).toBe('8 h');
   expect(heure('2026-11-16 10:15')).toBe('10 h 15');
 });
 

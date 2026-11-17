@@ -45,7 +45,7 @@ export default function Reglages() {
   async function effacer() {
     await toutEffacer();
     vider();
-    useSimulation.setState({ notes: {}, active: true, modifie: false, charge: false });
+    useSimulation.setState({ notes: {}, objectif: undefined, active: true, modifie: false, charge: false });
     router.replace('/connexion');
   }
 

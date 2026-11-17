@@ -41,23 +41,24 @@ const sombre: Couleurs = {
   ombre: 'rgba(0,0,0,0.5)',
 };
 
-/** Familles de matières (affichage « par famille ») : une teinte douce chacune, encre sombre de la même teinte. */
+/** Familles de matières (affichage « par famille ») : une teinte douce chacune, encre sombre de la même teinte,
+ * trait moyen (bande de la liste, mini-courbe). */
 export type Famille = 'sciences' | 'langues' | 'lettres' | 'arts' | 'autres';
 
-const FAMILLES_CLAIR: Record<Famille, { fond: string; encre: string }> = {
-  sciences: { fond: '#e0f2fe', encre: '#0c4a6e' },
-  langues: { fond: '#dcf5e5', encre: '#14532d' },
-  lettres: { fond: '#fde9d7', encre: '#6b3410' },
-  arts: { fond: '#fce7f3', encre: '#831843' },
-  autres: { fond: '#eef2f1', encre: '#33403e' },
+const FAMILLES_CLAIR: Record<Famille, { fond: string; encre: string; trait: string }> = {
+  sciences: { fond: '#e0f2fe', encre: '#0c4a6e', trait: '#38a3d6' },
+  langues: { fond: '#dcf5e5', encre: '#14532d', trait: '#3fae6a' },
+  lettres: { fond: '#fde9d7', encre: '#6b3410', trait: '#c98a52' },
+  arts: { fond: '#fce7f3', encre: '#831843', trait: '#d0619c' },
+  autres: { fond: '#eef2f1', encre: '#33403e', trait: '#8d9b98' },
 };
 
 const FAMILLES_SOMBRE: typeof FAMILLES_CLAIR = {
-  sciences: { fond: '#0c2a3d', encre: '#bae6fd' },
-  langues: { fond: '#12301f', encre: '#bbf7d0' },
-  lettres: { fond: '#3a2414', encre: '#fed7aa' },
-  arts: { fond: '#3a1229', encre: '#fbcfe8' },
-  autres: { fond: '#1c2624', encre: '#d5e2df' },
+  sciences: { fond: '#0c2a3d', encre: '#bae6fd', trait: '#4fb3e3' },
+  langues: { fond: '#12301f', encre: '#bbf7d0', trait: '#4cc27c' },
+  lettres: { fond: '#3a2414', encre: '#fed7aa', trait: '#d99a62' },
+  arts: { fond: '#3a1229', encre: '#fbcfe8', trait: '#e07aae' },
+  autres: { fond: '#1c2624', encre: '#d5e2df', trait: '#7d8b88' },
 };
 
 /** Polices embarquées (expo-font) : aucune requête réseau. */

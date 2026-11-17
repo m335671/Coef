@@ -4,11 +4,11 @@ import { StyleSheet, View } from 'react-native';
 
 import { impactNote } from '@/domain/moyennes/impact';
 import { calculer, type Exclusion, lireNote } from '@/domain/moyennes/moteur';
-import type { StatsClasse } from '@/domain/types';
 import { useNotes } from '@/features/notes/store';
 import { libelleMatiere } from '@/sync/annonce';
 import { Bouton, Ecart, Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
-import { brute, coef, jour, moyenne } from '@/ui/format';
+import { brute, coef, ecart, jour, moyenne } from '@/ui/format';
+import { Regle } from '@/ui/graphiques';
 import { espace, police, taille, useCouleurs } from '@/ui/theme';
 
 const RAISON: Record<Exclusion, string> = {
@@ -54,13 +54,32 @@ export default function DetailNote() {
             <Pastille texte={`coef ${coef(n.coef)}`} />
           </View>
           <View style={styles.phare}>
-            <Texte style={{ fontFamily: police.gras, fontSize: taille.phare, lineHeight: taille.phare * 1.15, color: c.accent, fontVariant: ['tabular-nums'] }}>{brute(n.valeurBrute)}</Texte>
-            <Texte variante="section" attenue>
+            <Texte style={{ fontFamily: police.gras, fontSize: taille.phare, lineHeight: taille.phare * 1.15, color: c.accent, fontVariant: ['tabular-nums'] }}>
+              {brute(n.valeurBrute)}
+            </Texte>
+            <Texte variante="section" attenue style={{ flex: 1 }}>
               /{n.noteSur}
             </Texte>
+            {valeur !== undefined && n.classe?.moyenne !== undefined ? (
+              <Pastille
+                texte={`${ecart(valeur - n.classe.moyenne)} sur la classe`}
+                fond={c.surface}
+                encre={valeur >= n.classe.moyenne ? c.accentEncre : c.negatif}
+              />
+            ) : null}
           </View>
+          {n.classe ? (
+            <Regle
+              valeur={valeur}
+              sur={n.noteSur}
+              classe={n.classe}
+              libelle={`Ta note ${valeur ?? '—'} sur ${n.noteSur}, moyenne de la classe ${n.classe.moyenne ?? '—'}, de ${n.classe.min ?? 0} à ${n.classe.max ?? n.noteSur}`}
+            />
+          ) : null}
           <Texte variante="petit" style={{ color: c.accentEncre }}>
-            {[jour(n.date), n.typeDevoir, valeur !== undefined && n.noteSur !== 20 ? `soit ${moyenne((valeur * 20) / n.noteSur)}/20` : undefined].filter(Boolean).join(' · ')}
+            {[jour(n.date), n.typeDevoir, valeur !== undefined && n.noteSur !== 20 ? `soit ${moyenne((valeur * 20) / n.noteSur)}/20` : undefined]
+              .filter(Boolean)
+              .join(' · ')}
           </Texte>
         </Panneau>
       </Entree>
@@ -74,7 +93,6 @@ export default function DetailNote() {
       {n.classe ? (
         <Section titre="Face à la classe" rang={2}>
           <Panneau style={{ paddingVertical: espace.l, gap: espace.m }}>
-            <Position classe={n.classe} valeur={valeur} sur={n.noteSur} />
             <View style={styles.rangee}>
               <Stat libelle="Moyenne de la classe" valeur={n.classe.moyenne} />
               <Stat libelle="Plus basse" valeur={n.classe.min} />
@@ -112,7 +130,11 @@ export default function DetailNote() {
       ) : null}
 
       <Entree rang={4}>
-        <Bouton variante="secondaire" titre={`Voir ${matiere}`} onPress={() => router.push({ pathname: '/matiere/[code]', params: { code: n.matiereCode, periode, eleve } })} />
+        <Bouton
+          variante="secondaire"
+          titre={`Voir ${matiere}`}
+          onPress={() => router.push({ pathname: '/matiere/[code]', params: { code: n.matiereCode, periode, eleve } })}
+        />
       </Entree>
     </Ecran>
   );
@@ -131,31 +153,7 @@ function Stat({ libelle, valeur }: { libelle: string; valeur?: number }) {
   );
 }
 
-/** Bande de la classe (du plus bas au plus haut), trait de la moyenne de classe, point de l'élève. */
-function Position({ classe, valeur, sur }: { classe: StatsClasse; valeur?: number; sur: number }) {
-  const c = useCouleurs();
-  const pct = (x: number) => `${(Math.min(Math.max(x, 0), sur) / sur) * 100}%` as const;
-  const debut = classe.min ?? 0;
-  const fin = classe.max ?? sur;
-  return (
-    <View
-      accessible
-      accessibilityLabel={`Ta note ${valeur ?? '—'} sur ${sur}, moyenne de la classe ${classe.moyenne ?? '—'}, de ${debut} à ${fin}`}
-      style={styles.position}>
-      <View style={[styles.piste, { backgroundColor: c.teinte50 }]} />
-      <View style={[styles.bande, { left: pct(debut), width: `${((fin - debut) / sur) * 100}%`, backgroundColor: c.teinte100 }]} />
-      {classe.moyenne !== undefined ? <View style={[styles.trait, { left: pct(classe.moyenne), backgroundColor: c.accentEncre }]} /> : null}
-      {valeur !== undefined ? <View style={[styles.eleve, { left: pct(valeur), backgroundColor: c.accent, borderColor: c.surface }]} /> : null}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
   phare: { flexDirection: 'row', alignItems: 'baseline', gap: espace.xs },
-  position: { height: 28, justifyContent: 'center' },
-  piste: { position: 'absolute', left: 0, right: 0, height: 8, borderRadius: 4 },
-  bande: { position: 'absolute', height: 8, borderRadius: 4 },
-  trait: { position: 'absolute', width: 2, height: 20, marginLeft: -1, borderRadius: 1 },
-  eleve: { position: 'absolute', width: 20, height: 20, marginLeft: -10, borderRadius: 10, borderWidth: 3 },
 });

@@ -11,9 +11,10 @@ import { useCompte } from '@/features/compte/store';
 import { Presse } from '@/ui/composants';
 import { police, useCouleurs } from '@/ui/theme';
 
-type Nom = 'index' | 'agenda' | 'devoirs' | 'vie-scolaire';
+type Nom = 'index' | 'notes' | 'agenda' | 'devoirs' | 'vie-scolaire';
 const ONGLETS: { nom: Nom; titre: string }[] = [
-  { nom: 'index', titre: 'Notes' },
+  { nom: 'index', titre: 'Accueil' },
+  { nom: 'notes', titre: 'Notes' },
   { nom: 'agenda', titre: 'Agenda' },
   { nom: 'devoirs', titre: 'Devoirs' },
   { nom: 'vie-scolaire', titre: 'Vie scolaire' },
@@ -33,9 +34,12 @@ export default function Onglets() {
   }, [etat, restaurer]);
 
   if (etat === 'connexion') return <Redirect href="/connexion" />;
-  if (etat === 'attente') return <ActivityIndicator color={c.accent} accessibilityLabel="Reconnexion à EcoleDirecte" style={{ flex: 1, backgroundColor: c.fond }} />;
+  if (etat === 'attente')
+    return <ActivityIndicator color={c.accent} accessibilityLabel="Reconnexion à EcoleDirecte" style={{ flex: 1, backgroundColor: c.fond }} />;
   return (
-    <Tabs screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.fond } }} tabBar={(p) => <BarreOnglets courant={p.state.routes[p.state.index]!.name as Nom} aller={(n) => router.navigate(n === 'index' ? '/' : `/${n}`)} />}>
+    <Tabs
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.fond } }}
+      tabBar={(p) => <BarreOnglets courant={p.state.routes[p.state.index]!.name as Nom} aller={(n) => router.navigate(n === 'index' ? '/' : `/${n}`)} />}>
       {ONGLETS.map((o) => (
         <Tabs.Screen key={o.nom} name={o.nom} options={{ title: o.titre }} />
       ))}
@@ -52,16 +56,23 @@ function BarreOnglets({ courant, aller }: { courant: Nom; aller: (n: Nom) => voi
         const actif = o.nom === courant;
         return (
           <View key={o.nom} style={{ flex: 1 }}>
-          <Presse role="tab" selectionne={actif} libelleAccessible={o.titre} onPress={() => aller(o.nom)} style={styles.onglet}>
-            <View style={styles.icone}>
-              {actif ? <Animated.View entering={ZoomIn.duration(220).reduceMotion(ReduceMotion.System)} style={[StyleSheet.absoluteFill, { borderRadius: 16, backgroundColor: c.teinte100 }]} /> : null}
-              {/* Au-dessus de la pastille : son animation d'entrée la ferait passer devant. */}
-              <View style={{ zIndex: 1 }}>
-                <Icone nom={o.nom} couleur={actif ? c.accentEncre : c.attenue} />
+            <Presse role="tab" selectionne={actif} libelleAccessible={o.titre} onPress={() => aller(o.nom)} style={styles.onglet}>
+              <View style={styles.icone}>
+                {actif ? (
+                  <Animated.View
+                    entering={ZoomIn.duration(220).reduceMotion(ReduceMotion.System)}
+                    style={[StyleSheet.absoluteFill, { borderRadius: 16, backgroundColor: c.teinte100 }]}
+                  />
+                ) : null}
+                {/* Au-dessus de la pastille : son animation d'entrée la ferait passer devant. */}
+                <View style={{ zIndex: 1 }}>
+                  <Icone nom={o.nom} couleur={actif ? c.accentEncre : c.attenue} />
+                </View>
               </View>
-            </View>
-            <Text style={{ fontFamily: actif ? police.fort : police.normal, fontSize: 12, color: actif ? c.accentEncre : c.attenue }}>{o.titre}</Text>
-          </Presse>
+              <Text numberOfLines={1} style={{ fontFamily: actif ? police.fort : police.normal, fontSize: 11, color: actif ? c.accentEncre : c.attenue }}>
+                {o.titre}
+              </Text>
+            </Presse>
           </View>
         );
       })}
@@ -74,6 +85,11 @@ function Icone({ nom, couleur }: { nom: Nom; couleur: string }) {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24">
       {nom === 'index' ? (
+        <>
+          <Path {...p} d="M4 11l8-7 8 7v9H4z" />
+          <Path {...p} d="M10 20v-5h4v5" />
+        </>
+      ) : nom === 'notes' ? (
         <>
           <Path {...p} d="M4 19V9M10 19V5M16 19v-7M22 19H2" />
         </>
@@ -100,5 +116,5 @@ function Icone({ nom, couleur }: { nom: Nom; couleur: string }) {
 const styles = StyleSheet.create({
   barre: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 6 },
   onglet: { alignItems: 'center', gap: 2, minHeight: 52 },
-  icone: { width: 56, height: 32, alignItems: 'center', justifyContent: 'center' },
+  icone: { width: 52, height: 32, alignItems: 'center', justifyContent: 'center' },
 });

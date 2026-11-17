@@ -55,4 +55,4 @@ export const jourLong = (j: string) => `${JOURS[dateDe(j).getDay()]} ${jour(j)}`
 export const jourCourt = (j: string) => `${JOURS[dateDe(j).getDay()]!.slice(0, 3)}.`;
 
 /** « 08:00 » depuis « AAAA-MM-JJ HH:MM ». */
-export const heure = (dt: string) => dt.slice(11, 16).replace(':', ' h ').replace(/ h 00$/, ' h');
+export const heure = (dt: string) => dt.slice(11, 16).replace(/^0/, '').replace(':', ' h ').replace(/ h 00$/, ' h');

@@ -492,7 +492,7 @@ const CheminAnime = Animated.createAnimatedComponent(Path);
  * Courbe d'évolution d'une moyenne (reprise de la v1 enrichie) : elle se trace à l'arrivée, un point marque
  * la dernière valeur. `points` en ordre chronologique.
  */
-export function Courbe({ points, hauteur = 64, libelle }: { points: number[]; hauteur?: number; libelle: string }) {
+export function Courbe({ points, hauteur = 64, libelle, couleur }: { points: number[]; hauteur?: number; libelle: string; couleur?: string }) {
   const c = useCouleurs();
   const reduit = useReducedMotion();
   const largeur = 320;
@@ -515,8 +515,8 @@ export function Courbe({ points, hauteur = 64, libelle }: { points: number[]; ha
     <View accessible accessibilityRole="image" accessibilityLabel={libelle}>
       <Svg width="100%" height={hauteur} viewBox={`0 0 ${largeur} ${hauteur}`} preserveAspectRatio="none">
         <Line x1={0} y1={milieu} x2={largeur} y2={milieu} stroke={c.teinte100} strokeDasharray="3 5" />
-        <CheminAnime d={d} fill="none" stroke={c.accent} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={longueur} animatedProps={props} />
-        <Circle cx={fin[0]} cy={fin[1]} r={4} fill={c.accent} />
+        <CheminAnime d={d} fill="none" stroke={couleur ?? c.accent} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={longueur} animatedProps={props} />
+        <Circle cx={fin[0]} cy={fin[1]} r={4} fill={couleur ?? c.accent} />
       </Svg>
     </View>
   );
