@@ -67,12 +67,7 @@ export default function Accueil() {
     ...(classe !== undefined ? [{ valeur: classe, couleur: c.attenue }] : []),
     ...(objectif !== undefined ? [{ valeur: objectif, couleur: c.objectif }] : []),
   ];
-  // Le premier quart de la période est retiré : la moyenne y saute d'une note à l'autre et écrase l'échelle
-  // (courbe plate ensuite). L'écran Notes garde la courbe entière.
-  const courbe = useMemo(() => {
-    const m = instantane && vue ? evolution(instantane.donnees, vue.periode).map((x) => x.moyenne) : [];
-    return m.slice(Math.floor(m.length / 4));
-  }, [instantane, vue]);
+  const courbe = useMemo(() => (instantane && vue ? evolution(instantane.donnees, vue.periode).map((x) => x.moyenne) : []), [instantane, vue]);
   const recentes = useMemo(() => {
     if (!vue || !instantane) return [];
     const ids = new Set(vue.matieres.flatMap(({ matiere: m }) => [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)].map((n) => n.id)));

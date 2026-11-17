@@ -757,13 +757,18 @@ export function useMinute(): Date {
   return d;
 }
 
-export function Ecran({ children }: { children: ReactNode }) {
+/** `fixe` : l'écran tient sur une hauteur, sans défilement (l'agenda : on glisse entre les jours). */
+export function Ecran({ children, fixe }: { children: ReactNode; fixe?: boolean }) {
   const c = useCouleurs();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.fond }} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.contenu} keyboardShouldPersistTaps="handled">
-        {children}
-      </ScrollView>
+      {fixe ? (
+        <View style={[styles.contenu, { flex: 1, gap: espace.m, paddingBottom: espace.m }]}>{children}</View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.contenu} keyboardShouldPersistTaps="handled">
+          {children}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

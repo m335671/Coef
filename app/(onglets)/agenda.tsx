@@ -1,6 +1,8 @@
 // Emploi du temps. Sa question : « Quels cours aujourd'hui (ou tel jour), où, et qu'est-ce qui a changé ? »
+// Tient sur un écran : la frise s'adapte à la hauteur disponible ; on glisse à gauche ou à droite pour changer de jour.
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
@@ -42,11 +44,31 @@ export default function Agenda() {
     setJour(l);
   };
   const jours = Array.from({ length: 6 }, (_, i) => ajouterJours(lundi, i));
+  // Jour suivant ou précédent, en passant d'une semaine à l'autre (un dimanche compte comme après le samedi).
+  const decaler = (n: number) => {
+    const i = jours.includes(jourChoisi) ? jours.indexOf(jourChoisi) : 6;
+    const j = i + n;
+    if (j < 0) {
+      const l = ajouterJours(lundi, -7);
+      setLundi(l);
+      setJour(ajouterJours(l, 5));
+    } else if (j > 5) changerSemaine(1);
+    else setJour(jours[j]!);
+  };
+  const glisser = usePanGesture({
+    runOnJS: true,
+    activeOffsetX: [-20, 20],
+    failOffsetY: [-16, 16],
+    onDeactivate: (e) => {
+      if (Math.abs(e.translationX) > 60 || Math.abs(e.velocityX) > 600) decaler(e.translationX < 0 ? 1 : -1);
+    },
+  });
+  const [dispo, setDispo] = useState(0);
   const cours = (etat?.valeur ?? []).filter((x) => x.debut.startsWith(jourChoisi));
   const maintenant = MODE_DEMO ? MAINTENANT_DEMO : `${aujourdhui} ${horloge.toTimeString().slice(0, 5)}`;
 
   return (
-    <Ecran>
+    <Ecran fixe>
       <EnTete titre="Agenda" />
       {eleves.length > 1 && eleve ? (
         <Entree rang={1}>
@@ -59,7 +81,7 @@ export default function Agenda() {
             ‹
           </Texte>
         </BoutonRond>
-        <Texte variante="section" style={{ flex: 1, textAlign: 'center' }}>
+        <Texte variante="liste" moyen style={{ flex: 1, textAlign: 'center' }}>
           Semaine du {jour(lundi)}
         </Texte>
         <BoutonRond libelle="Semaine suivante" onPress={() => changerSemaine(1)}>
@@ -76,33 +98,49 @@ export default function Agenda() {
           onChange={setJour}
         />
       </Entree>
-      <Texte variante="section" role="heading" aria-level={2}>
-        {jourChoisi === aujourdhui ? 'Aujourd’hui' : jourLong(jourChoisi).replace(/^./, (x) => x.toUpperCase())}
-      </Texte>
-      {etat?.erreur ? (
-        <View style={{ gap: espace.xs }}>
-          <Texte variante="liste">{etat.erreur instanceof ErreurED ? etat.erreur.message : 'L’emploi du temps n’a pas pu être chargé.'}</Texte>
-          <Bouton
-            variante="texte"
-            titre="Réessayer"
-            onPress={() => eleve && charger(cle, (cl) => cl.emploiDuTemps(eleve.id, lundi, dimanche), coursDemo, true)}
-          />
+      <GestureDetector gesture={glisser}>
+        <View style={styles.zone} accessibilityHint="Glisser à gauche ou à droite pour changer de jour">
+          <Texte variante="section" role="heading" aria-level={2}>
+            {jourChoisi === aujourdhui ? 'Aujourd’hui' : jourLong(jourChoisi).replace(/^./, (x) => x.toUpperCase())}
+          </Texte>
+          {etat?.erreur ? (
+            <View style={{ gap: espace.xs }}>
+              <Texte variante="liste">{etat.erreur instanceof ErreurED ? etat.erreur.message : 'L’emploi du temps n’a pas pu être chargé.'}</Texte>
+              <Bouton
+                variante="texte"
+                titre="Réessayer"
+                onPress={() => eleve && charger(cle, (cl) => cl.emploiDuTemps(eleve.id, lundi, dimanche), coursDemo, true)}
+              />
+            </View>
+          ) : null}
+          {!etat?.valeur && etat?.chargement !== false ? (
+            <ListeSquelette lignes={4} libelle="Chargement de l’emploi du temps" />
+          ) : cours.length === 0 ? (
+            <Texte variante="liste" attenue>
+              Pas de cours ce jour-là.
+            </Texte>
+          ) : (
+            <View style={{ flex: 1 }} onLayout={(e) => setDispo(e.nativeEvent.layout.height)}>
+              <Entree key={jourChoisi} style={{ flex: 1 }}>
+                <Frise
+                  cours={cours}
+                  devoirs={devoirs.filter((d) => d.pour === jourChoisi)}
+                  maintenant={jourChoisi === aujourdhui ? maintenant : undefined}
+                  dispo={dispo}
+                />
+              </Entree>
+            </View>
+          )}
         </View>
-      ) : null}
-      {!etat?.valeur && etat?.chargement !== false ? (
-        <ListeSquelette lignes={4} libelle="Chargement de l’emploi du temps" />
-      ) : cours.length === 0 ? (
-        <Texte variante="liste" attenue>
-          Pas de cours ce jour-là.
-        </Texte>
-      ) : (
-        <Frise cours={cours} devoirs={devoirs.filter((d) => d.pour === jourChoisi)} maintenant={jourChoisi === aujourdhui ? maintenant : undefined} />
-      )}
+      </GestureDetector>
     </Ecran>
   );
 }
 
-const PX = 1.1; // hauteur d'une minute
+// Hauteur d’une minute : celle qui fait tenir la journée dans l’écran, entre PX_MIN (on défile alors un peu) et PX_MAX
+// (une journée courte ne s’étire pas sur tout l’écran).
+const PX_MIN = 0.7;
+const PX_MAX = 1.4;
 const minutes = (dt: string) => Number(dt.slice(11, 13)) * 60 + Number(dt.slice(14, 16));
 
 /**
@@ -110,7 +148,7 @@ const minutes = (dt: string) => Number(dt.slice(11, 13)) * 60 + Number(dt.slice(
  * Annulé : hachuré et barré. Les devoirs pour ce jour s'accrochent au cours de leur matière. Trait « maintenant ».
  * Cours qui se chevauchent (demi-groupes) : côte à côte.
  */
-function Frise({ cours, devoirs, maintenant }: { cours: Cours[]; devoirs: Devoir[]; maintenant?: string }) {
+function Frise({ cours, devoirs, maintenant, dispo }: { cours: Cours[]; devoirs: Devoir[]; maintenant?: string; dispo: number }) {
   const c = useCouleurs();
   const familles = useFamilles();
   const tries = [...cours].sort((a, b) => a.debut.localeCompare(b.debut));
@@ -126,81 +164,86 @@ function Frise({ cours, devoirs, maintenant }: { cours: Cours[]; devoirs: Devoir
   const n = Math.max(colonnes.length, 1);
   const heures = Array.from({ length: (fin - debut) / 60 + 1 }, (_, i) => debut + i * 60);
   const m = maintenant ? minutes(maintenant) : undefined;
+  const PX = dispo > 0 ? Math.min(Math.max((dispo - 16) / (fin - debut), PX_MIN), PX_MAX) : 1.1;
+  const hauteurTotale = (fin - debut) * PX + 16;
   return (
-    <View style={{ height: (fin - debut) * PX + 8 }}>
-      {heures.map((h) => (
-        <View key={h} style={[styles.heure, { top: (h - debut) * PX }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Texte variante="petit" attenue style={styles.libelleHeure}>
-            {h / 60} h
-          </Texte>
-          <View style={[styles.filet, { backgroundColor: c.filet }]} />
-        </View>
-      ))}
-      <View style={styles.colonnes}>
-        {places.map(({ x, col }) => {
-          const f = familles[familleDe(x.codeMatiere ?? '', x.matiere)];
-          const lies = devoirs.filter((d) => d.codeMatiere && d.codeMatiere === x.codeMatiere);
-          const enCours = m !== undefined && minutes(x.debut) <= m && m < minutes(x.fin);
-          const hauteur = (minutes(x.fin) - minutes(x.debut)) * PX - 3;
-          return (
-            <View
-              key={x.id}
-              accessible
-              accessibilityLabel={`${heure(x.debut)} à ${heure(x.fin)}, ${x.matiere}${x.salle ? `, salle ${x.salle}` : ''}${x.annule ? ', annulé' : x.modifie ? ', modifié' : ''}${lies.length ? `, ${lies.length} devoir${lies.length > 1 ? 's' : ''} pour ce jour` : ''}`}
-              style={[
-                styles.bloc,
-                {
-                  top: (minutes(x.debut) - debut) * PX,
-                  height: hauteur,
-                  left: `${(col / n) * 100}%`,
-                  width: `${100 / n}%`,
-                  backgroundColor: x.annule ? c.surface : f.fond,
-                  borderColor: x.annule ? c.negatif : enCours ? f.encre : 'transparent',
-                  borderStyle: x.annule ? 'dashed' : 'solid',
-                },
-              ]}>
-              {x.annule ? <Hachures /> : null}
-              <View style={styles.rangee}>
-                <Texte
-                  variante="liste"
-                  numberOfLines={1}
-                  style={{ flex: 1, fontFamily: police.fort, color: x.annule ? c.negatif : f.encre, textDecorationLine: x.annule ? 'line-through' : 'none' }}>
-                  {x.matiere}
-                </Texte>
-                {x.annule ? (
-                  <Pastille texte="Annulé" fond={c.surface} encre={c.negatif} />
-                ) : x.modifie ? (
-                  <Pastille texte="Modifié" fond={c.surface} encre={f.encre} />
+    <ScrollView scrollEnabled={hauteurTotale > dispo + 1} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 10, paddingBottom: 6 }}>
+      <View style={{ height: (fin - debut) * PX }}>
+        {heures.map((h) => (
+          <View key={h} style={[styles.heure, { top: (h - debut) * PX }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Texte variante="petit" attenue style={styles.libelleHeure}>
+              {h / 60} h
+            </Texte>
+            <View style={[styles.filet, { backgroundColor: c.filet }]} />
+          </View>
+        ))}
+        <View style={styles.colonnes}>
+          {places.map(({ x, col }) => {
+            const f = familles[familleDe(x.codeMatiere ?? '', x.matiere)];
+            const lies = devoirs.filter((d) => d.codeMatiere && d.codeMatiere === x.codeMatiere);
+            const enCours = m !== undefined && minutes(x.debut) <= m && m < minutes(x.fin);
+            const hauteur = (minutes(x.fin) - minutes(x.debut)) * PX - 3;
+            return (
+              <View
+                key={x.id}
+                accessible
+                accessibilityLabel={`${heure(x.debut)} à ${heure(x.fin)}, ${x.matiere}${x.salle ? `, salle ${x.salle}` : ''}${x.annule ? ', annulé' : x.modifie ? ', modifié' : ''}${lies.length ? `, ${lies.length} devoir${lies.length > 1 ? 's' : ''} pour ce jour` : ''}`}
+                style={[
+                  styles.bloc,
+                  {
+                    top: (minutes(x.debut) - debut) * PX,
+                    height: hauteur,
+                    left: `${(col / n) * 100}%`,
+                    width: `${100 / n}%`,
+                    backgroundColor: x.annule ? c.surface : f.fond,
+                    borderColor: x.annule ? c.negatif : enCours ? f.encre : 'transparent',
+                    borderStyle: x.annule ? 'dashed' : 'solid',
+                  },
+                ]}>
+                {x.annule ? <Hachures /> : null}
+                <View style={styles.rangee}>
+                  <Texte
+                    variante="liste"
+                    numberOfLines={1}
+                    style={{ flex: 1, fontFamily: police.fort, color: x.annule ? c.negatif : f.encre, textDecorationLine: x.annule ? 'line-through' : 'none' }}>
+                    {x.matiere}
+                  </Texte>
+                  {x.annule ? (
+                    <Pastille texte="Annulé" fond={c.surface} encre={c.negatif} />
+                  ) : x.modifie ? (
+                    <Pastille texte="Modifié" fond={c.surface} encre={f.encre} />
+                  ) : null}
+                </View>
+                {hauteur > 40 ? (
+                  <Texte variante="petit" numberOfLines={1} style={{ color: x.annule ? c.attenue : f.encre }}>
+                    {[x.salle, `jusqu’à ${heure(x.fin)}`].filter(Boolean).join(' · ')}
+                  </Texte>
+                ) : null}
+                {lies.length && hauteur > 64 ? (
+                  <Pastille
+                    texte={lies.some((d) => d.interrogation) ? 'interro' : `${lies.length} devoir${lies.length > 1 ? 's' : ''} pour ce jour`}
+                    fond={c.surface}
+                    encre={lies.some((d) => d.interrogation) ? c.negatif : f.encre}
+                  />
                 ) : null}
               </View>
-              {hauteur > 40 ? (
-                <Texte variante="petit" numberOfLines={1} style={{ color: x.annule ? c.attenue : f.encre }}>
-                  {[x.salle, `jusqu’à ${heure(x.fin)}`].filter(Boolean).join(' · ')}
-                </Texte>
-              ) : null}
-              {lies.length && hauteur > 64 ? (
-                <Pastille
-                  texte={lies.some((d) => d.interrogation) ? 'interro' : `${lies.length} devoir${lies.length > 1 ? 's' : ''} pour ce jour`}
-                  fond={c.surface}
-                  encre={lies.some((d) => d.interrogation) ? c.negatif : f.encre}
-                />
-              ) : null}
+            );
+          })}
+          {m !== undefined && m >= debut && m <= fin ? (
+            <View style={[styles.maintenant, { top: (m - debut) * PX }]} accessible accessibilityLabel={`Il est ${heure(maintenant!)}`}>
+              <View style={[styles.pointMaintenant, { backgroundColor: c.negatif }]} />
+              <View style={{ flex: 1, height: 2, backgroundColor: c.negatif }} />
             </View>
-          );
-        })}
-        {m !== undefined && m >= debut && m <= fin ? (
-          <View style={[styles.maintenant, { top: (m - debut) * PX }]} accessible accessibilityLabel={`Il est ${heure(maintenant!)}`}>
-            <View style={[styles.pointMaintenant, { backgroundColor: c.negatif }]} />
-            <View style={{ flex: 1, height: 2, backgroundColor: c.negatif }} />
-          </View>
-        ) : null}
+          ) : null}
+        </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   semaine: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
+  zone: { flex: 1, gap: espace.s },
   heure: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', gap: espace.s, marginTop: -9 },
   libelleHeure: { width: 40, fontVariant: ['tabular-nums'] },
   filet: { flex: 1, height: StyleSheet.hairlineWidth },
