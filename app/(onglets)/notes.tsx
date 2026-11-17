@@ -72,6 +72,10 @@ export default function Notes() {
   const simulation = useSimulation();
   useEffect(() => void simulation.charger(), [simulation.charger]); // eslint-disable-line react-hooks/exhaustive-deps
   const simulees = (periode && simulation.notes[cleSimulation(eleveId, periode)]) || AUCUNE;
+  /** Notes réelles arrivées à la place d'une note simulée : id → note simulée. */
+  const etaitSimulee = new Map(
+    (simulation.remplacees ?? []).filter((r) => periode && r.cle === cleSimulation(eleveId, periode)).map((r) => [r.noteId, r.hypothese]),
+  );
   const simule = simulation.active && simulees.length > 0;
   const reelle = useMemo(() => (instantane && periode ? vueNotes(instantane, periode) : undefined), [instantane, periode]);
   // Simulation active : les notes simulées rejoignent les vraies ; le reste (calibration, nouveautés) reste réel.
@@ -159,6 +163,7 @@ export default function Notes() {
           objectif={simulation.objectif}
           objectifAffiche={simulation.objectifAffiche ?? true}
           onObjectif={simulation.afficherObjectif}
+          onModifierObjectif={() => router.push({ pathname: '/simulateur', params: { periode: vue!.periode.code, eleve: eleveId, onglet: 'objectif' } })}
           courbe={courbe}
           chargement={etat?.chargement ?? true}
           erreur={etat?.erreur}
@@ -185,6 +190,11 @@ export default function Notes() {
                         <Texte variante="petit" attenue numberOfLines={1}>
                           {n.devoir || n.matiereCode} · coef {coef(n.coef)}
                         </Texte>
+                        {etaitSimulee.has(n.id) ? (
+                          <Texte variante="petit" style={{ color: c.negatif }}>
+                            Tu l’avais simulée : {coef(etaitSimulee.get(n.id)!.valeur)}/{etaitSimulee.get(n.id)!.noteSur}
+                          </Texte>
+                        ) : null}
                       </View>
                       <Texte variante="liste" style={styles.note}>
                         {brute(n.valeurBrute)}
@@ -226,7 +236,7 @@ export default function Notes() {
             ) : affichage === 'familles' ? (
               <ParFamille vue={vue} onPress={ouvrir} />
             ) : (
-              <ParNote vue={vue} notes={instantaneVu!.donnees.notes} onMatiere={ouvrir} onNote={ouvrirNote} />
+              <ParNote vue={vue} notes={instantaneVu!.donnees.notes} etaitSimulee={etaitSimulee} onMatiere={ouvrir} onNote={ouvrirNote} />
             )}
           </Section>
           <Texte variante="petit" attenue>
@@ -256,7 +266,19 @@ function groupesPeriodes(periodes: Periode[]) {
 }
 
 /** Toutes les notes de la période, rangées par matière, de la plus récente à la plus ancienne. */
-function ParNote({ vue, notes, onMatiere, onNote }: { vue: VueNotes; notes: Note[]; onMatiere: (code: string) => void; onNote: (id: string) => void }) {
+function ParNote({
+  vue,
+  notes,
+  etaitSimulee,
+  onMatiere,
+  onNote,
+}: {
+  vue: VueNotes;
+  notes: Note[];
+  etaitSimulee: Map<string, NoteHypothetique>;
+  onMatiere: (code: string) => void;
+  onNote: (id: string) => void;
+}) {
   const c = useCouleurs();
   const parId = new Map(notes.map((n) => [n.id, n]));
   const groupes = vue.matieres
@@ -305,6 +327,7 @@ function ParNote({ vue, notes, onMatiere, onNote }: { vue: VueNotes; notes: Note
                     <Texte variante="petit" attenue numberOfLines={1}>
                       {jour(n.date)} · coef {coef(n.coef)}
                       {d.exclue ? ' · non comptée' : ''}
+                      {etaitSimulee.has(n.id) ? ` · simulée ${coef(etaitSimulee.get(n.id)!.valeur)}/${etaitSimulee.get(n.id)!.noteSur}` : ''}
                     </Texte>
                   </View>
                   <Texte variante="liste" attenue={!!d.exclue} style={[styles.note, simulee ? { color: c.negatif } : undefined]}>
@@ -466,6 +489,7 @@ function Moyenne({
   objectif,
   objectifAffiche,
   onObjectif,
+  onModifierObjectif,
 }: {
   vue?: VueNotes;
   /** Moyenne prévue sans la simulation, quand la simulation est affichée. */
@@ -474,6 +498,8 @@ function Moyenne({
   objectif?: number;
   objectifAffiche: boolean;
   onObjectif: (v: boolean) => void;
+  /** Appui long sur l'objectif : la simulation s'ouvre sur l'onglet Objectif. */
+  onModifierObjectif: () => void;
   courbe: { date: string; moyenne: number }[];
   chargement: boolean;
   erreur?: unknown;
@@ -554,7 +580,13 @@ function Moyenne({
       {objectif !== undefined ? (
         <View style={styles.rangee}>
           <View style={{ flex: 1 }}>
-            <Coche libelle={`Objectif ${moyenne(objectif)}`} coche={objectifAffiche} onChange={onObjectif} couleur={c.objectif} />
+            <Coche
+              libelle={`Objectif ${moyenne(objectif)}`}
+              coche={objectifAffiche}
+              onChange={onObjectif}
+              couleur={c.objectif}
+              onLongPress={onModifierObjectif}
+            />
           </View>
           {objectifAffiche && g !== undefined ? (
             <Texte variante="petit" style={{ color: c.objectif, fontFamily: police.fort, fontVariant: ['tabular-nums'] }}>

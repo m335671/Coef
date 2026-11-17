@@ -207,6 +207,7 @@ export function Pulsation() {
 export function Presse({
   children,
   onPress,
+  onLongPress,
   style,
   libelleAccessible,
   role = 'button',
@@ -215,6 +216,8 @@ export function Presse({
 }: {
   children: ReactNode;
   onPress?: () => void;
+  /** Appui long (raccourci) : annoncé au lecteur d'écran comme action supplémentaire. */
+  onLongPress?: () => void;
   style?: ViewStyle | ViewStyle[];
   libelleAccessible?: string;
   role?: 'button' | 'radio' | 'tab' | 'checkbox';
@@ -229,8 +232,11 @@ export function Presse({
       accessibilityRole={role}
       accessibilityLabel={libelleAccessible}
       accessibilityState={role === 'checkbox' ? { checked: !!selectionne, disabled: desactive } : { selected: selectionne, disabled: desactive }}
-      disabled={desactive || !onPress}
+      disabled={desactive || (!onPress && !onLongPress)}
       onPress={onPress}
+      onLongPress={onLongPress}
+      accessibilityActions={onLongPress ? [{ name: 'longpress', label: 'Modifier' }] : undefined}
+      onAccessibilityAction={onLongPress ? (e) => e.nativeEvent.actionName === 'longpress' && onLongPress() : undefined}
       onPressIn={() => {
         if (!reduit) s.set(withTiming(0.97, { duration: duree.pression }));
       }}
@@ -329,11 +335,23 @@ export function Pastille({ texte, fond, encre }: { texte: string; fond?: string;
 }
 
 /** Case à cocher avec son libellé (44 px de haut) : la case prend la couleur passée quand elle est cochée. */
-export function Coche({ libelle, coche, onChange, couleur }: { libelle: string; coche: boolean; onChange: (v: boolean) => void; couleur?: string }) {
+export function Coche({
+  libelle,
+  coche,
+  onChange,
+  couleur,
+  onLongPress,
+}: {
+  libelle: string;
+  coche: boolean;
+  onChange: (v: boolean) => void;
+  couleur?: string;
+  onLongPress?: () => void;
+}) {
   const c = useCouleurs();
   const teinte = couleur ?? c.accent;
   return (
-    <Presse role="checkbox" selectionne={coche} libelleAccessible={libelle} onPress={() => onChange(!coche)} style={styles.coche}>
+    <Presse role="checkbox" selectionne={coche} libelleAccessible={libelle} onPress={() => onChange(!coche)} onLongPress={onLongPress} style={styles.coche}>
       <View style={[styles.case, { borderColor: coche ? teinte : c.controle, backgroundColor: coche ? teinte : 'transparent' }]}>
         {coche ? (
           <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={c.surface} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round">

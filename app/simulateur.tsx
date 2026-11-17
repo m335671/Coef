@@ -21,6 +21,7 @@ import {
   EnTete,
   Entree,
   Feuille,
+  Ligne,
   Panneau,
   Pastille,
   Presse,
@@ -30,6 +31,7 @@ import {
 } from '@/ui/composants';
 import { coef as formatCoef, moyenne } from '@/ui/format';
 import { espace, police, taille, useCouleurs } from '@/ui/theme';
+import Svg, { Path } from 'react-native-svg';
 
 const POIDS = [0.5, 1, 2, 3, 4];
 const AUCUNE: NoteHypothetique[] = [];
@@ -42,16 +44,18 @@ export default function Simulation() {
     periode: string;
     eleve: string;
     code?: string;
+    onglet?: Onglet;
   }>();
   const d = useNotes((s) => s.eleves[params.eleve]?.instantane?.donnees);
   const p = d?.periodes.find((x) => x.code === params.periode);
 
-  const [onglet, setOnglet] = useState<Onglet>('ajouter');
+  const [onglet, setOnglet] = useState<Onglet>(params.onglet === 'objectif' ? 'objectif' : 'ajouter');
   const cle = cleSimulation(params.eleve, params.periode);
   const hypotheses = useSimulation((s) => s.notes[cle]) ?? AUCUNE;
   const { active, modifie, definir, activer, enregistrer, charger, viser, afficherObjectif } = useSimulation();
   const objectif = useSimulation((s) => s.objectif) ?? 14;
   const objectifAffiche = useSimulation((s) => s.objectifAffiche ?? s.objectif !== undefined);
+  const arrivees = (useSimulation((s) => s.remplacees) ?? []).filter((r) => r.cle === cle);
   const setHypotheses = (h: NoteHypothetique[]) => definir(cle, h);
   useEffect(() => void charger(), [charger]);
   const [saisie, setSaisie] = useState<Saisie | undefined>(params.code ? { code: params.code, valeur: 14, sur: 20, poids: 1 } : undefined);
@@ -62,6 +66,40 @@ export default function Simulation() {
         ✕
       </Texte>
     </BoutonRond>
+  );
+  // Sauvegarde : bouton rond plein (avec un point) tant qu'il y a du nouveau, coche discrète une fois enregistré.
+  const sauver = (
+    <Presse
+      libelleAccessible={modifie ? 'Enregistrer la simulation' : 'Simulation enregistrée'}
+      desactive={!modifie}
+      onPress={() => void enregistrer()}
+      style={[styles.sauver, { backgroundColor: modifie ? c.accent : c.teinte50 }]}>
+      <Svg
+        width={20}
+        height={20}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={modifie ? c.surAccent : c.accent}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round">
+        {modifie ? (
+          <>
+            <Path d="M5 4h11l3 3v13H5z" />
+            <Path d="M8 4v5h7V4M8 20v-6h8v6" />
+          </>
+        ) : (
+          <Path d="M5 12.5l4.5 4.5L19 7.5" />
+        )}
+      </Svg>
+      {modifie ? <View style={[styles.pointSauver, { backgroundColor: c.negatif, borderColor: c.fond }]} /> : null}
+    </Presse>
+  );
+  const actions = (
+    <View style={styles.rangee}>
+      {sauver}
+      {fermer}
+    </View>
   );
   if (!d || !p) {
     return (
@@ -90,7 +128,7 @@ export default function Simulation() {
 
   return (
     <Ecran>
-      <EnTete titre="Simulation" action={fermer} />
+      <EnTete titre="Simulation" action={actions} />
       <Entree rang={1}>
         <Panneau teinte style={{ paddingVertical: espace.l, gap: espace.s }}>
           <Texte variante="liste" style={{ color: c.accentEncre }}>
@@ -213,6 +251,30 @@ export default function Simulation() {
         />
       )}
 
+      {arrivees.length > 0 ? (
+        <Section titre="Arrivées pour de vrai" aide="Ces notes simulées ont été remplacées par la vraie note dès qu’elle est arrivée.">
+          <Panneau>
+            {arrivees.slice(0, 8).map((r, i, l) => {
+              const n = d.notes.find((x) => x.id === r.noteId);
+              return (
+                <Ligne key={`${r.noteId}-${i}`} dernier={i === l.length - 1}>
+                  <View style={{ flex: 1 }}>
+                    <Texte variante="liste" numberOfLines={1}>
+                      {libelle(r.hypothese.matiereCode)}
+                    </Texte>
+                    <Texte variante="petit" attenue>
+                      simulée {formatCoef(r.hypothese.valeur)}/{r.hypothese.noteSur}
+                    </Texte>
+                  </View>
+                  <Texte variante="liste" style={{ fontFamily: police.fort, fontVariant: ['tabular-nums'] }}>
+                    {n ? `${n.valeurBrute.trim()}/${n.noteSur}` : 'reçue'}
+                  </Texte>
+                </Ligne>
+              );
+            })}
+          </Panneau>
+        </Section>
+      ) : null}
       <Panneau style={{ paddingVertical: espace.m, gap: espace.m }}>
         <View>
           <Texte variante="liste" moyen>
@@ -234,16 +296,10 @@ export default function Simulation() {
             couleur={c.objectif}
           />
         </View>
-        <Bouton
-          variante={modifie ? 'primaire' : 'texte'}
-          desactive={!modifie}
-          titre={modifie ? 'Enregistrer la simulation' : 'Simulation enregistrée'}
-          onPress={() => void enregistrer()}
-        />
       </Panneau>
       <Texte variante="petit" attenue>
-        Notes hypothétiques : jamais envoyées à EcoleDirecte. Enregistrées seulement sur ce téléphone, dans la base chiffrée, si tu le demandes. Le calcul part
-        de ta moyenne prévue.
+        Notes hypothétiques : jamais envoyées à EcoleDirecte. Enregistrées seulement sur ce téléphone, dans la base chiffrée, avec le bouton rond en haut. Quand
+        la vraie note arrive dans la matière, elle remplace la simulée. Le calcul part de ta moyenne prévue.
       </Texte>
 
       <Feuille visible={!!saisie} onFermer={() => setSaisie(undefined)} titre={saisie ? `Une note en ${libelle(saisie.code)}` : ''}>
@@ -386,6 +442,8 @@ function Objectif({
 }
 
 const styles = StyleSheet.create({
+  sauver: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  pointSauver: { position: 'absolute', top: 6, right: 6, width: 10, height: 10, borderRadius: 5, borderWidth: 2 },
   phare: { flexDirection: 'row', alignItems: 'baseline', gap: espace.s },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
   puces: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

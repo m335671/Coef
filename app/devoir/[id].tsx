@@ -1,10 +1,11 @@
 // Détail d'un devoir. Sa question : « Qu'est-ce que je dois faire exactement, et qu'a-t-on vu en classe ? »
 import { useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 
 import type { Devoir } from '@/domain/types';
-import { useDonnee } from '@/features/vie/store';
-import { Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
+import { marquerDevoir, useDonnee } from '@/features/vie/store';
+import { Coche, Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
 import { jour, jourLong } from '@/ui/format';
 import { espace, useCouleurs } from '@/ui/theme';
 
@@ -12,6 +13,7 @@ export default function DetailDevoir() {
   const c = useCouleurs();
   const { id, eleve } = useLocalSearchParams<{ id: string; eleve: string }>();
   const d = useDonnee<Devoir[]>(`devoirs:${eleve}`)?.valeur?.find((x) => x.id === id);
+  const [erreur, setErreur] = useState(false);
 
   if (!d) {
     return (
@@ -28,7 +30,21 @@ export default function DetailDevoir() {
       <Entree rang={1} style={styles.pastilles}>
         <Pastille texte={`Pour ${jourLong(d.pour)}`} />
         {d.interrogation ? <Pastille texte="Interrogation" fond={c.surface} encre={c.negatif} /> : null}
-        {d.effectue ? <Pastille texte="Fait" /> : null}
+      </Entree>
+      <Entree rang={1}>
+        <Coche
+          libelle={d.effectue ? 'Fait' : 'Marquer comme fait'}
+          coche={d.effectue}
+          onChange={(v) => {
+            setErreur(false);
+            marquerDevoir(eleve, d.id, v).catch(() => setErreur(true));
+          }}
+        />
+        {erreur ? (
+          <Texte variante="petit" style={{ color: c.negatif }}>
+            ED n’a pas accepté la coche : le devoir est remis comme avant.
+          </Texte>
+        ) : null}
       </Entree>
       <Section titre="À faire" rang={2}>
         <Panneau teinte style={{ paddingVertical: espace.l }}>

@@ -1,14 +1,14 @@
 // Devoirs. Sa question : « Qu'est-ce que j'ai à faire, pour quand, et qu'est-ce qui est une interro ? »
 import { router } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { devoirsDemo } from '@/demo/vie';
 import type { Devoir } from '@/domain/types';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
-import { useDonnee, useDonneesED } from '@/features/vie/store';
-import { Bouton, Ecran, EnTete, Entree, Pastille, Presse, Section, Segments, Texte } from '@/ui/composants';
+import { marquerDevoir, useDonnee, useDonneesED } from '@/features/vie/store';
+import { Bouton, Coche, Ecran, EnTete, Entree, Pastille, Presse, Section, Segments, Texte } from '@/ui/composants';
 import { ajouterJours, iso, jourLong } from '@/ui/format';
 import { espace, rayon, useCouleurs } from '@/ui/theme';
 
@@ -32,6 +32,11 @@ export default function Devoirs() {
     liste: devoirs.filter((d) => d.pour === pour),
   }));
   const restants = devoirs.filter((d) => !d.effectue).length;
+  const [erreurCoche, setErreurCoche] = useState<string>();
+  const cocher = (id: string, fait: boolean) => {
+    setErreurCoche(undefined);
+    marquerDevoir(eleve!.id, id, fait).catch(() => setErreurCoche('ED n’a pas accepté la coche : le devoir est remis comme avant.'));
+  };
 
   return (
     <Ecran>
@@ -48,6 +53,11 @@ export default function Devoirs() {
             {devoirs.some((d) => d.interrogation) ? 'Les interrogations sont signalées.' : ''}
           </Texte>
         </Entree>
+      ) : null}
+      {erreurCoche ? (
+        <Texte variante="liste" style={{ color: c.negatif }}>
+          {erreurCoche}
+        </Texte>
       ) : null}
       {etat?.erreur ? (
         <View style={{ gap: espace.xs }}>
@@ -97,7 +107,7 @@ export default function Devoirs() {
                         {d.matiere}
                       </Texte>
                       {d.interrogation ? <Pastille texte="Interro" fond={c.surface} encre={c.negatif} /> : null}
-                      {d.effectue ? <Pastille texte="Fait" /> : null}
+                      <Coche libelle="Fait" coche={d.effectue} onChange={(v) => cocher(d.id, v)} />
                     </View>
                     {d.contenu ? (
                       <Texte variante="liste" numberOfLines={3} style={{ color: d.effectue ? c.attenue : c.texte }}>

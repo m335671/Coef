@@ -104,6 +104,7 @@ export default function Accueil() {
           large
           fond={c.teinte50}
           onPress={() => router.navigate('/notes')}
+          onLongPress={vue ? () => router.push({ pathname: '/simulateur', params: { periode: vue.periode.code, eleve: id, onglet: 'objectif' } }) : undefined}
           libelle={`Moyenne générale prévue ${g === undefined ? 'pas encore calculée' : moyenne(g)}. Ouvrir les notes`}>
           <View style={styles.rangee}>
             <Anneau valeur={g} taillePx={124} epaisseur={11} fond={c.teinte50} libelle="" reperes={reperes}>
@@ -332,6 +333,7 @@ function Tuile({
   fond,
   bord,
   onPress,
+  onLongPress,
   libelle,
 }: {
   children: ReactNode;
@@ -340,6 +342,7 @@ function Tuile({
   fond: string;
   bord?: string;
   onPress?: () => void;
+  onLongPress?: () => void;
   libelle: string;
 }) {
   const style = [styles.tuile, { backgroundColor: fond, borderColor: bord ?? fond, minHeight: large ? undefined : 132 }];
@@ -352,7 +355,7 @@ function Tuile({
   }
   return (
     <Entree rang={rang} style={large ? styles.large : styles.demi}>
-      <Presse onPress={onPress} libelleAccessible={libelle} style={style}>
+      <Presse onPress={onPress} onLongPress={onLongPress} libelleAccessible={libelle} style={style}>
         {children}
       </Presse>
     </Entree>

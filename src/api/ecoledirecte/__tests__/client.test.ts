@@ -203,6 +203,14 @@ describe('session', () => {
     expect(sauver).not.toHaveBeenCalled();
   });
 
+  test('devoir coché : verbe put, identifiants numériques', async () => {
+    const s = fauxServeur().repond({ code: 200, data: {} });
+    await new ClientED({ ...session(), token: 'jeton-1' }, jest.fn()).marquerDevoirs('4242', ['501'], ['502']);
+    expect(s.envois[0]!.url.searchParams.get('verbe')).toBe('put');
+    expect(s.envois[0]!.url.pathname).toBe('/v3/Eleves/4242/cahierdetexte.awp');
+    expect(s.envois[0]!.data).toEqual({ idDevoirsEffectues: [501], idDevoirsNonEffectues: [502] });
+  });
+
   test('reconnexion directe', async () => {
     fauxServeur().repond(loginRenouvele);
     expect((await reconnexion(session().acces)).acces.accessToken).toBe('acces-2');

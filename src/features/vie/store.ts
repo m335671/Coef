@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 
 import type { ClientED } from '@/api/ecoledirecte/client';
+import type { Devoir } from '@/domain/types';
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
 import { ecrireCache, lireCache } from '@/storage/base';
@@ -45,4 +46,28 @@ export const useDonneesED = create<Etat>((set, get) => {
 
 export function useDonnee<T>(cle: string): EtatDonnee<T> | undefined {
   return useDonneesED((s) => s.donnees[cle]) as EtatDonnee<T> | undefined;
+}
+
+/**
+ * Coche ou décoche un devoir : affiché tout de suite, envoyé à ED, remis comme avant si ED refuse.
+ * En démo, seulement à l'écran.
+ */
+export async function marquerDevoir(eleveId: string, id: string, fait: boolean): Promise<void> {
+  const cle = `devoirs:${eleveId}`;
+  const etat = useDonneesED.getState().donnees[cle];
+  const avant = etat?.valeur as Devoir[] | undefined;
+  if (!avant) return;
+  const apres = avant.map((d) => (d.id === id ? { ...d, effectue: fait } : d));
+  const poser = (valeur: Devoir[]) => useDonneesED.setState((s) => ({ donnees: { ...s.donnees, [cle]: { chargement: false, ...s.donnees[cle], valeur } } }));
+  poser(apres);
+  if (MODE_DEMO) return;
+  try {
+    const client = useCompte.getState().client;
+    if (!client) throw new ErreurED('reseau');
+    await client.marquerDevoirs(eleveId, fait ? [id] : [], fait ? [] : [id]);
+    await ecrireCache(cle, apres, etat?.maj ?? new Date().toISOString());
+  } catch (erreur) {
+    poser(avant);
+    throw erreur;
+  }
 }

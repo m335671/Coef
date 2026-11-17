@@ -175,11 +175,11 @@ export class ClientED {
     return this.session.comptes;
   }
 
-  async post(chemin: string, data: object = {}): Promise<unknown> {
-    let r = await appel(chemin, 'get', data, { 'X-Token': this.session.token });
+  async post(chemin: string, data: object = {}, verbe: 'get' | 'put' = 'get'): Promise<unknown> {
+    let r = await appel(chemin, verbe, data, { 'X-Token': this.session.token });
     if (r.code === CODE.JETON_INVALIDE || r.code === CODE.JETON_EXPIRE) {
       await this.renouveler();
-      r = await appel(chemin, 'get', data, { 'X-Token': this.session.token });
+      r = await appel(chemin, verbe, data, { 'X-Token': this.session.token });
     }
     verifierCode(r.code);
     if (r.token) this.session.token = r.token;
@@ -216,6 +216,14 @@ export class ClientED {
       jours.push(valider(cahierDuJour, await this.post(`/Eleves/${eleveId}/cahierdetexte/${date}.awp`, {}), 'cahierdetexte/jour'));
     }
     return versDevoirs(liste, jours);
+  }
+
+  /**
+   * Coche ou décoche des devoirs « effectués » : la première écriture vers ED. Verbe `put` et corps
+   * `idDevoirsEffectues` / `idDevoirsNonEffectues` supposés (docs/API-ED.md).
+   */
+  async marquerDevoirs(eleveId: string, faits: string[], nonFaits: string[] = []): Promise<void> {
+    await this.post(`/Eleves/${eleveId}/cahierdetexte.awp`, { idDevoirsEffectues: faits.map(Number), idDevoirsNonEffectues: nonFaits.map(Number) }, 'put');
   }
 
   /** Absences, retards, sanctions, encouragements, dispenses. Chemin et format supposés : docs/API-ED.md. */
