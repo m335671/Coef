@@ -2,7 +2,7 @@
 // Tout part de la moyenne PRÉVUE (calcul officiel vérifié + notes qu'ED n'a pas encore comptées).
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Switch, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { leviers } from '@/domain/moyennes/impact';
 import { calculer } from '@/domain/moyennes/moteur';
@@ -11,6 +11,7 @@ import { cleSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
 import {
   Bouton,
+  Coche,
   BoutonRond,
   Chiffre,
   ChiffreAnime,
@@ -48,8 +49,9 @@ export default function Simulation() {
   const [onglet, setOnglet] = useState<Onglet>('ajouter');
   const cle = cleSimulation(params.eleve, params.periode);
   const hypotheses = useSimulation((s) => s.notes[cle]) ?? AUCUNE;
-  const { active, modifie, definir, activer, enregistrer, charger, viser } = useSimulation();
+  const { active, modifie, definir, activer, enregistrer, charger, viser, afficherObjectif } = useSimulation();
   const objectif = useSimulation((s) => s.objectif) ?? 14;
+  const objectifAffiche = useSimulation((s) => s.objectifAffiche ?? s.objectif !== undefined);
   const setHypotheses = (h: NoteHypothetique[]) => definir(cle, h);
   useEffect(() => void charger(), [charger]);
   const [saisie, setSaisie] = useState<Saisie | undefined>(params.code ? { code: params.code, valeur: 14, sur: 20, poids: 1 } : undefined);
@@ -212,21 +214,24 @@ export default function Simulation() {
       )}
 
       <Panneau style={{ paddingVertical: espace.m, gap: espace.m }}>
-        <View style={styles.rangee}>
-          <View style={{ flex: 1 }}>
-            <Texte variante="liste" moyen>
-              Afficher sur l’écran Notes
-            </Texte>
-            <Texte variante="petit" attenue>
-              Les moyennes y deviennent « simulées », bien signalées.
-            </Texte>
-          </View>
-          <Switch
-            accessibilityLabel="Afficher la simulation sur l’écran Notes"
-            value={active}
-            onValueChange={activer}
-            trackColor={{ true: c.accent, false: c.controle }}
-            thumbColor={c.surface}
+        <View>
+          <Texte variante="liste" moyen>
+            Afficher sur l’écran Notes
+          </Texte>
+          <Texte variante="petit" attenue>
+            Chacun séparément : les notes simulées changent les moyennes (en orange), l’objectif n’est qu’un repère (en violet).
+          </Texte>
+        </View>
+        <View>
+          <Coche libelle="Les notes simulées" coche={active} onChange={activer} couleur={c.negatif} />
+          <Coche
+            libelle={`L’objectif (${moyenne(objectif)})`}
+            coche={objectifAffiche}
+            onChange={(v) => {
+              if (v && useSimulation.getState().objectif === undefined) viser(objectif);
+              afficherObjectif(v);
+            }}
+            couleur={c.objectif}
           />
         </View>
         <Bouton

@@ -217,7 +217,7 @@ export function Presse({
   onPress?: () => void;
   style?: ViewStyle | ViewStyle[];
   libelleAccessible?: string;
-  role?: 'button' | 'radio' | 'tab';
+  role?: 'button' | 'radio' | 'tab' | 'checkbox';
   selectionne?: boolean;
   desactive?: boolean;
 }) {
@@ -228,7 +228,7 @@ export function Presse({
     <Pressable
       accessibilityRole={role}
       accessibilityLabel={libelleAccessible}
-      accessibilityState={{ selected: selectionne, disabled: desactive }}
+      accessibilityState={role === 'checkbox' ? { checked: !!selectionne, disabled: desactive } : { selected: selectionne, disabled: desactive }}
       disabled={desactive || !onPress}
       onPress={onPress}
       onPressIn={() => {
@@ -325,6 +325,24 @@ export function Pastille({ texte, fond, encre }: { texte: string; fond?: string;
     <View style={[styles.pastille, { backgroundColor: fond ?? c.teinte100 }]}>
       <Text style={{ fontFamily: police.fort, fontSize: 12, color: encre ?? c.accentEncre }}>{texte}</Text>
     </View>
+  );
+}
+
+/** Case à cocher avec son libellé (44 px de haut) : la case prend la couleur passée quand elle est cochée. */
+export function Coche({ libelle, coche, onChange, couleur }: { libelle: string; coche: boolean; onChange: (v: boolean) => void; couleur?: string }) {
+  const c = useCouleurs();
+  const teinte = couleur ?? c.accent;
+  return (
+    <Presse role="checkbox" selectionne={coche} libelleAccessible={libelle} onPress={() => onChange(!coche)} style={styles.coche}>
+      <View style={[styles.case, { borderColor: coche ? teinte : c.controle, backgroundColor: coche ? teinte : 'transparent' }]}>
+        {coche ? (
+          <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={c.surface} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round">
+            <Path d="M5 12.5l4.5 4.5L19 7.5" />
+          </Svg>
+        ) : null}
+      </View>
+      <Text style={{ fontFamily: police.moyen, fontSize: taille.petit + 1, color: c.texte }}>{libelle}</Text>
+    </Presse>
   );
 }
 
@@ -668,6 +686,8 @@ const styles = StyleSheet.create({
   boutonTexte: { minHeight: CIBLE, justifyContent: 'center' },
   panneau: { borderWidth: 1, borderRadius: rayon.carte, paddingHorizontal: espace.l },
   ligne: { minHeight: 52, paddingVertical: espace.m, flexDirection: 'row', alignItems: 'center', gap: espace.m },
+  coche: { flexDirection: 'row', alignItems: 'center', gap: espace.s, minHeight: CIBLE, alignSelf: 'flex-start' },
+  case: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   pastille: { borderRadius: rayon.puce, paddingHorizontal: espace.s, paddingVertical: 3, alignSelf: 'flex-start' },
   point: { width: 10, height: 10 },
   segments: { gap: 6, paddingVertical: 2 },

@@ -18,6 +18,7 @@ const clair = {
   surAccent: '#ffffff',
   positif: '#0f766e',
   negatif: '#c2410c', // orange : se distingue du vert d'eau aussi par la clarté
+  objectif: '#7c3aed', // violet : l'objectif, distinct de la moyenne (vert d'eau) et du simulé (orange)
   ombre: 'rgba(15,23,42,0.22)',
 };
 
@@ -38,6 +39,7 @@ const sombre: Couleurs = {
   surAccent: '#042f2e',
   positif: '#2dd4bf',
   negatif: '#fb923c',
+  objectif: '#a78bfa',
   ombre: 'rgba(0,0,0,0.5)',
 };
 

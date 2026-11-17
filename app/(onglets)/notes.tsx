@@ -17,6 +17,7 @@ import { libelleMatiere } from '@/sync/annonce';
 import {
   Bouton,
   BoutonRond,
+  Coche,
   Chiffre,
   ChiffreAnime,
   Courbe,
@@ -35,7 +36,7 @@ import {
   Texte,
 } from '@/ui/composants';
 import { brute, coef, jour, moyenne } from '@/ui/format';
-import { Anneau, Hachures, MiniCourbe } from '@/ui/graphiques';
+import { Anneau, Hachures, MiniCourbe, ZoomMoyenne } from '@/ui/graphiques';
 import Svg, { Path } from 'react-native-svg';
 
 import { espace, police, rayon, taille, useCouleurs, useFamilles } from '@/ui/theme';
@@ -156,6 +157,8 @@ export default function Notes() {
           vue={vue}
           reelle={simule ? reelle?.resultat.generale : undefined}
           objectif={simulation.objectif}
+          objectifAffiche={simulation.objectifAffiche ?? true}
+          onObjectif={simulation.afficherObjectif}
           courbe={courbe}
           chargement={etat?.chargement ?? true}
           erreur={etat?.erreur}
@@ -461,12 +464,16 @@ function Moyenne({
   onReessayer,
   reelle,
   objectif,
+  objectifAffiche,
+  onObjectif,
 }: {
   vue?: VueNotes;
   /** Moyenne prévue sans la simulation, quand la simulation est affichée. */
   reelle?: number;
   /** Moyenne générale visée (simulateur, onglet Objectif). */
   objectif?: number;
+  objectifAffiche: boolean;
+  onObjectif: (v: boolean) => void;
   courbe: { date: string; moyenne: number }[];
   chargement: boolean;
   erreur?: unknown;
@@ -491,7 +498,7 @@ function Moyenne({
   const classe = vue?.periode.classeGenerale?.moyenne;
   const reperes = [
     ...(classe !== undefined ? [{ valeur: classe, couleur: c.attenue, libelle: `classe ${moyenne(classe)}` }] : []),
-    ...(objectif !== undefined ? [{ valeur: objectif, couleur: c.texte, libelle: `objectif ${moyenne(objectif)}` }] : []),
+    ...(objectif !== undefined && objectifAffiche ? [{ valeur: objectif, couleur: c.objectif, libelle: `objectif ${moyenne(objectif)}` }] : []),
   ];
   const teinte = simule ? c.negatif : c.accent;
 
@@ -532,16 +539,28 @@ function Moyenne({
       ) : (
         <View style={[styles.attente, { backgroundColor: c.teinte100 }]} />
       )}
-      {reperes.length > 0 ? (
-        <View style={styles.legende} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {reperes.map((x) => (
-            <View key={x.libelle} style={styles.rangee}>
-              <View style={[styles.marque, { backgroundColor: x.couleur }]} />
-              <Texte variante="petit" attenue style={{ fontVariant: ['tabular-nums'] }}>
-                {x.libelle}
-              </Texte>
-            </View>
-          ))}
+      {g !== undefined ? (
+        <ZoomMoyenne
+          marques={[
+            { valeur: g, couleur: teinte, texte: `${simule ? 'simulée' : 'toi'} ${moyenne(g)}`, forme: 'point' },
+            ...(simule && reelle !== g
+              ? [{ valeur: reelle, couleur: c.attenue, texte: `réelle ${moyenne(reelle)}`, forme: 'trait' as const, cote: 'haut' as const }]
+              : []),
+            ...reperes.map((x) => ({ valeur: x.valeur, couleur: x.couleur, texte: x.libelle, forme: 'trait' as const })),
+          ]}
+          libelle={`Zoom : moyenne ${moyenne(g)}${reperes.map((x) => `, ${x.libelle}`).join('')}`}
+        />
+      ) : null}
+      {objectif !== undefined ? (
+        <View style={styles.rangee}>
+          <View style={{ flex: 1 }}>
+            <Coche libelle={`Objectif ${moyenne(objectif)}`} coche={objectifAffiche} onChange={onObjectif} couleur={c.objectif} />
+          </View>
+          {objectifAffiche && g !== undefined ? (
+            <Texte variante="petit" style={{ color: c.objectif, fontFamily: police.fort, fontVariant: ['tabular-nums'] }}>
+              {g >= objectif ? 'atteint' : `il manque ${moyenne(objectif - g)}`}
+            </Texte>
+          ) : null}
         </View>
       ) : null}
       {reelle !== undefined && g !== undefined ? <Ecart valeur={g - reelle} suffixe={`par rapport à ta moyenne prévue (${moyenne(reelle)})`} /> : null}
@@ -586,8 +605,6 @@ function Moyenne({
 }
 
 const styles = StyleSheet.create({
-  legende: { flexDirection: 'row', justifyContent: 'center', gap: espace.l },
-  marque: { width: 4, height: 12, borderRadius: 2 },
   bande: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
   simulee: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 12, paddingHorizontal: espace.s, marginVertical: 2, overflow: 'hidden' },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },

@@ -10,11 +10,12 @@ import type { Cours, Devoir, EvenementVieScolaire } from '@/domain/types';
 import { useEleveActif } from '@/features/compte/eleves';
 import { familleDe } from '@/features/notes/familles';
 import { useNotes } from '@/features/notes/store';
-import { periodeParDefaut, vueNotes } from '@/features/notes/vue';
+import { useSimulation } from '@/features/notes/simulation';
+import { evolution, periodeParDefaut, vueNotes } from '@/features/notes/vue';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
 import { libelleMatiere } from '@/sync/annonce';
-import { BoutonRond, Ecran, EnTete, Entree, IconeReglages, Pastille, Presse, Texte } from '@/ui/composants';
-import { ajouterJours, brute, heure, iso, jourLong, lundiDe, moyenne } from '@/ui/format';
+import { BoutonRond, Courbe, Ecart, Ecran, EnTete, Entree, IconeReglages, Pastille, Presse, Pulsation, Texte } from '@/ui/composants';
+import { ajouterJours, brute, ecart, heure, iso, jour, jourCourt, jourLong, lundiDe, moyenne } from '@/ui/format';
 import { Anneau } from '@/ui/graphiques';
 import { espace, police, rayon, useCouleurs, useFamilles } from '@/ui/theme';
 
@@ -48,11 +49,6 @@ export default function Accueil() {
     const p = instantane && periodeParDefaut(instantane.donnees, aujourdhui);
     return instantane && p ? vueNotes(instantane, p.code) : undefined;
   }, [instantane, aujourdhui]);
-  const derniere = useMemo(() => {
-    if (!vue || !instantane) return undefined;
-    const ids = new Set(vue.matieres.flatMap(({ matiere: m }) => [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)].map((n) => n.id)));
-    return vue.nouvelles[0] ?? instantane.donnees.notes.filter((n) => ids.has(n.id)).sort((a, b) => b.date.localeCompare(a.date))[0];
-  }, [vue, instantane]);
 
   const restants = cours.filter((x) => !x.annule && x.fin > maintenant).sort((a, b) => a.debut.localeCompare(b.debut));
   const prochain = restants[0];
@@ -61,6 +57,26 @@ export default function Accueil() {
   const lot = aFaire.filter((d) => d.pour === pour);
   const aJustifier = vie.filter((e) => (e.type === 'absence' || e.type === 'retard') && e.justifie === false);
   const g = vue?.resultat.generale;
+  const classe = vue?.periode.classeGenerale?.moyenne;
+  const simulation = useSimulation();
+  useEffect(() => void simulation.charger(), [simulation.charger]); // eslint-disable-line react-hooks/exhaustive-deps
+  const objectif = simulation.objectifAffiche !== false ? simulation.objectif : undefined;
+  const reperes = [
+    ...(classe !== undefined ? [{ valeur: classe, couleur: c.attenue }] : []),
+    ...(objectif !== undefined ? [{ valeur: objectif, couleur: c.objectif }] : []),
+  ];
+  const courbe = useMemo(() => (instantane && vue ? evolution(instantane.donnees, vue.periode).map((x) => x.moyenne) : []), [instantane, vue]);
+  const recentes = useMemo(() => {
+    if (!vue || !instantane) return [];
+    const ids = new Set(vue.matieres.flatMap(({ matiere: m }) => [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)].map((n) => n.id)));
+    return instantane.donnees.notes
+      .filter((n) => ids.has(n.id))
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 4);
+  }, [vue, instantane]);
+  const nouvelles = new Set(vue?.nouvelles.map((n) => n.id));
+  const duJour = cours.filter((x) => x.debut.startsWith(aujourdhui)).sort((a, b) => a.debut.localeCompare(b.debut));
+  const aVenir = [...aFaire].sort((a, b) => a.pour.localeCompare(b.pour)).slice(0, 4);
   const famille = prochain ? familles[familleDe(prochain.codeMatiere ?? '', prochain.matiere)] : undefined;
   const date = new Date(`${aujourdhui}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -90,40 +106,35 @@ export default function Accueil() {
           onPress={() => router.navigate('/notes')}
           libelle={`Moyenne générale prévue ${g === undefined ? 'pas encore calculée' : moyenne(g)}. Ouvrir les notes`}>
           <View style={styles.rangee}>
-            <Anneau
-              valeur={g}
-              taillePx={96}
-              epaisseur={9}
-              fond={c.teinte50}
-              libelle=""
-              reperes={vue?.periode.classeGenerale?.moyenne !== undefined ? [{ valeur: vue.periode.classeGenerale.moyenne, couleur: c.attenue }] : []}>
-              <Texte style={{ fontFamily: police.gras, fontSize: 18, color: c.accent, fontVariant: ['tabular-nums'] }}>
+            <Anneau valeur={g} taillePx={124} epaisseur={11} fond={c.teinte50} libelle="" reperes={reperes}>
+              <Texte style={{ fontFamily: police.gras, fontSize: 24, color: c.accent, fontVariant: ['tabular-nums'] }}>
                 {g === undefined ? '—' : moyenne(g)}
+              </Texte>
+              <Texte variante="petit" attenue>
+                sur 20
               </Texte>
             </Anneau>
             <View style={{ flex: 1, gap: espace.xs }}>
               <Texte variante="petit" style={{ color: c.accentEncre }}>
                 Moyenne prévue · {vue?.periode.libelle ?? '…'}
               </Texte>
-              {derniere && instantane ? (
-                <>
-                  <Texte variante="liste" moyen numberOfLines={1}>
-                    {libelleMatiere(instantane.donnees, derniere)}
-                  </Texte>
-                  <View style={styles.rangee}>
-                    <Texte variante="liste" style={{ fontFamily: police.fort, fontVariant: ['tabular-nums'] }}>
-                      {brute(derniere.valeurBrute)}/{derniere.noteSur}
-                    </Texte>
-                    {vue?.nouvelles.length ? <Pastille texte={vue.nouvelles.length > 1 ? `${vue.nouvelles.length} nouvelles` : 'nouvelle'} /> : null}
-                  </View>
-                </>
-              ) : (
-                <Texte variante="liste" attenue>
-                  {instantane ? 'Pas encore de note ce trimestre.' : 'Synchronisation…'}
+              {vue?.ecart !== undefined && vue.depuis ? <Ecart valeur={vue.ecart} suffixe={`depuis le ${jour(vue.depuis)}`} /> : null}
+              {classe !== undefined ? (
+                <Texte variante="petit" attenue style={{ fontVariant: ['tabular-nums'] }}>
+                  Classe {moyenne(classe)}
+                  {g !== undefined ? ` · ${ecart(g - classe)}` : ''}
                 </Texte>
-              )}
+              ) : null}
+              {objectif !== undefined && g !== undefined ? (
+                <Texte variante="petit" style={{ color: c.objectif, fontFamily: police.fort, fontVariant: ['tabular-nums'] }}>
+                  Objectif {moyenne(objectif)} · {g >= objectif ? 'atteint' : `il manque ${moyenne(objectif - g)}`}
+                </Texte>
+              ) : null}
             </View>
           </View>
+          {courbe.length > 1 ? (
+            <Courbe points={courbe} hauteur={44} libelle={`Évolution de la moyenne prévue, de ${moyenne(courbe[0]!)} à ${moyenne(courbe.at(-1)!)}`} />
+          ) : null}
         </Tuile>
 
         <Tuile
@@ -182,8 +193,115 @@ export default function Accueil() {
           )}
         </Tuile>
 
+        <Tuile rang={4} large fond={c.surface} bord={c.bord} onPress={() => router.navigate('/agenda')} libelle={`Ta journée : ${duJour.length} cours`}>
+          <Texte variante="section">Ta journée</Texte>
+          {duJour.length === 0 ? (
+            <Texte variante="liste" attenue>
+              Pas de cours aujourd’hui.
+            </Texte>
+          ) : (
+            duJour.map((x) => {
+              const f = familles[familleDe(x.codeMatiere ?? '', x.matiere)];
+              const passe = x.fin <= maintenant;
+              const enCours = !x.annule && x.debut <= maintenant && maintenant < x.fin;
+              return (
+                <View key={x.id} style={[styles.ligne, { opacity: passe && !enCours ? 0.5 : 1 }]}>
+                  <Texte variante="petit" attenue style={styles.heure}>
+                    {heure(x.debut)}
+                  </Texte>
+                  <View style={[styles.pastilleFamille, { backgroundColor: x.annule ? c.negatif : f.trait }]} />
+                  <Texte
+                    variante="liste"
+                    numberOfLines={1}
+                    style={{
+                      flex: 1,
+                      fontFamily: enCours ? police.fort : police.normal,
+                      textDecorationLine: x.annule ? 'line-through' : 'none',
+                      color: x.annule ? c.negatif : c.texte,
+                    }}>
+                    {x.matiere}
+                  </Texte>
+                  {enCours ? (
+                    <Pastille texte="maintenant" />
+                  ) : x.annule ? (
+                    <Pastille texte="annulé" fond={c.surface} encre={c.negatif} />
+                  ) : (
+                    <Texte variante="petit" attenue numberOfLines={1}>
+                      {x.salle ?? ''}
+                    </Texte>
+                  )}
+                </View>
+              );
+            })
+          )}
+        </Tuile>
+
+        <Tuile rang={5} large fond={c.surface} bord={c.bord} libelle="Dernières notes">
+          <View style={styles.rangee}>
+            <Texte variante="section" style={{ flex: 1 }}>
+              Dernières notes
+            </Texte>
+            <Presse onPress={() => router.navigate('/notes')} libelleAccessible="Toutes les notes" style={styles.lien}>
+              <Texte variante="petit" style={{ color: c.accent, fontFamily: police.fort }}>
+                Tout voir
+              </Texte>
+            </Presse>
+          </View>
+          {recentes.length === 0 ? (
+            <Texte variante="liste" attenue>
+              {instantane ? 'Pas encore de note ce trimestre.' : 'Synchronisation…'}
+            </Texte>
+          ) : (
+            recentes.map((n) => (
+              <Presse
+                key={n.id}
+                onPress={() => router.push({ pathname: '/note/[id]', params: { id: n.id, periode: vue!.periode.code, eleve: id } })}
+                libelleAccessible={`${libelleMatiere(instantane!.donnees, n)}, ${brute(n.valeurBrute)} sur ${n.noteSur}`}
+                style={styles.ligne}>
+                {nouvelles.has(n.id) ? <Pulsation /> : <View style={{ width: 10 }} />}
+                <View style={{ flex: 1 }}>
+                  <Texte variante="liste" numberOfLines={1}>
+                    {libelleMatiere(instantane!.donnees, n)}
+                  </Texte>
+                  <Texte variante="petit" attenue numberOfLines={1}>
+                    {jour(n.date)} · {n.devoir || 'Devoir'}
+                  </Texte>
+                </View>
+                <Texte variante="liste" style={{ fontFamily: police.fort, fontVariant: ['tabular-nums'] }}>
+                  {brute(n.valeurBrute)}
+                  <Texte variante="petit" attenue>
+                    /{n.noteSur}
+                  </Texte>
+                </Texte>
+              </Presse>
+            ))
+          )}
+        </Tuile>
+
+        <Tuile rang={6} large fond={c.surface} bord={c.bord} onPress={() => router.navigate('/devoirs')} libelle={`${aFaire.length} devoirs à venir`}>
+          <Texte variante="section">À venir</Texte>
+          {aVenir.length === 0 ? (
+            <Texte variante="liste" attenue>
+              Rien à faire.
+            </Texte>
+          ) : (
+            aVenir.map((d) => (
+              <View key={d.id} style={styles.ligne}>
+                <Texte variante="petit" attenue style={styles.heure}>
+                  {jourCourt(d.pour)} {Number(d.pour.slice(8))}
+                </Texte>
+                <View style={[styles.pastilleFamille, { backgroundColor: familles[familleDe(d.codeMatiere ?? '', d.matiere)].trait }]} />
+                <Texte variante="liste" numberOfLines={1} style={{ flex: 1 }}>
+                  {d.matiere}
+                </Texte>
+                {d.interrogation ? <Pastille texte="interro" fond={c.surface} encre={c.negatif} /> : null}
+              </View>
+            ))
+          )}
+        </Tuile>
+
         <Tuile
-          rang={4}
+          rang={7}
           large
           fond={c.surface}
           bord={c.bord}
@@ -221,15 +339,20 @@ function Tuile({
   large?: boolean;
   fond: string;
   bord?: string;
-  onPress: () => void;
+  onPress?: () => void;
   libelle: string;
 }) {
+  const style = [styles.tuile, { backgroundColor: fond, borderColor: bord ?? fond, minHeight: large ? undefined : 132 }];
+  if (!onPress) {
+    return (
+      <Entree rang={rang} style={large ? styles.large : styles.demi}>
+        <View style={style}>{children}</View>
+      </Entree>
+    );
+  }
   return (
     <Entree rang={rang} style={large ? styles.large : styles.demi}>
-      <Presse
-        onPress={onPress}
-        libelleAccessible={libelle}
-        style={[styles.tuile, { backgroundColor: fond, borderColor: bord ?? fond, minHeight: large ? undefined : 132 }]}>
+      <Presse onPress={onPress} libelleAccessible={libelle} style={style}>
         {children}
       </Presse>
     </Entree>
@@ -242,4 +365,8 @@ const styles = StyleSheet.create({
   demi: { flexBasis: '45%', flexGrow: 1 },
   tuile: { borderRadius: rayon.phare, borderWidth: 1, padding: espace.l, gap: espace.xs },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.m },
+  ligne: { flexDirection: 'row', alignItems: 'center', gap: espace.s, minHeight: 40 },
+  heure: { width: 52, fontVariant: ['tabular-nums'] },
+  pastilleFamille: { width: 8, height: 8, borderRadius: 4 },
+  lien: { minHeight: 44, justifyContent: 'center', paddingHorizontal: espace.xs },
 });

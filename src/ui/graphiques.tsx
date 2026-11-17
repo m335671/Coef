@@ -1,12 +1,12 @@
 // Graphiques du design system : anneau de moyenne (P1), mini-courbe de matière (P2), règle face à la classe (P3),
 // hachures du simulé (P5). SVG + Reanimated, mouvement coupé si le système réduit les animations.
-import { type ReactNode, useEffect, useId } from 'react';
+import { type ReactNode, useEffect, useId, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Defs, G, Line, Path, Pattern, Rect } from 'react-native-svg';
 
 import { Texte } from './composants';
-import { duree, espace, police, useCouleurs } from './theme';
+import { duree, police, useCouleurs } from './theme';
 
 const EASE = Easing.bezier(0.2, 0.8, 0.2, 1);
 const CercleAnime = Animated.createAnimatedComponent(Circle);
@@ -113,10 +113,118 @@ export function MiniCourbe({ points, couleur, largeur = 64, hauteur = 18 }: { po
   );
 }
 
+/** Une marque sur une échelle : un point (la valeur de l'élève) ou un trait (classe, objectif), avec son étiquette. */
+export type Marque = { valeur: number; couleur: string; texte?: string; forme: 'point' | 'trait'; cote?: 'haut' | 'bas' };
+
+const LARGEUR_ETIQUETTE = 104;
+const LIGNE = 20;
+const nombre = (v: number) => String(Math.round(v * 100) / 100).replace('.', ',');
+
 /**
- * Règle de 0 à `sur` : plage de la classe (min–max) en teinte, trait de la moyenne de classe, pastille de l'élève
- * qui glisse jusqu'à sa place. Graduations tous les quarts.
+ * Échelle graduée de `min` à `max` : grands traits chiffrés tous les `pas`, petits tous les `sousPas`, plage teintée
+ * (min–max de la classe), marques étiquetées au-dessus ou au-dessous. Deux étiquettes trop proches passent sur deux
+ * lignes plutôt que de se chevaucher. Le point glisse jusqu'à sa place à l'arrivée.
  */
+export function Echelle({
+  min,
+  max,
+  pas,
+  sousPas,
+  plage,
+  marques,
+  libelle,
+}: {
+  min: number;
+  max: number;
+  pas: number;
+  sousPas: number;
+  plage?: [number, number];
+  marques: Marque[];
+  libelle: string;
+}) {
+  const c = useCouleurs();
+  const [l, setL] = useState(0);
+  const x = (v: number) => borne((v - min) / (max - min)) * l;
+  const placer = (cote: 'haut' | 'bas') => {
+    const lignes: number[][] = [];
+    return marques
+      .filter((m) => m.texte && (m.cote ?? (m.forme === 'point' ? 'haut' : 'bas')) === cote)
+      .map((m) => {
+        const cx = Math.min(Math.max(x(m.valeur), LARGEUR_ETIQUETTE / 2), Math.max(l - LARGEUR_ETIQUETTE / 2, LARGEUR_ETIQUETTE / 2));
+        let ligne = 0;
+        while (lignes[ligne]?.some((autre) => Math.abs(autre - cx) < LARGEUR_ETIQUETTE)) ligne++;
+        (lignes[ligne] ??= []).push(cx);
+        return { m, cx, ligne };
+      });
+  };
+  const haut = placer('haut');
+  const bas = placer('bas');
+  const nHaut = Math.max(0, ...haut.map((e) => e.ligne + 1));
+  const nBas = Math.max(0, ...bas.map((e) => e.ligne + 1));
+  const yRail = nHaut * LIGNE + 14;
+  const yChiffres = yRail + 18;
+  const yBas = yChiffres + 22;
+  const hauteur = yBas + nBas * LIGNE + 2;
+  const graduations = Array.from({ length: Math.round((max - min) / sousPas) + 1 }, (_, i) => min + i * sousPas);
+  const grand = (v: number) => Math.abs(v / pas - Math.round(v / pas)) < 1e-6;
+  const principal = marques.find((m) => m.forme === 'point');
+  const p = useProgression(principal ? borne((principal.valeur - min) / (max - min)) : 0, 200);
+  const glisse = useAnimatedStyle(() => ({ transform: [{ translateX: p.value * l }] }));
+
+  return (
+    <View accessible accessibilityRole="image" accessibilityLabel={libelle} onLayout={(e) => setL(e.nativeEvent.layout.width)} style={{ height: hauteur }}>
+      {l > 0 ? (
+        <>
+          <Svg width={l} height={hauteur} style={StyleSheet.absoluteFill}>
+            <Rect x={0} y={yRail - 5} width={l} height={10} rx={5} fill={c.teinte50} stroke={c.bord} strokeWidth={StyleSheet.hairlineWidth} />
+            {plage ? <Rect x={x(plage[0])} y={yRail - 5} width={Math.max(x(plage[1]) - x(plage[0]), 10)} height={10} rx={5} fill={c.teinte100} /> : null}
+            {graduations.map((v) => (
+              <Line
+                key={v}
+                x1={x(v)}
+                x2={x(v)}
+                y1={yRail + 7}
+                y2={yRail + (grand(v) ? 13 : 10)}
+                stroke={grand(v) ? c.attenue : c.controle}
+                strokeWidth={grand(v) ? 1.5 : 1}
+              />
+            ))}
+            {marques
+              .filter((m) => m.forme === 'trait')
+              .map((m, i) => (
+                <G key={i}>
+                  <Line x1={x(m.valeur)} x2={x(m.valeur)} y1={yRail - 12} y2={yRail + 12} stroke={c.surface} strokeWidth={6} strokeLinecap="round" />
+                  <Line x1={x(m.valeur)} x2={x(m.valeur)} y1={yRail - 12} y2={yRail + 12} stroke={m.couleur} strokeWidth={3} strokeLinecap="round" />
+                </G>
+              ))}
+          </Svg>
+          {principal ? <Animated.View style={[styles.point, { top: yRail - 11, backgroundColor: principal.couleur, borderColor: c.surface }, glisse]} /> : null}
+          {graduations.filter(grand).map((v) => (
+            <Texte key={v} variante="petit" attenue style={[styles.chiffre, { top: yChiffres - 2, left: x(v) - 20 }]}>
+              {nombre(v)}
+            </Texte>
+          ))}
+          {[...haut.map((e) => ({ ...e, y: yRail - 16 - (e.ligne + 1) * LIGNE + 4 })), ...bas.map((e) => ({ ...e, y: yBas + e.ligne * LIGNE }))].map(
+            ({ m, cx, y }, i) => (
+              <Texte
+                key={i}
+                variante="petit"
+                numberOfLines={1}
+                style={[
+                  styles.etiquette,
+                  { top: y, left: cx - LARGEUR_ETIQUETTE / 2, color: m.couleur, fontFamily: m.forme === 'point' ? police.gras : police.moyen },
+                ]}>
+                {m.texte}
+              </Texte>
+            ),
+          )}
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+/** Règle de 0 à `sur` face à la classe : plage min–max, trait de la moyenne de classe, point de l'élève, graduée par unité. */
 export function Regle({
   valeur,
   sur = 20,
@@ -131,28 +239,27 @@ export function Regle({
   libelle: string;
 }) {
   const c = useCouleurs();
-  const pct = (x: number) => borne(x / sur) * 100;
-  const p = useProgression(valeur === undefined ? 0 : borne(valeur / sur), 200);
-  const pouce = useAnimatedStyle(() => ({ left: `${p.value * 100}%` }));
-  const debut = classe?.min ?? 0;
-  const fin = classe?.max ?? sur;
-  return (
-    <View accessible accessibilityLabel={libelle} style={{ gap: espace.xs }}>
-      <View style={styles.regle}>
-        <View style={[styles.rail, { backgroundColor: c.teinte50, borderColor: c.bord }]} />
-        {classe ? <View style={[styles.plage, { left: `${pct(debut)}%`, width: `${pct(fin) - pct(debut)}%`, backgroundColor: c.teinte100 }]} /> : null}
-        {classe?.moyenne !== undefined ? <View style={[styles.trait, { left: `${pct(classe.moyenne)}%`, backgroundColor: c.accentEncre }]} /> : null}
-        {valeur !== undefined ? <Animated.View style={[styles.pouce, { backgroundColor: couleur ?? c.accent, borderColor: c.surface }, pouce]} /> : null}
-      </View>
-      <View style={styles.graduations} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        {[0, 0.25, 0.5, 0.75, 1].map((q) => (
-          <Texte key={q} variante="petit" attenue style={{ fontFamily: police.normal, fontVariant: ['tabular-nums'] }}>
-            {String(Math.round(q * sur * 100) / 100).replace('.', ',')}
-          </Texte>
-        ))}
-      </View>
-    </View>
-  );
+  const marques: Marque[] = [
+    ...(classe?.moyenne !== undefined
+      ? [{ valeur: classe.moyenne, couleur: c.attenue, texte: `classe ${nombre(classe.moyenne)}`, forme: 'trait' as const }]
+      : []),
+    ...(valeur !== undefined ? [{ valeur, couleur: couleur ?? c.accent, texte: `toi ${nombre(valeur)}`, forme: 'point' as const }] : []),
+  ];
+  const plage: [number, number] | undefined = classe?.min !== undefined || classe?.max !== undefined ? [classe.min ?? 0, classe.max ?? sur] : undefined;
+  return <Echelle min={0} max={sur} pas={sur / 4} sousPas={sur % 4 === 0 && sur >= 8 ? sur / 20 : sur / 4} plage={plage} marques={marques} libelle={libelle} />;
+}
+
+/**
+ * Zoom sur la générale : l'échelle ne couvre que l'intervalle utile (au moins 2 points), au quart de point près.
+ * Rend lisibles les écarts que l'anneau sur 20 écrase (13,70 contre un objectif de 14).
+ */
+export function ZoomMoyenne({ marques, libelle }: { marques: Marque[]; libelle: string }) {
+  const valeurs = marques.map((m) => m.valeur);
+  let min = Math.max(0, Math.floor(Math.min(...valeurs) - 0.5));
+  let max = Math.min(20, Math.ceil(Math.max(...valeurs) + 0.5));
+  if (max - min < 2) [min, max] = max >= 20 ? [18, 20] : [min, min + 2];
+  const ecart = max - min;
+  return <Echelle min={min} max={max} pas={ecart <= 6 ? 1 : 2} sousPas={ecart <= 3 ? 0.25 : ecart <= 6 ? 0.5 : 1} marques={marques} libelle={libelle} />;
 }
 
 /** Hachures orange du simulé, en fond d'un bloc (le parent pose `overflow: 'hidden'` et son arrondi). */
@@ -175,10 +282,7 @@ export function Hachures({ couleur, opacite = 0.14 }: { couleur?: string; opacit
 
 const styles = StyleSheet.create({
   centre: { alignItems: 'center', justifyContent: 'center' },
-  regle: { height: 28, justifyContent: 'center' },
-  rail: { position: 'absolute', left: 0, right: 0, height: 10, borderRadius: 5, borderWidth: StyleSheet.hairlineWidth },
-  plage: { position: 'absolute', height: 10, borderRadius: 5 },
-  trait: { position: 'absolute', width: 3, height: 22, marginLeft: -1.5, borderRadius: 1.5 },
-  pouce: { position: 'absolute', width: 22, height: 22, marginLeft: -11, borderRadius: 11, borderWidth: 3 },
-  graduations: { flexDirection: 'row', justifyContent: 'space-between' },
+  point: { position: 'absolute', left: -11, width: 22, height: 22, borderRadius: 11, borderWidth: 3 },
+  chiffre: { position: 'absolute', width: 40, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  etiquette: { position: 'absolute', width: LARGEUR_ETIQUETTE, textAlign: 'center', fontVariant: ['tabular-nums'] },
 });
