@@ -9,6 +9,7 @@ import { depot, type Instantane } from '@/storage/base';
 import { synchroniser } from '@/sync/synchro';
 
 import { useCompte } from '../compte/store';
+import { useSimulation } from './simulation';
 
 export type EtatEleve = { instantane?: Instantane; chargement: boolean; erreur?: unknown };
 
@@ -38,6 +39,7 @@ export const useNotes = create<EtatNotes>((set, get) => {
         if (!client) throw new ErreurED('reseau');
         const r = await synchroniser(eleveId, () => client.notes(eleveId), depot, { forcer });
         maj(eleveId, { instantane: r.instantane, chargement: false });
+        if (!r.premiere) await useSimulation.getState().integrer(eleveId, r.nouvelles, r.instantane.donnees);
       } catch (erreur) {
         // Les données en cache restent affichées ; l'erreur s'affiche dans le bloc, pas à la place de l'écran.
         maj(eleveId, { chargement: false, erreur });

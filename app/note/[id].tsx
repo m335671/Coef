@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { impactNote } from '@/domain/moyennes/impact';
 import { calculer, type Exclusion, lireNote } from '@/domain/moyennes/moteur';
+import { useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
 import { libelleMatiere } from '@/sync/annonce';
 import { Bouton, Ecart, Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
@@ -23,6 +24,8 @@ export default function DetailNote() {
   const d = useNotes((s) => s.eleves[eleve]?.instantane?.donnees);
   const p = d?.periodes.find((x) => x.code === periode);
   const n = d?.notes.find((x) => x.id === id);
+
+  const simulee = useSimulation((x) => x.remplacees)?.find((r) => r.noteId === id)?.hypothese;
 
   if (!d || !p || !n) {
     return (
@@ -81,6 +84,7 @@ export default function DetailNote() {
               .filter(Boolean)
               .join(' · ')}
           </Texte>
+          {simulee ? <Pastille texte={`Tu l’avais simulée : ${coef(simulee.valeur)}/${simulee.noteSur}`} fond={c.surface} encre={c.negatif} /> : null}
         </Panneau>
       </Entree>
 

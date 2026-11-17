@@ -10,7 +10,10 @@ import { depot, lirePreference } from '@/storage/base';
 import { comptesEnregistres, lireAcces, sauverAcces } from '@/storage/secrets';
 
 import { afficher, type EcranVerrouille } from '../../modules/notifications-locales';
-import { annonce } from './annonce';
+import { remplacerEnBase } from '@/features/notes/simulation';
+import { annonceRemplacement } from '@/features/notes/remplacement';
+
+import { annonce, libelleMatiere } from './annonce';
 import { synchroniser } from './synchro';
 
 export const TACHE = 'coef.synchro-notes';
@@ -33,7 +36,11 @@ export async function synchroniserComptes(): Promise<void> {
     for (const e of eleves) {
       const r = await synchroniser(e.id, () => client.notes(e.id), depot);
       if (r.premiere || r.depuisCache) continue;
-      const a = annonce(r, r.instantane.donnees, eleves.length > 1 ? e.prenom : undefined);
+      const d = r.instantane.donnees;
+      const prenom = eleves.length > 1 ? e.prenom : undefined;
+      const remplacees = await remplacerEnBase(e.id, r.nouvelles, d);
+      // Une note simulée est arrivée : notification dédiée (elle prime sur « nouvelle note »).
+      const a = annonceRemplacement(remplacees, d, (n) => libelleMatiere(d, n), prenom) ?? annonce(r, d, prenom);
       if (a) await afficher(idNotification(e.id), a.titre, a.texte, ecranVerrouille);
     }
   }
