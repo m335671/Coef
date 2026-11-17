@@ -14,7 +14,7 @@ import { useSimulation } from '@/features/notes/simulation';
 import { evolution, periodeParDefaut, vueNotes } from '@/features/notes/vue';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
 import { libelleMatiere } from '@/sync/annonce';
-import { BoutonRond, Courbe, Ecart, Ecran, EnTete, Entree, IconeReglages, Pastille, Presse, Pulsation, Texte } from '@/ui/composants';
+import { BoutonRond, Courbe, Ecart, Ecran, EnTete, Entree, IconeReglages, Pastille, Presse, Pulsation, Texte, useMinute } from '@/ui/composants';
 import { ajouterJours, brute, ecart, heure, iso, jour, jourCourt, jourLong, lundiDe, moyenne } from '@/ui/format';
 import { Anneau } from '@/ui/graphiques';
 import { espace, police, rayon, useCouleurs, useFamilles } from '@/ui/theme';
@@ -24,8 +24,9 @@ export default function Accueil() {
   const familles = useFamilles();
   const [eleve] = useEleveActif();
   const id = eleve?.id ?? '';
-  const aujourdhui = MODE_DEMO ? AUJOURDHUI_DEMO : iso(new Date());
-  const maintenant = MODE_DEMO ? MAINTENANT_DEMO : `${aujourdhui} ${new Date().toTimeString().slice(0, 5)}`;
+  const horloge = useMinute();
+  const aujourdhui = MODE_DEMO ? AUJOURDHUI_DEMO : iso(horloge);
+  const maintenant = MODE_DEMO ? MAINTENANT_DEMO : `${aujourdhui} ${horloge.toTimeString().slice(0, 5)}`;
   const lundi = lundiDe(aujourdhui);
   const cles = { edt: `edt:${id}:${lundi}`, devoirs: `devoirs:${id}`, vie: `vie:${id}` };
 

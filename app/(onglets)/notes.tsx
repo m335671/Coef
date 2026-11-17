@@ -25,6 +25,7 @@ import {
   Ecart,
   Ecran,
   EnTete,
+  IconeActualiser,
   Entree,
   IconeReglages,
   Panneau,
@@ -130,6 +131,13 @@ export default function Notes() {
         titre="Notes"
         action={
           <View style={{ flexDirection: 'row', gap: espace.s }}>
+            <BoutonRond
+              libelle={etat?.chargement ? 'Synchronisation en cours' : 'Actualiser les notes'}
+              onPress={() => !etat?.chargement && charger(eleveId, true)}>
+              <View style={{ opacity: etat?.chargement ? 0.35 : 1 }}>
+                <IconeActualiser />
+              </View>
+            </BoutonRond>
             {vue ? (
               <BoutonRond libelle="Simulation" onPress={ouvrirSimulation}>
                 <IconeSimulation />

@@ -8,7 +8,7 @@ import { devoirsDemo } from '@/demo/vie';
 import type { Devoir } from '@/domain/types';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { marquerDevoir, useDonnee, useDonneesED } from '@/features/vie/store';
-import { Bouton, Coche, Ecran, EnTete, Entree, Pastille, Presse, Section, Segments, Texte } from '@/ui/composants';
+import { Bouton, BoutonRond, Coche, Ecran, EnTete, Entree, IconeActualiser, Pastille, Presse, Section, Segments, Texte } from '@/ui/composants';
 import { ajouterJours, iso, jourLong } from '@/ui/format';
 import { espace, rayon, useCouleurs } from '@/ui/theme';
 
@@ -41,7 +41,20 @@ export default function Devoirs() {
 
   return (
     <Ecran>
-      <EnTete titre="Devoirs" />
+      <EnTete
+        titre="Devoirs"
+        action={
+          eleve ? (
+            <BoutonRond
+              libelle={etat?.chargement ? 'Chargement en cours' : 'Actualiser les devoirs'}
+              onPress={() => !etat?.chargement && charger(cle, (cl) => cl.devoirs(eleve.id), devoirsDemo, true)}>
+              <View style={{ opacity: etat?.chargement ? 0.35 : 1 }}>
+                <IconeActualiser />
+              </View>
+            </BoutonRond>
+          ) : undefined
+        }
+      />
       {eleves.length > 1 && eleve ? (
         <Entree rang={1}>
           <Segments libelle="Élève" options={eleves.map((e) => ({ cle: e.id, libelle: e.prenom }))} valeur={eleve.id} onChange={choisirEleve} />

@@ -645,6 +645,34 @@ export function IconeReglages() {
   );
 }
 
+/** Flèche circulaire (actualiser). */
+export function IconeActualiser() {
+  const c = useCouleurs();
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M20 11a8 8 0 1 0-2.3 5.7" />
+      <Path d="M20 4v7h-7" />
+    </Svg>
+  );
+}
+
+/** L'heure qui avance : un nouveau rendu à chaque changement de minute. */
+export function useMinute(): Date {
+  const [d, setD] = useState(() => new Date());
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>;
+    const suivant = () => {
+      t = setTimeout(() => {
+        setD(new Date());
+        suivant();
+      }, 60_000 - (Date.now() % 60_000) + 50);
+    };
+    suivant();
+    return () => clearTimeout(t);
+  }, []);
+  return d;
+}
+
 export function Ecran({ children }: { children: ReactNode }) {
   const c = useCouleurs();
   return (

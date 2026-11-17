@@ -9,7 +9,7 @@ import type { Cours, Devoir } from '@/domain/types';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { familleDe } from '@/features/notes/familles';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
-import { Bouton, BoutonRond, Ecran, EnTete, Entree, Pastille, Segments, Texte } from '@/ui/composants';
+import { Bouton, BoutonRond, Ecran, EnTete, Entree, Pastille, Segments, Texte, useMinute } from '@/ui/composants';
 import { ajouterJours, heure, iso, jour, jourCourt, jourLong, lundiDe } from '@/ui/format';
 import { Hachures } from '@/ui/graphiques';
 import { espace, police, rayon, useCouleurs, useFamilles } from '@/ui/theme';
@@ -18,7 +18,8 @@ export default function Agenda() {
   const c = useCouleurs();
   const eleves = useEleves();
   const [eleve, choisirEleve] = useEleveActif();
-  const aujourdhui = MODE_DEMO ? AUJOURDHUI_DEMO : iso(new Date());
+  const horloge = useMinute();
+  const aujourdhui = MODE_DEMO ? AUJOURDHUI_DEMO : iso(horloge);
   const [lundi, setLundi] = useState(MODE_DEMO ? LUNDI_DEMO : lundiDe(aujourdhui));
   const [jourChoisi, setJour] = useState(aujourdhui);
   const dimanche = ajouterJours(lundi, 6);
@@ -42,7 +43,7 @@ export default function Agenda() {
   };
   const jours = Array.from({ length: 6 }, (_, i) => ajouterJours(lundi, i));
   const cours = (etat?.valeur ?? []).filter((x) => x.debut.startsWith(jourChoisi));
-  const maintenant = MODE_DEMO ? MAINTENANT_DEMO : `${aujourdhui} ${new Date().toTimeString().slice(0, 5)}`;
+  const maintenant = MODE_DEMO ? MAINTENANT_DEMO : `${aujourdhui} ${horloge.toTimeString().slice(0, 5)}`;
 
   return (
     <Ecran>
