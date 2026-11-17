@@ -3,11 +3,10 @@
 import { router } from 'expo-router';
 import { type ReactNode, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Path, Rect } from 'react-native-svg';
 
 import { MODE_DEMO } from '@/demo';
-import { AUJOURDHUI_DEMO, coursDemo, devoirsDemo, MAINTENANT_DEMO, messagesDemo, vieScolaireDemo } from '@/demo/vie';
-import type { Cours, Devoir, EvenementVieScolaire, Message } from '@/domain/types';
+import { AUJOURDHUI_DEMO, coursDemo, devoirsDemo, MAINTENANT_DEMO, vieScolaireDemo } from '@/demo/vie';
+import type { Cours, Devoir, EvenementVieScolaire } from '@/domain/types';
 import { useEleveActif } from '@/features/compte/eleves';
 import { familleDe } from '@/features/notes/familles';
 import { useNotes } from '@/features/notes/store';
@@ -15,7 +14,7 @@ import { useSimulation } from '@/features/notes/simulation';
 import { evolution, periodeParDefaut, vueNotes } from '@/features/notes/vue';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
 import { libelleMatiere } from '@/sync/annonce';
-import { BoutonRond, Courbe, Ecart, Ecran, EnTete, Entree, IconeReglages, Pastille, Presse, Pulsation, Texte, useMinute } from '@/ui/composants';
+import { Courbe, Ecart, Ecran, EnTete, Entree, Pastille, Presse, Pulsation, Texte, useMinute } from '@/ui/composants';
 import { ajouterJours, brute, ecart, heure, iso, jour, jourCourt, jourLong, lundiDe, moyenne } from '@/ui/format';
 import { Anneau } from '@/ui/graphiques';
 import { espace, police, rayon, useCouleurs, useFamilles } from '@/ui/theme';
@@ -29,7 +28,7 @@ export default function Accueil() {
   const aujourdhui = MODE_DEMO ? AUJOURDHUI_DEMO : iso(horloge);
   const maintenant = MODE_DEMO ? MAINTENANT_DEMO : `${aujourdhui} ${horloge.toTimeString().slice(0, 5)}`;
   const lundi = lundiDe(aujourdhui);
-  const cles = { edt: `edt:${id}:${lundi}`, devoirs: `devoirs:${id}`, vie: `vie:${id}`, messages: `messages:${id}` };
+  const cles = { edt: `edt:${id}:${lundi}`, devoirs: `devoirs:${id}`, vie: `vie:${id}` };
 
   // Mêmes clés que les onglets : ce qui est chargé ici leur sert aussi (et l'inverse).
   const chargerNotes = useNotes((s) => s.charger);
@@ -40,15 +39,12 @@ export default function Accueil() {
     void charger(cles.edt, (cl) => cl.emploiDuTemps(id, lundi, ajouterJours(lundi, 6)), coursDemo);
     void charger(cles.devoirs, (cl) => cl.devoirs(id), devoirsDemo);
     void charger(cles.vie, (cl) => cl.vieScolaire(id), vieScolaireDemo);
-    void charger(cles.messages, (cl) => cl.messages(id), messagesDemo);
-  }, [id, lundi, cles.edt, cles.devoirs, cles.vie, cles.messages, chargerNotes, charger]);
+  }, [id, lundi, cles.edt, cles.devoirs, cles.vie, chargerNotes, charger]);
 
   const instantane = useNotes((s) => s.eleves[id]?.instantane);
   const cours = useDonnee<Cours[]>(cles.edt)?.valeur ?? [];
   const devoirs = useDonnee<Devoir[]>(cles.devoirs)?.valeur ?? [];
   const vie = useDonnee<EvenementVieScolaire[]>(cles.vie)?.valeur ?? [];
-  const messages = useDonnee<Message[]>(cles.messages)?.valeur ?? [];
-  const nonLus = messages.filter((m) => !m.lu);
 
   const vue = useMemo(() => {
     const p = instantane && periodeParDefaut(instantane.donnees, aujourdhui);
@@ -93,22 +89,7 @@ export default function Accueil() {
             {date.replace(/^./, (x) => x.toUpperCase())}
           </Texte>
         </Entree>
-        <EnTete
-          titre="Aujourd’hui"
-          action={
-            <View style={styles.rangee}>
-              <BoutonRond
-                libelle={nonLus.length ? `Messages, ${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''}` : 'Messages'}
-                onPress={() => router.push('/messages')}>
-                <IconeEnveloppe />
-                {nonLus.length ? <View style={[styles.badge, { backgroundColor: c.negatif, borderColor: c.fond }]} /> : null}
-              </BoutonRond>
-              <BoutonRond libelle="Réglages" onPress={() => router.push('/reglages')}>
-                <IconeReglages />
-              </BoutonRond>
-            </View>
-          }
-        />
+        <EnTete titre="Aujourd’hui" />
       </View>
 
       <View style={styles.bento}>
@@ -151,61 +132,63 @@ export default function Accueil() {
           ) : null}
         </Tuile>
 
-        <Tuile
-          rang={2}
-          fond={famille?.fond ?? c.teinte50}
-          onPress={() => router.navigate('/agenda')}
-          libelle={
-            prochain
-              ? `Prochain cours : ${prochain.matiere}, ${heure(prochain.debut)}${prochain.salle ? `, salle ${prochain.salle}` : ''}`
-              : 'Plus de cours aujourd’hui'
-          }>
-          <Texte variante="petit" style={{ color: famille?.encre ?? c.accentEncre }}>
-            {prochain && prochain.debut <= maintenant ? 'En ce moment' : 'Prochain cours'}
-          </Texte>
-          {prochain ? (
-            <>
-              <Texte variante="section" numberOfLines={2} style={{ color: famille?.encre }}>
-                {prochain.matiere}
-              </Texte>
-              <Texte variante="petit" style={{ color: famille?.encre }}>
-                {[
-                  prochain.debut.startsWith(aujourdhui) ? heure(prochain.debut) : `${jourLong(prochain.debut.slice(0, 10))}, ${heure(prochain.debut)}`,
-                  prochain.salle,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Texte>
-            </>
-          ) : (
-            <Texte variante="liste" attenue>
-              {cours.length ? 'Plus de cours cette semaine.' : 'Pas d’emploi du temps.'}
+        <View style={styles.paire}>
+          <Tuile
+            rang={2}
+            fond={famille?.fond ?? c.teinte50}
+            onPress={() => router.navigate('/agenda')}
+            libelle={
+              prochain
+                ? `Prochain cours : ${prochain.matiere}, ${heure(prochain.debut)}${prochain.salle ? `, salle ${prochain.salle}` : ''}`
+                : 'Plus de cours aujourd’hui'
+            }>
+            <Texte variante="petit" style={{ color: famille?.encre ?? c.accentEncre }}>
+              {prochain && prochain.debut <= maintenant ? 'En ce moment' : 'Prochain cours'}
             </Texte>
-          )}
-        </Tuile>
+            {prochain ? (
+              <>
+                <Texte variante="section" numberOfLines={2} style={{ color: famille?.encre }}>
+                  {prochain.matiere}
+                </Texte>
+                <Texte variante="petit" style={{ color: famille?.encre }}>
+                  {[
+                    prochain.debut.startsWith(aujourdhui) ? heure(prochain.debut) : `${jourLong(prochain.debut.slice(0, 10))}, ${heure(prochain.debut)}`,
+                    prochain.salle,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Texte>
+              </>
+            ) : (
+              <Texte variante="liste" attenue>
+                {cours.length ? 'Plus de cours cette semaine.' : 'Pas d’emploi du temps.'}
+              </Texte>
+            )}
+          </Tuile>
 
-        <Tuile
-          rang={3}
-          fond={c.surface}
-          bord={c.bord}
-          onPress={() => router.navigate('/devoirs')}
-          libelle={pour ? `${lot.length} devoirs pour ${jourLong(pour)}` : 'Aucun devoir à venir'}>
-          <Texte variante="petit" attenue>
-            {pour ? (pour === ajouterJours(aujourdhui, 1) ? 'Pour demain' : `Pour ${jourLong(pour)}`) : 'Devoirs'}
-          </Texte>
-          {pour ? (
-            <>
-              <Texte style={{ fontFamily: police.gras, fontSize: 30, lineHeight: 34, color: c.texte, fontVariant: ['tabular-nums'] }}>{lot.length}</Texte>
-              <Texte variante="petit" style={{ color: lot.some((d) => d.interrogation) ? c.negatif : c.attenue }}>
-                {lot.some((d) => d.interrogation) ? `dont ${lot.filter((d) => d.interrogation).length} interro` : lot.length > 1 ? 'devoirs' : 'devoir'}
-              </Texte>
-            </>
-          ) : (
-            <Texte variante="liste" attenue>
-              Rien à faire.
+          <Tuile
+            rang={3}
+            fond={c.surface}
+            bord={c.bord}
+            onPress={() => router.navigate('/devoirs')}
+            libelle={pour ? `${lot.length} devoirs pour ${jourLong(pour)}` : 'Aucun devoir à venir'}>
+            <Texte variante="petit" attenue>
+              {pour ? (pour === ajouterJours(aujourdhui, 1) ? 'Pour demain' : `Pour ${jourLong(pour)}`) : 'Devoirs'}
             </Texte>
-          )}
-        </Tuile>
+            {pour ? (
+              <>
+                <Texte style={{ fontFamily: police.gras, fontSize: 30, lineHeight: 34, color: c.texte, fontVariant: ['tabular-nums'] }}>{lot.length}</Texte>
+                <Texte variante="petit" style={{ color: lot.some((d) => d.interrogation) ? c.negatif : c.attenue }}>
+                  {lot.some((d) => d.interrogation) ? `dont ${lot.filter((d) => d.interrogation).length} interro` : lot.length > 1 ? 'devoirs' : 'devoir'}
+                </Texte>
+              </>
+            ) : (
+              <Texte variante="liste" attenue>
+                Rien à faire.
+              </Texte>
+            )}
+          </Tuile>
+        </View>
 
         <Tuile rang={4} large fond={c.surface} bord={c.bord} onPress={() => router.navigate('/agenda')} libelle={`Ta journée : ${duJour.length} cours`}>
           <Texte variante="section">Ta journée</Texte>
@@ -330,56 +313,12 @@ export default function Accueil() {
             <Pastille texte="Vie scolaire" fond={aJustifier.length ? c.surface : undefined} encre={aJustifier.length ? c.negatif : undefined} />
           </View>
         </Tuile>
-
-        <Tuile
-          rang={8}
-          fond={c.surface}
-          bord={c.bord}
-          onPress={() => router.push('/messages')}
-          libelle={nonLus.length ? `Messages : ${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''}` : 'Messages : tout est lu'}>
-          <IconeEnveloppe />
-          <Texte variante="liste" moyen style={{ marginTop: espace.s }}>
-            Messages
-          </Texte>
-          <Texte variante="petit" numberOfLines={2} style={{ color: nonLus.length ? c.negatif : c.attenue }}>
-            {nonLus.length ? `${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''} · ${nonLus[0]!.de}` : 'Tout est lu'}
-          </Texte>
-        </Tuile>
-        <Tuile rang={9} fond={c.surface} bord={c.bord} onPress={() => router.push('/documents')} libelle="Documents : bulletins, certificats">
-          <IconeDocument />
-          <Texte variante="liste" moyen style={{ marginTop: espace.s }}>
-            Documents
-          </Texte>
-          <Texte variante="petit" attenue numberOfLines={2}>
-            Bulletins, certificats
-          </Texte>
-        </Tuile>
       </View>
 
       <Texte variante="petit" attenue>
         Coef, client non officiel, non affilié à EcoleDirecte.
       </Texte>
     </Ecran>
-  );
-}
-
-function IconeEnveloppe() {
-  const c = useCouleurs();
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <Rect x={3} y={5} width={18} height={14} rx={2.5} />
-      <Path d="M4 7l8 6 8-6" />
-    </Svg>
-  );
-}
-
-function IconeDocument() {
-  const c = useCouleurs();
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-      <Path d="M14 3v5h5M9 13h6M9 17h4" />
-    </Svg>
   );
 }
 
@@ -420,14 +359,14 @@ function Tuile({
 }
 
 const styles = StyleSheet.create({
-  bento: { flexDirection: 'row', flexWrap: 'wrap', gap: espace.m },
-  large: { width: '100%' },
-  demi: { flexBasis: '45%', flexGrow: 1 },
+  bento: { gap: espace.m },
+  paire: { flexDirection: 'row', gap: espace.m },
+  large: { alignSelf: 'stretch' },
+  demi: { flex: 1 },
   tuile: { borderRadius: rayon.phare, borderWidth: 1, padding: espace.l, gap: espace.xs },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.m },
   ligne: { flexDirection: 'row', alignItems: 'center', gap: espace.s, minHeight: 40 },
   heure: { width: 52, fontVariant: ['tabular-nums'] },
   pastilleFamille: { width: 8, height: 8, borderRadius: 4 },
-  badge: { position: 'absolute', top: 8, right: 8, width: 10, height: 10, borderRadius: 5, borderWidth: 2 },
   lien: { minHeight: 44, justifyContent: 'center', paddingHorizontal: espace.xs },
 });

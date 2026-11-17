@@ -37,3 +37,15 @@ test('une requête en échec ne bloque pas les suivantes', async () => {
   await expect(requete(u, {})).rejects.toThrow('EcoleDirecte est injoignable.');
   await expect(requete(u, {})).resolves.toBeInstanceOf(Response);
 });
+
+test('les requêtes en attente partent de la plus récente à la plus ancienne', async () => {
+  const ordre: string[] = [];
+  jest.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+    ordre.push(String(url).split('/').pop()!);
+    await new Promise((r) => setTimeout(r, 1));
+    return new Response('{}');
+  });
+  const u = (n: string) => requete(`https://api.ecoledirecte.com/v3/${n}`, {});
+  await Promise.all([u('a.awp'), u('b.awp'), u('c.awp'), u('d.awp')]);
+  expect(ordre).toEqual(['a.awp', 'd.awp', 'c.awp', 'b.awp']);
+});

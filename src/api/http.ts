@@ -28,23 +28,37 @@ export function verifierHote(url: string): URL {
   return u;
 }
 
-// Une requête à la fois : pas de rafales vers ED.
-let file: Promise<unknown> = Promise.resolve();
+// Une requête à la fois : pas de rafales vers ED. Celles qui attendent partent de la plus récente à la plus
+// ancienne : l'écran qu'on vient d'ouvrir passe devant le chargement de fond de l'Accueil.
+const enAttente: (() => void)[] = [];
+let occupe = false;
+
+function suivante() {
+  const t = enAttente.pop();
+  if (t) t();
+  else occupe = false;
+}
 
 export function requete(url: string, init: RequestInit): Promise<Response> {
   const cible = verifierHote(url);
-  const envoi = file.then(async () => {
-    const abandon = new AbortController();
-    const minuteur = setTimeout(() => abandon.abort(), DELAI_MAX_MS);
-    try {
-      return await fetch(cible.toString(), { ...init, signal: abandon.signal });
-    } catch {
-      // Message fixe : l'erreur d'origine peut contenir l'URL ou le corps.
-      throw new ErreurReseau('EcoleDirecte est injoignable.');
-    } finally {
-      clearTimeout(minuteur);
+  return new Promise<Response>((resoudre, rejeter) => {
+    const lancer = async () => {
+      const abandon = new AbortController();
+      const minuteur = setTimeout(() => abandon.abort(), DELAI_MAX_MS);
+      try {
+        resoudre(await fetch(cible.toString(), { ...init, signal: abandon.signal }));
+      } catch {
+        // Message fixe : l'erreur d'origine peut contenir l'URL ou le corps.
+        rejeter(new ErreurReseau('EcoleDirecte est injoignable.'));
+      } finally {
+        clearTimeout(minuteur);
+        suivante();
+      }
+    };
+    if (occupe) enAttente.push(lancer);
+    else {
+      occupe = true;
+      void lancer();
     }
   });
-  file = envoi.catch(() => undefined);
-  return envoi;
 }
