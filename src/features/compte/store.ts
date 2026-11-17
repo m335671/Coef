@@ -9,6 +9,7 @@ import { comptesEnregistres, lireAcces, oublierCompte, sauverAcces, toutEffacerS
 import { activerSynchroAuto, desactiverSynchroAuto } from '@/sync/tache';
 
 import { demanderAutorisation } from '../../../modules/notifications-locales';
+import { effacerFichiers } from '../vie/fichiers';
 
 type EtatCompte = {
   client?: ClientED;
@@ -69,6 +70,7 @@ export const useCompte = create<EtatCompte>((set, get) => ({
     const id = get().idCompte;
     if (id) await oublierCompte(id);
     if ((await comptesEnregistres()).length === 0) await desactiverSynchroAuto();
+    effacerFichiers();
     set({ client: undefined, idCompte: undefined, profils: [] });
   },
 
@@ -76,6 +78,7 @@ export const useCompte = create<EtatCompte>((set, get) => ({
     await desactiverSynchroAuto();
     await effacerBase();
     await toutEffacerSecrets();
+    effacerFichiers();
     set({ client: undefined, idCompte: undefined, profils: [] });
   },
 }));

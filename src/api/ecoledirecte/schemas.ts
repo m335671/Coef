@@ -166,3 +166,29 @@ export const vieScolaire = z.object({
   sanctionsEncouragements: z.array(evenementED).nullish(),
   dispenses: z.array(evenementED).nullish(),
 });
+
+// --- Étape 7 : messagerie et documents (formats supposés, voir docs/API-ED.md) ---
+
+const fichierED = z.object({ id: idED, libelle: z.string().nullish(), type: z.string().nullish(), date: z.string().nullish() });
+const expediteurED = z
+  .object({ name: z.string().nullish(), nom: z.string().nullish(), prenom: z.string().nullish(), civilite: z.string().nullish() })
+  .nullish();
+
+export const messageED = z.object({
+  id: idED,
+  subject: z.string().nullish(),
+  date: z.string().nullish(),
+  read: z.boolean().nullish(),
+  from: expediteurED,
+  files: z.array(fichierED).nullish(),
+  /** HTML en base64, seulement dans le détail d'un message. */
+  content: z.string().nullish(),
+});
+
+export const messagesRecus = z.object({
+  messages: z.object({ received: z.array(messageED).nullish() }).passthrough(),
+});
+
+/** Documents de l'élève : une liste par catégorie (notes, viescolaire, administratifs…). */
+export const documentsED = z.record(z.string(), z.unknown());
+export const documentED = fichierED.extend({ idEleve: idED.nullish() });

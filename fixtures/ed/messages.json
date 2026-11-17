@@ -1,0 +1,68 @@
+{
+ "code": 200,
+ "token": "jeton-fictif",
+ "host": "HTTP000",
+ "data": {
+  "classeurs": [],
+  "messages": {
+   "received": [
+    {
+     "id": 701,
+     "mtype": "received",
+     "read": false,
+     "subject": "Sortie au musée des sciences",
+     "date": "2026-11-16 18:02:11",
+     "from": {
+      "name": "Mme Lambert",
+      "nom": "LAMBERT",
+      "prenom": "Claire",
+      "civilite": "Mme",
+      "role": "P"
+     },
+     "files": [
+      {
+       "id": 9001,
+       "libelle": "autorisation-sortie.pdf",
+       "date": "2026-11-16",
+       "type": "PIECE_JOINTE"
+      }
+     ]
+    },
+    {
+     "id": 702,
+     "mtype": "received",
+     "read": true,
+     "subject": "Rattrapage du DS de mathématiques",
+     "date": "2026-11-12 12:40:00",
+     "from": {
+      "name": "",
+      "nom": "MARTIN",
+      "prenom": "Paul",
+      "civilite": "M.",
+      "role": "P"
+     },
+     "files": []
+    },
+    {
+     "id": 703,
+     "mtype": "received",
+     "read": true,
+     "subject": "Réunion parents-professeurs",
+     "date": "2026-11-04 08:15:30",
+     "from": {
+      "name": "Vie scolaire",
+      "role": "A"
+     },
+     "files": []
+    }
+   ],
+   "sent": [],
+   "draft": [],
+   "archived": []
+  },
+  "pagination": {
+   "messagesRecusCount": 3,
+   "messagesRecusNotReadCount": 1
+  }
+ }
+}

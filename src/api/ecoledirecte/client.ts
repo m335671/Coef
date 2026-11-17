@@ -1,22 +1,25 @@
 // Client EcoleDirecte, parcours « application mobile » (voir docs/API-ED.md pour chaque hypothèse).
 import type { z } from 'zod';
 
-import type { Cours, Devoir, DonneesNotes, EvenementVieScolaire } from '@/domain/types';
+import type { Cours, Devoir, DocumentEleve, DonneesNotes, EvenementVieScolaire, Fichier, Message } from '@/domain/types';
 
 import { ErreurReseau, requete } from '../http';
 import { decoderBase64, encoderBase64 } from './base64';
 import { CAPTURE, capturer } from './capture';
 import { ErreurED } from './erreurs';
-import { versCours, versDevoirs, versDonneesNotes, versVieScolaire } from './mapping';
+import { anneeScolaire, versCours, versDevoirs, versDocuments, versDonneesNotes, versMessage, versMessages, versVieScolaire } from './mapping';
 import {
   cahierDuJour,
   cleAppareil,
   type CompteED,
   devoirsAFaire,
+  documentsED,
   donneesConnexion,
   donneesNotes,
   emploiDuTemps,
   enveloppe,
+  messageED,
+  messagesRecus,
   questionQCM,
   vieScolaire,
 } from './schemas';
@@ -62,7 +65,7 @@ async function preparerGTK(): Promise<void> {
 }
 
 async function appel(chemin: string, verbe: string | undefined, data: object, entetes: Record<string, string>): Promise<Reponse> {
-  const url = `${API}${chemin}?${verbe ? `verbe=${verbe}&` : ''}v=${VERSION_API}`;
+  const url = `${API}${chemin}${chemin.includes('?') ? '&' : '?'}${verbe ? `verbe=${verbe}&` : ''}v=${VERSION_API}`;
   let rep: Response;
   try {
     rep = await requete(url, {
@@ -247,6 +250,70 @@ export class ClientED {
    */
   async marquerDevoirs(eleveId: string, faits: string[], nonFaits: string[] = []): Promise<void> {
     await this.post(`/Eleves/${eleveId}/cahierdetexte.awp`, { idDevoirsEffectues: faits.map(Number), idDevoirsNonEffectues: nonFaits.map(Number) }, 'put');
+  }
+
+  /**
+   * Messages reçus de l'année scolaire en cours (100 au plus). Le contenu n'y est pas : il vient avec `message`.
+   * Chemin et paramètres supposés : docs/API-ED.md.
+   */
+  async messages(eleveId: string, aujourdhui = jourLocal()): Promise<Message[]> {
+    const annee = anneeScolaire(aujourdhui);
+    const q = 'force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0';
+    const data = await this.post(`/eleves/${eleveId}/messages.awp?${q}`, { anneeMessages: annee });
+    return versMessages(valider(messagesRecus, data, 'messages'), annee);
+  }
+
+  /** Un message avec son contenu. ED le marque comme lu, comme sur son site. */
+  async message(eleveId: string, id: string, aujourdhui = jourLocal()): Promise<Message> {
+    const annee = anneeScolaire(aujourdhui);
+    const data = await this.post(`/eleves/${eleveId}/messages/${encodeURIComponent(id)}.awp?mode=destinataire`, { anneeMessages: annee });
+    return versMessage(valider(messageED, data, 'messages/id'), annee);
+  }
+
+  /** Documents de l'élève (bulletins, certificats…). Pour un compte parent, filtrés sur l'enfant. */
+  async documents(eleveId?: string): Promise<DocumentEleve[]> {
+    const data = await this.post('/elevesDocuments.awp?archive=', {});
+    return versDocuments(valider(documentsED, data ?? {}, 'elevesDocuments'), eleveId);
+  }
+
+  /**
+   * Contenu d'un fichier (pièce jointe, document). ED répond par le fichier lui-même, ou par du JSON en cas
+   * d'erreur (session expirée : une reconnexion puis un nouvel essai). Paramètres supposés : docs/API-ED.md.
+   */
+  async telecharger(f: Fichier): Promise<{ octets: Uint8Array; typeMime?: string }> {
+    const q = new URLSearchParams({ verbe: 'get', fichierId: f.id, leTypeDeFichier: f.type, ...(f.annee ? { anneeMessages: f.annee } : {}), v: VERSION_API });
+    const essai = async () => {
+      let rep: Response;
+      try {
+        rep = await requete(`${API}/telechargement.awp?${q}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': USER_AGENT, ...enteteGTK, 'X-Token': this.session.token },
+          body: `data=${encodeURIComponent(JSON.stringify({ forceDownload: 0 }))}`,
+        });
+      } catch (e) {
+        if (e instanceof ErreurReseau) throw new ErreurED('reseau');
+        throw e;
+      }
+      if (rep.status >= 400) throw new ErreurED('serveur', `HTTP ${rep.status}`);
+      const typeMime = rep.headers.get('content-type')?.split(';')[0]?.trim();
+      if (typeMime === 'application/json') {
+        const env = enveloppe.safeParse(await rep.json().catch(() => undefined));
+        return { code: env.success ? env.data.code : -1 };
+      }
+      const octets = new Uint8Array(await rep.arrayBuffer());
+      if (octets.length === 0) throw new ErreurED('reponse-inattendue', 'telechargement : fichier vide');
+      return { code: CODE.OK, octets, typeMime };
+    };
+    let r = await essai();
+    if (r.code === CODE.JETON_INVALIDE || r.code === CODE.JETON_EXPIRE) {
+      await this.renouveler();
+      r = await essai();
+    }
+    if (!r.octets) {
+      verifierCode(r.code === CODE.OK ? -1 : r.code);
+      throw new ErreurED('reponse-inattendue', 'telechargement : pas de fichier');
+    }
+    return { octets: r.octets, typeMime: r.typeMime };
   }
 
   /** Absences, retards, sanctions, encouragements, dispenses. Chemin et format supposés : docs/API-ED.md. */

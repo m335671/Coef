@@ -1,0 +1,49 @@
+{
+ "code": 200,
+ "token": "jeton-fictif",
+ "host": "HTTP000",
+ "data": {
+  "notes": [
+   {
+    "id": 8101,
+    "libelle": "Bulletin du 3e trimestre 2025-2026",
+    "idEleve": 0,
+    "date": "2026-07-03",
+    "type": "Note",
+    "signatureDemandee": false
+   },
+   {
+    "id": 8102,
+    "libelle": "Relevé de notes de mi-trimestre",
+    "idEleve": 0,
+    "date": "2026-10-20",
+    "type": "Note"
+   }
+  ],
+  "viescolaire": [
+   {
+    "id": 8201,
+    "libelle": "Certificat de scolarité 2026-2027",
+    "idEleve": 0,
+    "date": "2026-09-08",
+    "type": "Doc"
+   }
+  ],
+  "administratifs": [
+   {
+    "id": 8301,
+    "libelle": "Règlement intérieur",
+    "idEleve": 0,
+    "date": "2026-09-01",
+    "type": "Doc"
+   }
+  ],
+  "inscriptions": [],
+  "entreprises": [],
+  "factures": [],
+  "listesPiecesAVerser": {
+   "personnes": [],
+   "pieces": []
+  }
+ }
+}

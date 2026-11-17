@@ -1,0 +1,28 @@
+{
+ "code": 200,
+ "token": "jeton-fictif",
+ "host": "HTTP000",
+ "data": {
+  "id": 701,
+  "mtype": "received",
+  "read": false,
+  "subject": "Sortie au musée des sciences",
+  "date": "2026-11-16 18:02:11",
+  "from": {
+   "name": "Mme Lambert",
+   "nom": "LAMBERT",
+   "prenom": "Claire",
+   "civilite": "Mme",
+   "role": "P"
+  },
+  "files": [
+   {
+    "id": 9001,
+    "libelle": "autorisation-sortie.pdf",
+    "date": "2026-11-16",
+    "type": "PIECE_JOINTE"
+   }
+  ],
+  "content": "PHA+Qm9uam91ciw8L3A+PHA+TGEgc29ydGllIGF1IG11c8OpZSBhdXJhIGxpZXUgbGUgPGI+amV1ZGkgMjYgbm92ZW1icmU8L2I+LjwvcD48dWw+PGxpPlJlbmRlei12b3VzIMOgIDggaCBkZXZhbnQgbGUgbHljw6llPC9saT48bGk+UHLDqXZvaXIgdW4gcGlxdWUtbmlxdWU8L2xpPjwvdWw+PHA+TWVyY2kgZGUgcmFwcG9ydGVyIGwmIzM5O2F1dG9yaXNhdGlvbiBzaWduw6llLjwvcD4="
+ }
+}

@@ -31,10 +31,16 @@ test('devoirs : par date, consigne décodée pour les jours chargés, base64 inv
   expect(d[0]!.contenu).toBeUndefined();
   expect(d[1]!.contenu).toBe("Exercices 12 à 15 page 84.\nRevoir la définition de la limite\nd'une suite.");
   expect(d[1]!.effectue).toBe(true);
-  expect(d[1]).toMatchObject({ prof: 'M. PROF A', seance: 'Limites de suites : théorème des gendarmes, exemples corrigés.', pieces: ['Fiche exercices limites.pdf'] });
+  expect(d[1]).toMatchObject({
+    prof: 'M. PROF A',
+    seance: 'Limites de suites : théorème des gendarmes, exemples corrigés.',
+    pieces: ['Fiche exercices limites.pdf'],
+  });
   expect(d[2]).toMatchObject({ prof: 'M. PROF C', seance: undefined, pieces: undefined });
   expect(d[2]!.contenu).toBe('• Lire le texte distribué\n• Préparer deux questions');
-  const casse = versDevoirs({ '2026-11-30': [{ idDevoir: 9, matiere: 'M' }] }, [{ date: '2026-11-30', matieres: [{ aFaire: { idDevoir: 9, contenu: '%%%' } }] }]);
+  const casse = versDevoirs({ '2026-11-30': [{ idDevoir: 9, matiere: 'M' }] }, [
+    { date: '2026-11-30', matieres: [{ aFaire: { idDevoir: 9, contenu: '%%%' } }] },
+  ]);
   expect(casse[0]!.contenu).toBeUndefined();
 });
 

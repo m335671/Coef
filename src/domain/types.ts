@@ -124,3 +124,29 @@ export type Profil = {
   nom: string;
   eleves: Eleve[];
 };
+
+/** Fichier à télécharger chez ED : pièce jointe d'un message ou document de l'élève. */
+export type Fichier = {
+  id: string;
+  libelle: string;
+  /** Valeur de `leTypeDeFichier` pour le téléchargement (PIECE_JOINTE, Note, Doc…). */
+  type: string;
+  date?: string;
+  /** Année scolaire de la messagerie (pièces jointes seulement). */
+  annee?: string;
+};
+
+/** Un message reçu. `contenu` n'est là qu'une fois le message ouvert (ED le marque alors comme lu). */
+export type Message = {
+  id: string;
+  sujet: string;
+  de: string;
+  /** AAAA-MM-JJ HH:MM */
+  date: string;
+  lu: boolean;
+  pieces: Fichier[];
+  contenu?: string;
+};
+
+/** Un document de l'élève (bulletin, certificat…), rangé par catégorie d'ED. */
+export type DocumentEleve = Fichier & { categorie: string };

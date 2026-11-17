@@ -102,7 +102,15 @@ describe('réponses inattendues : erreur claire, jamais de moyenne fausse', () =
 
   test('nombres déjà numériques et champs facultatifs absents acceptés', () => {
     const n = { id: 'x', codePeriode: 'A001', codeMatiere: 'M', date: '2026-10-01', coef: 2, noteSur: 20, valeur: '12' };
-    const periode = { codePeriode: 'A001', periode: 'T1', dateDebut: '2026-09-01', dateFin: '2026-11-30', annuel: null, cloture: null, ensembleMatieres: { dateCalcul: null, disciplines: [{ codeMatiere: 'M', discipline: 'M', coef: '2,5', sousMatiere: true, codeSousMatiere: '' }] } };
+    const periode = {
+      codePeriode: 'A001',
+      periode: 'T1',
+      dateDebut: '2026-09-01',
+      dateFin: '2026-11-30',
+      annuel: null,
+      cloture: null,
+      ensembleMatieres: { dateCalcul: null, disciplines: [{ codeMatiere: 'M', discipline: 'M', coef: '2,5', sousMatiere: true, codeSousMatiere: '' }] },
+    };
     const d = versDonneesNotes(donneesNotes.parse({ periodes: [periode], notes: [n] }));
     expect(d.periodes[0]).toMatchObject({ type: 'trimestre', cloture: false, dateCalcul: undefined, officielleGenerale: undefined });
     expect(d.periodes[0]!.matieres[0]).toMatchObject({ coef: 2.5, sousCode: undefined, officielle: undefined });

@@ -7,7 +7,7 @@
 - [x] **3. Moteur de moyenne** (validée le 16/11/2026 : calcul identique à ED sur téléphone), calibration et simulateur, entièrement testés.
   Fin : les fixtures dorées passent.
 - [x] **4. Synchro et stockage** (validée le 17/11/2026 sur Android : base chiffrée, synchro, notification) — stockage chiffré ; synchro incrémentale ; notifications locales des nouvelles notes.
-- [ ] **5. Écrans** notes, moyennes et simulateur, finition du design (fait, en attente de validation). Inclut le réglage de confidentialité des notifications (écran verrouillé : rien / « Nouvelle note » / détail ; défaut : rien).
-- [ ] **6. Autres données** — emploi du temps, devoirs, vie scolaire. (Fait sur formats supposés, en attente de capture réelle et de validation.)
-- [ ] **7. Messagerie et documents.**
+- [x] **5. Écrans** (validée le 17/11/2026 sur Android) notes, moyennes et simulateur, finition du design. Inclut le réglage de confidentialité des notifications (écran verrouillé : rien / « Nouvelle note » / détail ; défaut : rien).
+- [x] **6. Autres données** (validée le 17/11/2026 sur Android, formats confirmés par une capture réelle) — emploi du temps, devoirs (coche « fait » comprise), vie scolaire.
+- [ ] **7. Messagerie et documents.** (Fait sur formats supposés, en attente d'essai réel.) Lecture seule : messages reçus, pièces jointes, documents de l'élève ; accès depuis l'Accueil, sans onglet de plus.
 - [ ] **8. Stores** — icône et captures ; déclarations de confidentialité ; profils EAS.

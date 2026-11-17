@@ -1,9 +1,31 @@
 // Seul module qui traduit le format ED vers le domaine.
-import type { Cours, Devoir, DonneesNotes, EvenementVieScolaire, Periode, Profil, TypeEvenement, TypePeriode } from '@/domain/types';
+import type {
+  Cours,
+  Devoir,
+  DocumentEleve,
+  DonneesNotes,
+  EvenementVieScolaire,
+  Fichier,
+  Message,
+  Periode,
+  Profil,
+  TypeEvenement,
+  TypePeriode,
+} from '@/domain/types';
 
 import { decoderBase64 } from './base64';
 import { ErreurED } from './erreurs';
-import type { cahierDuJour, CompteED, devoirsAFaire, DonneesNotesED, emploiDuTemps, vieScolaire } from './schemas';
+import {
+  documentED,
+  type cahierDuJour,
+  type CompteED,
+  type devoirsAFaire,
+  type DonneesNotesED,
+  type emploiDuTemps,
+  type messageED,
+  type messagesRecus,
+  type vieScolaire,
+} from './schemas';
 import type { z } from 'zod';
 
 export function versProfil(c: CompteED): Profil {
@@ -50,27 +72,25 @@ function typePeriode(p: DonneesNotesED['periodes'][number]): TypePeriode {
 }
 
 export function versDonneesNotes(d: DonneesNotesED): DonneesNotes {
-  const periodes = d.periodes.map(
-    (p): Periode => ({
-      code: p.codePeriode,
-      libelle: p.periode,
-      type: typePeriode(p),
-      debut: p.dateDebut,
-      fin: p.dateFin,
-      cloture: p.cloture ?? false,
-      dateCalcul: p.ensembleMatieres.dateCalcul || undefined,
-      officielleGenerale: nombre(p.ensembleMatieres.moyenneGenerale, 'moyenneGenerale'),
-      classeGenerale: stats(p.ensembleMatieres.moyenneClasse, p.ensembleMatieres.moyenneMin, p.ensembleMatieres.moyenneMax),
-      matieres: p.ensembleMatieres.disciplines.map((m) => ({
-        code: m.codeMatiere,
-        sousCode: (m.sousMatiere && m.codeSousMatiere) || undefined,
-        libelle: m.discipline,
-        coef: requis(m.coef, 'coef de matière'),
-        officielle: nombre(m.moyenne, 'moyenne'),
-        classe: stats(m.moyenneClasse, m.moyenneMin, m.moyenneMax),
-      })),
-    }),
-  );
+  const periodes = d.periodes.map((p): Periode => ({
+    code: p.codePeriode,
+    libelle: p.periode,
+    type: typePeriode(p),
+    debut: p.dateDebut,
+    fin: p.dateFin,
+    cloture: p.cloture ?? false,
+    dateCalcul: p.ensembleMatieres.dateCalcul || undefined,
+    officielleGenerale: nombre(p.ensembleMatieres.moyenneGenerale, 'moyenneGenerale'),
+    classeGenerale: stats(p.ensembleMatieres.moyenneClasse, p.ensembleMatieres.moyenneMin, p.ensembleMatieres.moyenneMax),
+    matieres: p.ensembleMatieres.disciplines.map((m) => ({
+      code: m.codeMatiere,
+      sousCode: (m.sousMatiere && m.codeSousMatiere) || undefined,
+      libelle: m.discipline,
+      coef: requis(m.coef, 'coef de matière'),
+      officielle: nombre(m.moyenne, 'moyenne'),
+      classe: stats(m.moyenneClasse, m.moyenneMin, m.moyenneMax),
+    })),
+  }));
   const notes = d.notes.map((n) => ({
     id: String(n.id),
     periodeCode: n.codePeriode,
@@ -91,7 +111,23 @@ export function versDonneesNotes(d: DonneesNotesED): DonneesNotes {
 
 // --- Étape 6 (formats supposés, voir docs/API-ED.md) ---
 
-const ENTITES: Record<string, string> = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", eacute: 'é', egrave: 'è', agrave: 'à', ccedil: 'ç', ecirc: 'ê', ocirc: 'ô', rsquo: '’', laquo: '«', raquo: '»' };
+const ENTITES: Record<string, string> = {
+  nbsp: ' ',
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  eacute: 'é',
+  egrave: 'è',
+  agrave: 'à',
+  ccedil: 'ç',
+  ecirc: 'ê',
+  ocirc: 'ô',
+  rsquo: '’',
+  laquo: '«',
+  raquo: '»',
+};
 
 /** HTML d'ED (consigne de devoir) → texte : sauts de ligne gardés, balises retirées, entités décodées. */
 export function htmlEnTexte(html: string): string {
@@ -183,4 +219,66 @@ export function versVieScolaire(d: z.infer<typeof vieScolaire>): EvenementVieSco
       commentaire: e.commentaire || undefined,
     }))
     .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+// --- Étape 7 : messagerie et documents ---
+
+/** Année scolaire de la messagerie (« 2026-2027 ») : elle commence en août. */
+export function anneeScolaire(jour: string): string {
+  const a = Number(jour.slice(0, 4));
+  return Number(jour.slice(5, 7)) >= 8 ? `${a}-${a + 1}` : `${a - 1}-${a}`;
+}
+
+function expediteur(f: z.infer<typeof messageED>['from']): string {
+  if (!f) return 'Expéditeur inconnu';
+  const nom = [f.civilite, f.prenom, f.nom].filter(Boolean).join(' ').trim();
+  return f.name?.trim() || nom || 'Expéditeur inconnu';
+}
+
+export function versMessage(m: z.infer<typeof messageED>, annee: string): Message {
+  return {
+    id: String(m.id),
+    sujet: m.subject?.trim() || '(sans objet)',
+    de: expediteur(m.from),
+    date: (m.date ?? '').slice(0, 16),
+    lu: m.read ?? true,
+    pieces: (m.files ?? []).map((f) => ({
+      id: String(f.id),
+      libelle: f.libelle || 'Pièce jointe',
+      type: f.type || 'PIECE_JOINTE',
+      date: f.date || undefined,
+      annee,
+    })),
+    contenu: contenuED(m.content),
+  };
+}
+
+export function versMessages(d: z.infer<typeof messagesRecus>, annee: string): Message[] {
+  return (d.messages.received ?? []).map((m) => versMessage(m, annee)).sort((a, b) => b.date.localeCompare(a.date));
+}
+
+const CATEGORIES: Record<string, string> = {
+  notes: 'Notes et bulletins',
+  viescolaire: 'Vie scolaire',
+  administratifs: 'Administratif',
+  inscriptions: 'Inscriptions',
+  entreprises: 'Stages et entreprises',
+  factures: 'Factures',
+};
+
+/** Documents rangés par catégorie ; les entrées illisibles sont ignorées, une catégorie inconnue garde son nom. */
+export function versDocuments(d: Record<string, unknown>, eleveId?: string): DocumentEleve[] {
+  const sortie: DocumentEleve[] = [];
+  for (const [cle, liste] of Object.entries(d)) {
+    if (!Array.isArray(liste)) continue;
+    for (const brut of liste) {
+      const r = documentED.safeParse(brut);
+      if (!r.success) continue;
+      const x = r.data;
+      if (eleveId && x.idEleve !== undefined && x.idEleve !== null && String(x.idEleve) !== eleveId && String(x.idEleve) !== '0') continue;
+      const f: Fichier = { id: String(x.id), libelle: x.libelle || 'Document', type: x.type || 'Doc', date: x.date?.slice(0, 10) || undefined };
+      sortie.push({ ...f, categorie: CATEGORIES[cle] ?? cle });
+    }
+  }
+  return sortie.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
 }

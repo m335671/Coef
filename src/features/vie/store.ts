@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 
 import type { ClientED } from '@/api/ecoledirecte/client';
-import type { Devoir } from '@/domain/types';
+import type { Devoir, Message } from '@/domain/types';
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
 import { ecrireCache, lireCache } from '@/storage/base';
@@ -70,4 +70,15 @@ export async function marquerDevoir(eleveId: string, id: string, fait: boolean):
     poser(avant);
     throw erreur;
   }
+}
+
+/** Message ouvert : ED l'a marqué comme lu, la liste le montre aussitôt (et son cache aussi). */
+export function marquerLu(eleveId: string, id: string): void {
+  const cle = `messages:${eleveId}`;
+  const etat = useDonneesED.getState().donnees[cle];
+  const liste = etat?.valeur as Message[] | undefined;
+  if (!liste?.some((m) => m.id === id && !m.lu)) return;
+  const valeur = liste.map((m) => (m.id === id ? { ...m, lu: true } : m));
+  useDonneesED.setState((s) => ({ donnees: { ...s.donnees, [cle]: { chargement: false, ...s.donnees[cle], valeur } } }));
+  if (!MODE_DEMO) void ecrireCache(cle, valeur, etat?.maj ?? new Date().toISOString()).catch(() => undefined);
 }

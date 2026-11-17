@@ -229,6 +229,16 @@ describe('session', () => {
     expect(d.map((x) => x.id)).toEqual(['1', '2']);
   });
 
+  test('messages : paramètres dans le chemin, puis verbe et version ; année scolaire envoyée', async () => {
+    const s = fauxServeur().repond({ code: 200, data: { messages: { received: [] } } });
+    await new ClientED({ ...session(), token: 'jeton-1' }, jest.fn()).messages('4242', '2026-11-17');
+    const u = s.envois[0]!.url;
+    expect(u.pathname).toBe('/v3/eleves/4242/messages.awp');
+    expect(u.searchParams.get('typeRecuperation')).toBe('received');
+    expect(u.searchParams.get('verbe')).toBe('get');
+    expect(s.envois[0]!.data).toEqual({ anneeMessages: '2026-2027' });
+  });
+
   test('reconnexion directe', async () => {
     fauxServeur().repond(loginRenouvele);
     expect((await reconnexion(session().acces)).acces.accessToken).toBe('acces-2');

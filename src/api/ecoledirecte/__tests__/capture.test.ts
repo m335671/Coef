@@ -18,7 +18,10 @@ test('aucune valeur identifiante ne survit, la forme est gardée', () => {
 });
 
 test('les notes restent intactes, les professeurs et e-mails non', () => {
-  const a = anonymiser({ notes: [{ valeur: '12,5', noteSur: '20', coef: '2', nombreNotes: 3, commentaire: 'voir a.b@c.fr' }], professeurs: [{ nom: 'X', id: 4 }] });
+  const a = anonymiser({
+    notes: [{ valeur: '12,5', noteSur: '20', coef: '2', nombreNotes: 3, commentaire: 'voir a.b@c.fr' }],
+    professeurs: [{ nom: 'X', id: 4 }],
+  });
   expect(a).toEqual({
     notes: [{ valeur: '12,5', noteSur: '20', coef: '2', nombreNotes: 3, commentaire: expect.not.stringContaining('@') }],
     professeurs: [{ nom: expect.not.stringMatching(/^X$/), id: expect.not.stringMatching(/^4$/) }],
@@ -26,7 +29,10 @@ test('les notes restent intactes, les professeurs et e-mails non', () => {
 });
 
 test('le QCM reste du base64 valide, sans les vraies propositions', () => {
-  const a = anonymiser({ question: btoa('Quelle est votre date de naissance ?'), propositions: [btoa('01/02/2010')] }) as { question: string; propositions: string[] };
+  const a = anonymiser({ question: btoa('Quelle est votre date de naissance ?'), propositions: [btoa('01/02/2010')] }) as {
+    question: string;
+    propositions: string[];
+  };
   expect(decoderBase64(a.question)).toBe('question-0');
   expect(decoderBase64(a.propositions[0]!)).toBe('propositions-1');
 });
