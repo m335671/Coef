@@ -3,17 +3,20 @@
 import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Path, Rect } from 'react-native-svg';
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
-import { messagesDemo, vieScolaireDemo } from '@/demo/vie';
-import type { EvenementVieScolaire, Message } from '@/domain/types';
+import { documentsDemo, messagesDemo, vieScolaireDemo } from '@/demo/vie';
+import type { DocumentEleve, EvenementVieScolaire, Message } from '@/domain/types';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { aJustifier, dansGroupe, type Groupe, GROUPES } from '@/features/vie/groupes';
+import { LigneFichier } from '@/features/vie/LigneFichier';
+import { LigneMessage } from '@/features/vie/LigneMessage';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
-import { Bouton, BoutonRond, Ecran, EnTete, Entree, IconeReglages, Segments, Texte } from '@/ui/composants';
+import { Bouton, BoutonRond, Ecran, EnTete, Entree, IconeReglages, Panneau, Presse, Section, Segments, Texte } from '@/ui/composants';
 import { espace, police, useCouleurs } from '@/ui/theme';
 import { Tuile } from '@/ui/Tuile';
+
+const DOCS_MAX = 5;
 
 export default function VieScolaire() {
   const c = useCouleurs();
@@ -22,14 +25,20 @@ export default function VieScolaire() {
   const cle = `vie:${eleve?.id}`;
   const cleMessages = `messages:${eleve?.id}`;
   const etat = useDonnee<EvenementVieScolaire[]>(cle);
-  const nonLus = (useDonnee<Message[]>(cleMessages)?.valeur ?? []).filter((m) => !m.lu);
+  const cleDocs = `documents:${eleve?.id}`;
+  const messages = useDonnee<Message[]>(cleMessages)?.valeur;
+  const nonLus = (messages ?? []).filter((m) => !m.lu);
+  // Les non lus d'abord (jusqu'à 3), complétés par les plus récents.
+  const recents = [...nonLus, ...(messages ?? []).filter((m) => m.lu)].slice(0, Math.max(3, Math.min(nonLus.length, 5)));
+  const docs = useDonnee<DocumentEleve[]>(cleDocs)?.valeur;
   const charger = useDonneesED((s) => s.charger);
 
   useEffect(() => {
     if (!eleve) return;
     void charger(cle, (cl) => cl.vieScolaire(eleve.id), vieScolaireDemo);
     void charger(cleMessages, (cl) => cl.messages(eleve.id), messagesDemo);
-  }, [cle, cleMessages, eleve, charger]);
+    void charger(cleDocs, (cl) => cl.documents(eleve.id), documentsDemo);
+  }, [cle, cleMessages, cleDocs, eleve, charger]);
 
   const evts = etat?.valeur ?? [];
   const pret = !!etat?.valeur || etat?.chargement === false;
@@ -95,33 +104,47 @@ export default function VieScolaire() {
             <View style={{ flex: 1 }} />
           </View>
         ) : null}
-
-        <View style={styles.paire}>
-          <Tuile
-            rang={6}
-            fond={c.surface}
-            bord={c.bord}
-            onPress={() => router.push('/messages')}
-            libelle={nonLus.length ? `Messages : ${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''}` : 'Messages : tout est lu'}>
-            <IconeEnveloppe />
-            <Texte variante="liste" moyen style={{ marginTop: espace.s }}>
-              Messages
-            </Texte>
-            <Texte variante="petit" numberOfLines={2} style={{ color: nonLus.length ? c.negatif : c.attenue }}>
-              {nonLus.length ? `${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''} · ${nonLus[0]!.de}` : 'Tout est lu'}
-            </Texte>
-          </Tuile>
-          <Tuile rang={7} fond={c.surface} bord={c.bord} onPress={() => router.push('/documents')} libelle="Documents : bulletins, certificats">
-            <IconeDocument />
-            <Texte variante="liste" moyen style={{ marginTop: espace.s }}>
-              Documents
-            </Texte>
-            <Texte variante="petit" attenue numberOfLines={2}>
-              Bulletins, certificats
-            </Texte>
-          </Tuile>
-        </View>
       </View>
+
+      <Section
+        titre="Messages"
+        aide={!messages ? 'Chargement…' : nonLus.length ? `${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''}` : 'Tout est lu'}
+        rang={6}
+        action={messages?.length ? <LienToutVoir libelle={`Tous les messages (${messages.length})`} onPress={() => router.push('/messages')} /> : undefined}>
+        {messages?.length ? (
+          <Panneau>
+            {recents.map((m, i) => (
+              <LigneMessage key={m.id} m={m} eleve={eleve!.id} dernier={i === recents.length - 1} />
+            ))}
+          </Panneau>
+        ) : messages ? (
+          <Texte variante="liste" attenue>
+            Aucun message cette année.
+          </Texte>
+        ) : null}
+      </Section>
+
+      <Section
+        titre="Documents"
+        aide="Bulletins, certificats : touche pour ouvrir."
+        rang={7}
+        action={
+          docs && docs.length > DOCS_MAX ? (
+            <LienToutVoir libelle={`Tous les documents (${docs.length})`} onPress={() => router.push('/documents')} />
+          ) : undefined
+        }>
+        {docs?.length ? (
+          <Panneau>
+            {docs.slice(0, DOCS_MAX).map((d, i, l) => (
+              <LigneFichier key={`${d.type}-${d.id}`} f={d} dernier={i === l.length - 1} />
+            ))}
+          </Panneau>
+        ) : (
+          <Texte variante="liste" attenue>
+            {docs ? 'Aucun document pour l’instant.' : 'Chargement…'}
+          </Texte>
+        )}
+      </Section>
     </Ecran>
   );
 }
@@ -129,24 +152,16 @@ export default function VieScolaire() {
 const styles = StyleSheet.create({
   colonne: { gap: espace.m },
   paire: { flexDirection: 'row', gap: espace.m },
+  lien: { minHeight: 44, justifyContent: 'center', paddingHorizontal: espace.xs },
 });
 
-function IconeEnveloppe() {
+function LienToutVoir({ libelle, onPress }: { libelle: string; onPress: () => void }) {
   const c = useCouleurs();
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <Rect x={3} y={5} width={18} height={14} rx={2.5} />
-      <Path d="M4 7l8 6 8-6" />
-    </Svg>
-  );
-}
-
-function IconeDocument() {
-  const c = useCouleurs();
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-      <Path d="M14 3v5h5M9 13h6M9 17h4" />
-    </Svg>
+    <Presse onPress={onPress} libelleAccessible={libelle} style={styles.lien}>
+      <Texte variante="petit" style={{ color: c.accent, fontFamily: police.fort }}>
+        Tout voir
+      </Texte>
+    </Presse>
   );
 }
