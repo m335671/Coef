@@ -3,11 +3,11 @@ plugins {
   id 'expo-module-gradle-plugin'
 }
 
-group = 'app.edclone'
+group = 'app.coef'
 version = '0.1.0'
 
 android {
-  namespace "app.edclone.notifications"
+  namespace "app.coef.notifications"
   defaultConfig {
     versionCode 1
     versionName "0.1.0"

@@ -1,5 +1,5 @@
 {
   "platforms": ["apple", "android"],
   "apple": { "modules": ["NotificationsLocalesModule"] },
-  "android": { "modules": ["app.edclone.notifications.NotificationsLocalesModule"] }
+  "android": { "modules": ["app.coef.notifications.NotificationsLocalesModule"] }
 }

@@ -110,14 +110,14 @@ export default function Reglages() {
 
       <Section titre="Confidentialité">
         <Texte variante="liste">
-          Tes notes restent sur ce téléphone, dans une base chiffrée dont la clé ne le quitte jamais. ED-Clone ne parle qu’à EcoleDirecte :
+          Tes notes restent sur ce téléphone, dans une base chiffrée dont la clé ne le quitte jamais. Coef ne parle qu’à EcoleDirecte :
           aucun serveur à nous, aucune mesure d’audience, aucune publicité.
         </Texte>
       </Section>
 
       <Section titre="À propos">
         <Texte variante="liste">
-          ED-Clone est un client non officiel, non affilié à EcoleDirecte ni à Aplim. Les moyennes affichées sont prévues par l’app ;
+          Coef est un client non officiel, non affilié à EcoleDirecte ni à Aplim. Les moyennes affichées sont prévues par l’app ;
           seule EcoleDirecte fait foi.
         </Texte>
       </Section>

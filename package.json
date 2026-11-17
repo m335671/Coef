@@ -1,6 +1,7 @@
 {
-  "name": "ed-clone",
+  "name": "coef",
   "version": "1.0.0",
+  "license": "GPL-3.0-only",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/geist": "^0.4.2",

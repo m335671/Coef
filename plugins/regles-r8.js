@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const REGLES = `
-# ED-Clone : bases Room (WorkManager) créées par réflexion
+# Coef : bases Room (WorkManager) créées par réflexion
 -keep class * extends androidx.room.RoomDatabase { <init>(); }
 `;
 
@@ -16,7 +16,7 @@ module.exports = (config) =>
     (c) => {
       const fichier = path.join(c.modRequest.platformProjectRoot, 'app', 'proguard-rules.pro');
       const actuel = fs.readFileSync(fichier, 'utf8');
-      if (!actuel.includes('ED-Clone : bases Room')) fs.writeFileSync(fichier, actuel + REGLES);
+      if (!actuel.includes('Coef : bases Room')) fs.writeFileSync(fichier, actuel + REGLES);
       return c;
     },
   ]);

@@ -13,8 +13,8 @@ export function messageErreur(e: unknown, contexte: string): string {
 
 /** Essai seulement : écrit les captures anonymisées dans un fichier du cache de l'app et ouvre le partage. */
 export async function exporterCaptures(): Promise<void> {
-  const fichier = new File(Paths.cache, 'ed-clone-capture.json');
+  const fichier = new File(Paths.cache, 'coef-capture.json');
   fichier.create({ overwrite: true });
   await fichier.write(texteCaptures());
-  await shareAsync(fichier.uri, { mimeType: 'application/json', dialogTitle: 'Captures ED-Clone (anonymisées)' });
+  await shareAsync(fichier.uri, { mimeType: 'application/json', dialogTitle: 'Captures Coef (anonymisées)' });
 }

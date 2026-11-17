@@ -13,7 +13,7 @@ import { cahierDuJour, cleAppareil, type CompteED, devoirsAFaire, donneesConnexi
 export const API = 'https://api.ecoledirecte.com/v3';
 /** Paramètre v= : hypothèse, à corriger ici si ED renvoie le code 517. */
 export const VERSION_API = '8.0.0';
-// Même User-Agent que blocksdirecte (Papillon, en production) : « ED-Clone … » est peut-être refusé.
+// Même User-Agent que blocksdirecte (Papillon, en production) : un User-Agent à nous serait peut-être refusé.
 const USER_AGENT = `Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 EDMOBILE v${VERSION_API}`;
 
 const CODE = { OK: 200, VIDE: 210, QCM: 250, IDENTIFIANTS: 505, VERSION: 517, JETON_INVALIDE: 520, JETON_EXPIRE: 525 };

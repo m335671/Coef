@@ -64,7 +64,7 @@ export default function Connexion() {
         <EnTete titre="Question de sécurité" />
         <Texte>{qcm.question}</Texte>
         <Texte variante="liste" attenue>
-          EcoleDirecte la pose une fois par appareil. ED-Clone garde ensuite la clé de cet appareil.
+          EcoleDirecte la pose une fois par appareil. Coef garde ensuite la clé de cet appareil.
         </Texte>
         {message}
         <Panneau>
@@ -118,7 +118,7 @@ export default function Connexion() {
         <Bouton titre={occupe ? 'Connexion…' : 'Se connecter'} desactive={occupe || !identifiant || !motDePasse} onPress={() => seConnecter()} />
       </View>
       <Texte variante="petit" attenue>
-        Tes identifiants ne vont qu’à EcoleDirecte. ED-Clone n’a aucun serveur : tes notes restent sur ce téléphone, chiffrées. Client
+        Tes identifiants ne vont qu’à EcoleDirecte. Coef n’a aucun serveur : tes notes restent sur ce téléphone, chiffrées. Client
         non officiel, non affilié à EcoleDirecte.
       </Texte>
       {CAPTURE ? (

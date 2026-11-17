@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Petite icône des notifications (Android la veut blanche sur transparent) : le logo C² de assets/logo.svg. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="100" android:viewportHeight="100">
+  <group android:translateX="-5.7" android:translateY="4.2" android:scaleX="1.1" android:scaleY="1.1" android:pivotX="55.7" android:pivotY="45.8">
+    <path android:pathData="M59.4,37.6A24,24 0,1 0,59.4 74.4" android:strokeColor="#FFFFFFFF" android:strokeWidth="13" android:strokeLineCap="round" />
+    <group android:translateX="4" android:translateY="-3">
+      <path android:pathData="M67,25.5C67,20.5 70.5,17 75.5,17S84,20.5 84,24.5C84,28.5 81,31 77.5,34L67,42.5H85" android:strokeColor="#FFFFFFFF" android:strokeWidth="6.5" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    </group>
+  </group>
+</vector>

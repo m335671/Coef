@@ -215,7 +215,7 @@ export default function Notes() {
             )}
           </Section>
           <Texte variante="petit" attenue>
-            Moyennes prévues par ED-Clone à partir de tes notes. Client non officiel, non affilié à EcoleDirecte.
+            Moyennes prévues par Coef à partir de tes notes. Client non officiel, non affilié à EcoleDirecte.
           </Texte>
         </>
       ) : null}

@@ -5,7 +5,7 @@ import type { DonneesNotes } from '@/domain/types';
 
 import { cleBase } from './secrets';
 
-const NOM = 'ed-clone.db';
+const NOM = 'coef.db';
 
 /** Une entrée par version de schéma, jamais modifiée une fois publiée : on ajoute. */
 const MIGRATIONS = [

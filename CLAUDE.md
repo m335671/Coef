@@ -1,6 +1,6 @@
-# ED-Clone
+# Coef
 
-Client mobile alternatif (Android, iOS) pour EcoleDirecte. Non officiel, non affilié à EcoleDirecte ni à Aplim.
+Client mobile alternatif (Android, iOS) pour EcoleDirecte, nommé **Coef** (ex-ED-Clone). Non officiel, non affilié à EcoleDirecte ni à Aplim. Licence GPL-3.0 (`LICENSE`).
 
 ## Objectifs, par priorité
 1. **Prévoir la moyenne** sur l'appareil dès qu'une note arrive (matière, sous-matière, générale), au plus près du calcul officiel. Juste avant d'être beau.
@@ -25,7 +25,7 @@ Références : Papillon (parcours ED, pièges de l'API ; ne pas reprendre son ar
 
 ## Stack
 Expo SDK 58 (nouvelle architecture), TypeScript, expo-router (routes dans `app/`). Reanimated, Gesture Handler, FlashList. expo-sqlite (SQLCipher), expo-secure-store, expo-local-authentication, expo-notifications (locales), expo-background-task. Zustand au-dessus de la base (source de vérité). Jest (jest-expo) + fast-check.
-- Builds natifs : `npx eas-cli build` uniquement (pas de SDK Android ni Xcode ici). Profil `test` (APK interne) pour les essais sur téléphone.
+- Builds natifs : APK local (recette dans `docs/REPRISE.md`) pour les essais ; APK publiés par le workflow `release` (tag `vX.Y.Z`, signés avec la clé de Coef, suivis par Obtainium). Pas d'EAS.
 - Web (`npx expo start --web`) : aperçu visuel en mode démo seulement (l'API ED refuse le navigateur, CORS). Le web est toujours en démo (`src/demo`). Sur mobile : `EXPO_PUBLIC_DEMO=1`.
 - Toujours `npx expo install <paquet>` pour les modules Expo/RN. Ne jamais créer `ios/` ni `android/` à la main (CNG) : passer par `app.json` et des config plugins.
 - Une brique pose problème : expliquer et proposer une alternative avant de changer.

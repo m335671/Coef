@@ -1,23 +1,22 @@
 {
   "expo": {
-    "name": "ED-Clone",
-    "slug": "ed-clone",
-    "scheme": "edclone",
+    "name": "Coef",
+    "slug": "coef",
+    "scheme": "coef",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.edclone"
+      "bundleIdentifier": "app.coef"
     },
     "android": {
-      "package": "app.edclone",
+      "package": "app.coef",
       "allowBackup": false,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0f1f1d",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,

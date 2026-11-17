@@ -13,7 +13,7 @@ import { afficher, type EcranVerrouille } from '../../modules/notifications-loca
 import { annonce } from './annonce';
 import { synchroniser } from './synchro';
 
-export const TACHE = 'ed-clone.synchro-notes';
+export const TACHE = 'coef.synchro-notes';
 export const PREF_ECRAN_VERROUILLE = 'notifications.ecran-verrouille';
 /** Minutes. Le système peut espacer davantage (batterie, réseau). */
 const INTERVALLE = 60;

@@ -1,4 +1,4 @@
-package app.edclone.notifications
+package app.coef.notifications
 
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
@@ -41,8 +41,7 @@ class NotificationsLocalesModule : Module() {
     val ouvrir = context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
       PendingIntent.getActivity(context, 0, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     }
-    // ponytail: icône de l'app comme petite icône ; une icône monochrome dédiée viendra avec le design (étape 5).
-    val icone = context.applicationInfo.icon
+    val icone = R.drawable.coef_notification
     val notification = NotificationCompat.Builder(context, CANAL)
       .setSmallIcon(icone)
       .setContentTitle(titre)
