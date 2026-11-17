@@ -1,7 +1,7 @@
 // Les quatre onglets de l'app, derrière la vérification de session (reprise sans mot de passe, ou connexion).
 import { Redirect, router, Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, { ReduceMotion, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
@@ -22,20 +22,20 @@ const ONGLETS: { nom: Nom; titre: string }[] = [
 
 export default function Onglets() {
   const c = useCouleurs();
-  const { client, horsLigne, restaurer } = useCompte();
+  const { client, horsLigne, expiree, demarrer } = useCompte();
   const [etat, setEtat] = useState<'attente' | 'connexion' | 'pret'>(MODE_DEMO || client || horsLigne ? 'pret' : 'attente');
 
+  // Avec un cache, les onglets s'ouvrent tout de suite et la reconnexion se fait en fond (aucune roue au lancement).
   useEffect(() => {
     if (etat !== 'attente') return;
-    restaurer().then(
+    demarrer().then(
       (ok) => setEtat(ok ? 'pret' : 'connexion'),
       () => setEtat('connexion'), // session expirée ou refusée : on repasse par la connexion
     );
-  }, [etat, restaurer]);
+  }, [etat, demarrer]);
 
-  if (etat === 'connexion') return <Redirect href="/connexion" />;
-  if (etat === 'attente')
-    return <ActivityIndicator color={c.accent} accessibilityLabel="Reconnexion à EcoleDirecte" style={{ flex: 1, backgroundColor: c.fond }} />;
+  if (etat === 'connexion' || expiree) return <Redirect href="/connexion" />;
+  if (etat === 'attente') return <View style={{ flex: 1, backgroundColor: c.fond }} />; // quelques millisecondes : lecture du trousseau et de la base
   return (
     <Tabs
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.fond } }}

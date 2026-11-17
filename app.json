@@ -45,6 +45,7 @@
       ],
       "expo-background-task",
       "./plugins/regles-r8",
+      "./plugins/allegement",
       "expo-sharing"
     ]
   }
