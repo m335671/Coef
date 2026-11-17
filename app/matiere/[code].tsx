@@ -6,10 +6,10 @@ import { StyleSheet, View } from 'react-native';
 import type { DetailNote, Exclusion, ResultatMatiere } from '@/domain/moyennes/moteur';
 import type { Note } from '@/domain/types';
 import { useNotes } from '@/features/notes/store';
-import { vueNotes } from '@/features/notes/vue';
-import { Bouton, Chiffre, Ecran, EnTete, Ligne, Panneau, Reglette, Section, Texte } from '@/ui/composants';
+import { evolution, vueNotes } from '@/features/notes/vue';
+import { Barre, Bouton, Chiffre, ChiffreAnime, Courbe, Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
 import { brute, coef, jour, moyenne } from '@/ui/format';
-import { espace, taille } from '@/ui/theme';
+import { espace, taille, useCouleurs } from '@/ui/theme';
 
 const RAISON: Record<Exclusion, string> = {
   'non-significative': 'non significative',
@@ -18,6 +18,7 @@ const RAISON: Record<Exclusion, string> = {
 };
 
 export default function DetailMatiere() {
+  const c = useCouleurs();
   const { code, periode, eleve } = useLocalSearchParams<{ code: string; periode: string; eleve: string }>();
   const instantane = useNotes((s) => s.eleves[eleve]?.instantane);
   const vue = instantane ? vueNotes(instantane, periode) : undefined;
@@ -32,6 +33,7 @@ export default function DetailMatiere() {
     );
   }
 
+  const courbe = evolution(instantane.donnees, vue.periode, code);
   const parId = new Map(instantane.donnees.notes.map((n) => [n.id, n]));
   const lignes = [m.matiere, ...m.matiere.sousMatieres].flatMap((s) =>
     s.notes.map((d) => ({ d, n: parId.get(d.id)!, sous: s.sousCode ? s.libelle : undefined })),
@@ -41,23 +43,29 @@ export default function DetailMatiere() {
   return (
     <Ecran>
       <EnTete titre={m.matiere.libelle} retour />
-      <Panneau style={{ paddingVertical: espace.l, gap: espace.s }}>
-        <Texte variante="liste" attenue>
-          Moyenne prévue · {vue.periode.libelle} · coef {coef(m.matiere.coef)}
-        </Texte>
-        <View style={styles.phare}>
-          <Chiffre valeur={m.matiere.moyenne} taillePx={taille.chiffre} donnee />
-          {m.matiere.moyenne !== undefined ? (
-            <Texte variante="liste" attenue>
-              /20
+      <Entree rang={1}>
+        <Panneau teinte style={{ paddingVertical: espace.xl, gap: espace.m }}>
+          <View style={styles.rangee}>
+            <Texte variante="liste" style={{ flex: 1, color: c.accentEncre }}>
+              Moyenne prévue · {vue.periode.libelle}
             </Texte>
-          ) : null}
-        </View>
-        <Texte variante="liste" attenue>
-          {m.matiere.officielle === undefined ? 'Pas encore de moyenne officielle ED' : `Officielle ED ${moyenne(m.matiere.officielle)}`}
-        </Texte>
-        <Reglette notes={m.sur20} moyenne={m.matiere.moyenne} />
-      </Panneau>
+            <Pastille texte={`coef ${coef(m.matiere.coef)}`} />
+          </View>
+          <View style={styles.phare}>
+            <ChiffreAnime valeur={m.matiere.moyenne} taillePx={taille.phare} couleur={c.accent} />
+            {m.matiere.moyenne !== undefined ? (
+              <Texte variante="liste" attenue>
+                /20
+              </Texte>
+            ) : null}
+          </View>
+          {m.matiere.moyenne !== undefined ? <Barre ratio={m.matiere.moyenne / 20} hauteur={10} delai={150} /> : null}
+          {courbe.length > 1 ? <Courbe points={courbe.map((x) => x.moyenne)} libelle={`Évolution de la moyenne de ${m.matiere.libelle}`} /> : null}
+          <Texte variante="petit" style={{ color: c.accentEncre }}>
+            {m.matiere.officielle === undefined ? 'Pas encore de moyenne officielle ED' : `Officielle ED ${moyenne(m.matiere.officielle)}`}
+          </Texte>
+        </Panneau>
+      </Entree>
 
       {m.matiere.sousMatieres.length > 0 ? (
         <Section titre="Sous-matières" aide="La moyenne de la matière part de leurs moyennes arrondies, comme ED.">
@@ -132,6 +140,7 @@ function LigneNote({ d, n, sous, dernier }: { d: DetailNote; n: Note; sous?: str
 
 const styles = StyleSheet.create({
   phare: { flexDirection: 'row', alignItems: 'baseline', gap: espace.xs },
+  rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
   valeur: { alignItems: 'flex-end' },
   chiffres: { fontVariant: ['tabular-nums'] },
 });

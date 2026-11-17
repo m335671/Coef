@@ -12,6 +12,7 @@ Chaque dépendance a sa justification. Pas de kit UI, pas de SDK de collecte.
 | expo-status-bar | Couleur de la barre d'état selon le thème. |
 | expo-font | Polices libres embarquées (aucun CDN). |
 | @expo-google-fonts/geist | Fichiers TTF de Geist (OFL), embarqués dans l'app : trois graisses importées une à une, aucun téléchargement. |
+| react-native-svg | Courbe d'évolution des moyennes et icônes en traits (aucune image distante). |
 | react-native-reanimated (+ react-native-worklets) | Animations sur le thread UI. |
 | react-native-gesture-handler | Gestes natifs (simulateur, glisser). |
 | @shopify/flash-list | Listes virtualisées. |

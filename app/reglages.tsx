@@ -137,7 +137,7 @@ function Choix({ titre, aide, actif, dernier, onPress }: { titre: string; aide: 
   const c = useCouleurs();
   return (
     <Ligne dernier={dernier} onPress={onPress} libelleAccessible={`${titre}${actif ? ', choisi' : ''}`}>
-      <View style={[styles.radio, { borderColor: actif ? c.primaire : c.controle }]}>{actif ? <View style={[styles.point, { backgroundColor: c.primaire }]} /> : null}</View>
+      <View style={[styles.radio, { borderColor: actif ? c.accent : c.controle }]}>{actif ? <View style={[styles.point, { backgroundColor: c.accent }]} /> : null}</View>
       <View style={{ flex: 1, gap: espace.xs }}>
         <Texte variante="liste" moyen>
           {titre}

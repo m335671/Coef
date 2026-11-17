@@ -56,3 +56,19 @@ export function vueNotes(i: Instantane, code: string): VueNotes | undefined {
     matieres: resultat.matieres.map((matiere) => ({ matiere, sur20: comptees(matiere) })),
   };
 }
+
+/**
+ * Évolution de la moyenne prévue au fil de la période : générale (ou d'une matière) recalculée à chaque date
+ * où une note apparaît, en ne gardant que les notes de cette date et d'avant. Pour la courbe.
+ */
+export function evolution(d: DonneesNotes, periode: Periode, matiere?: string): { date: string; moyenne: number }[] {
+  const notes = notesDeLaPeriode(periode, d.notes, d.periodes);
+  const dates = [...new Set(notes.map((n) => n.date))].sort();
+  const points: { date: string; moyenne: number }[] = [];
+  for (const date of dates) {
+    const r = calculer(periode, notes.filter((n) => n.date <= date), d.periodes, { parametrage: d.parametrage });
+    const m = matiere === undefined ? r.generale : r.matieres.find((x) => x.code === matiere)?.moyenne;
+    if (m !== undefined) points.push({ date, moyenne: m });
+  }
+  return points;
+}
