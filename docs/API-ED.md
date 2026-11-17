@@ -102,3 +102,12 @@ Constantes à corriger en un seul endroit : `src/api/ecoledirecte/client.ts` (`A
 
 ## Notes — supposé
 `POST /v3/eleves/<id>/notes.awp?verbe=get` `{ anneeScolaire: "" }`. Format à documenter à l'étape 3.
+
+## Étape 6 : emploi du temps, devoirs, vie scolaire — SUPPOSÉ (rien vu sur une vraie réponse)
+Écrit d'après les implémentations communautaires. Fixtures **fabriquées** dans ce format : `fixtures/ed/emploidutemps.json`, `cahierdetexte.json`, `cahierdetexte-jour.json`, `viescolaire.json`. La capture d'essai enregistre les vraies réponses (anonymisées) : les comparer avant de passer en « confirmé ».
+- **Emploi du temps** : `POST /v3/E/<id>/emploidutemps.awp?verbe=get` `{ dateDebut, dateFin, avecTrous: false }` (AAAA-MM-JJ) → `data` = tableau de cours `{ id, text, matiere, codeMatiere, typeCours, start_date "AAAA-MM-JJ HH:MM", end_date, salle, prof, isAnnule, isModifie, … }`. **Incertain** : le chemin commence par `/E/` (et non `/eleves/`) ; heures locales sans fuseau.
+- **Devoirs à faire** : `POST /v3/Eleves/<id>/cahierdetexte.awp?verbe=get` `{}` → `data` = objet `{ "AAAA-MM-JJ": [ { idDevoir, matiere, codeMatiere, donneLe, effectue, interrogation, … } ] }`.
+- **Détail d'un jour** : `POST /v3/Eleves/<id>/cahierdetexte/<AAAA-MM-JJ>.awp?verbe=get` `{}` → `data` = `{ date, matieres: [ { matiere, codeMatiere, aFaire: { idDevoir, contenu (HTML en base64), effectue, … }, contenuDeSeance, … } ] }`. L'app charge le détail des 7 premiers jours, une requête à la fois.
+- **Vie scolaire** : `POST /v3/eleves/<id>/viescolaire.awp?verbe=get` `{}` → `data` = `{ absencesRetards: [...], sanctionsEncouragements: [...], dispenses: [...] }`, chaque élément `{ id, typeElement ("Absence", "Retard", "Punition", "Sanction", "Encouragement"…), date, displayDate, libelle, motif, justifie, par, commentaire }`.
+- **Non fait** : cocher un devoir comme fait (`cahierdetexte.awp?verbe=put` `{ idDevoirsEffectues, idDevoirsNonEffectues }`, supposé) — écriture vers ED, à faire une fois la lecture confirmée.
+- Capture : `contenu`, `motif`, `commentaire`, `par`, `prof` sont masqués (texte libre ou noms).

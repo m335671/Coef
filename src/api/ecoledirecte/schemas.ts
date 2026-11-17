@@ -99,3 +99,65 @@ export const donneesNotes = z.object({
   parametrage: z.object({ moyenneCoefMatiere: z.boolean().nullish() }).nullish(),
 });
 export type DonneesNotesED = z.infer<typeof donneesNotes>;
+
+// Étape 6 — formats SUPPOSÉS (implémentations communautaires), à confirmer par capture : docs/API-ED.md.
+const idED = z.union([z.number(), z.string()]);
+
+export const emploiDuTemps = z.array(
+  z.object({
+    id: idED,
+    text: z.string().nullish(),
+    matiere: z.string().nullish(),
+    codeMatiere: z.string().nullish(),
+    typeCours: z.string().nullish(),
+    start_date: z.string(),
+    end_date: z.string(),
+    salle: z.string().nullish(),
+    prof: z.string().nullish(),
+    isAnnule: z.boolean().nullish(),
+    isModifie: z.boolean().nullish(),
+  }),
+);
+
+export const devoirsAFaire = z.record(
+  z.string(),
+  z.array(
+    z.object({
+      idDevoir: idED,
+      matiere: z.string(),
+      codeMatiere: z.string().nullish(),
+      donneLe: z.string().nullish(),
+      effectue: z.boolean().nullish(),
+      interrogation: z.boolean().nullish(),
+    }),
+  ),
+);
+
+export const cahierDuJour = z.object({
+  date: z.string(),
+  matieres: z.array(
+    z.object({
+      matiere: z.string().nullish(),
+      codeMatiere: z.string().nullish(),
+      aFaire: z.object({ idDevoir: idED, contenu: z.string().nullish() }).nullish(),
+    }),
+  ),
+});
+
+const evenementED = z.object({
+  id: idED,
+  typeElement: z.string(),
+  date: z.string(),
+  displayDate: z.string().nullish(),
+  libelle: z.string().nullish(),
+  motif: z.string().nullish(),
+  justifie: z.boolean().nullish(),
+  par: z.string().nullish(),
+  commentaire: z.string().nullish(),
+});
+
+export const vieScolaire = z.object({
+  absencesRetards: z.array(evenementED).nullish(),
+  sanctionsEncouragements: z.array(evenementED).nullish(),
+  dispenses: z.array(evenementED).nullish(),
+});

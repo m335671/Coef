@@ -1,8 +1,10 @@
 // Seul module qui traduit le format ED vers le domaine.
-import type { DonneesNotes, Periode, Profil, TypePeriode } from '@/domain/types';
+import type { Cours, Devoir, DonneesNotes, EvenementVieScolaire, Periode, Profil, TypeEvenement, TypePeriode } from '@/domain/types';
 
+import { decoderBase64 } from './base64';
 import { ErreurED } from './erreurs';
-import type { CompteED, DonneesNotesED } from './schemas';
+import type { cahierDuJour, CompteED, devoirsAFaire, DonneesNotesED, emploiDuTemps, vieScolaire } from './schemas';
+import type { z } from 'zod';
 
 export function versProfil(c: CompteED): Profil {
   const etablissement = c.nomEtablissement ?? c.profile?.nomEtablissement ?? undefined;
@@ -84,4 +86,90 @@ export function versDonneesNotes(d: DonneesNotesED): DonneesNotes {
     classe: stats(n.moyenneClasse, n.minClasse, n.maxClasse),
   }));
   return { periodes, notes, parametrage: { moyenneCoefMatiere: d.parametrage?.moyenneCoefMatiere ?? true } };
+}
+
+// --- Étape 6 (formats supposés, voir docs/API-ED.md) ---
+
+const ENTITES: Record<string, string> = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", eacute: 'é', egrave: 'è', agrave: 'à', ccedil: 'ç', ecirc: 'ê', ocirc: 'ô', rsquo: '’', laquo: '«', raquo: '»' };
+
+/** HTML d'ED (consigne de devoir) → texte : sauts de ligne gardés, balises retirées, entités décodées. */
+export function htmlEnTexte(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h\d)>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
+    .replace(/&([a-z]+);/gi, (m, nom: string) => ENTITES[nom.toLowerCase()] ?? m)
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/** Contenu ED en base64 → texte ; un base64 invalide donne undefined plutôt qu'une exception. */
+function contenuED(b64?: string | null): string | undefined {
+  if (!b64) return undefined;
+  try {
+    return htmlEnTexte(decoderBase64(b64)) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function versCours(d: z.infer<typeof emploiDuTemps>): Cours[] {
+  return d
+    .map((c) => ({
+      id: String(c.id),
+      matiere: c.matiere || c.text || 'Cours',
+      codeMatiere: c.codeMatiere || undefined,
+      debut: c.start_date.slice(0, 16),
+      fin: c.end_date.slice(0, 16),
+      salle: c.salle || undefined,
+      prof: c.prof || undefined,
+      type: c.typeCours || undefined,
+      annule: c.isAnnule ?? false,
+      modifie: c.isModifie ?? false,
+    }))
+    .sort((a, b) => a.debut.localeCompare(b.debut));
+}
+
+/** Liste des devoirs à faire, enrichie du contenu des jours dont le détail a été chargé. */
+export function versDevoirs(liste: z.infer<typeof devoirsAFaire>, jours: z.infer<typeof cahierDuJour>[]): Devoir[] {
+  const contenus = new Map<string, string | undefined>();
+  for (const j of jours) for (const m of j.matieres) if (m.aFaire) contenus.set(String(m.aFaire.idDevoir), contenuED(m.aFaire.contenu));
+  return Object.entries(liste)
+    .flatMap(([pour, devoirs]) =>
+      devoirs.map((dv) => ({
+        id: String(dv.idDevoir),
+        pour,
+        matiere: dv.matiere,
+        codeMatiere: dv.codeMatiere || undefined,
+        donneLe: dv.donneLe || undefined,
+        effectue: dv.effectue ?? false,
+        interrogation: dv.interrogation ?? false,
+        contenu: contenus.get(String(dv.idDevoir)),
+      })),
+    )
+    .sort((a, b) => a.pour.localeCompare(b.pour) || a.matiere.localeCompare(b.matiere));
+}
+
+function typeEvenement(t: string): TypeEvenement {
+  const x = t.toLowerCase();
+  const connus: TypeEvenement[] = ['absence', 'retard', 'punition', 'sanction', 'encouragement', 'dispense'];
+  return connus.find((k) => x.startsWith(k)) ?? 'autre';
+}
+
+export function versVieScolaire(d: z.infer<typeof vieScolaire>): EvenementVieScolaire[] {
+  return [...(d.absencesRetards ?? []), ...(d.sanctionsEncouragements ?? []), ...(d.dispenses ?? [])]
+    .map((e) => ({
+      id: `${e.typeElement}-${e.id}`,
+      type: typeEvenement(e.typeElement),
+      date: e.date.slice(0, 16),
+      libelle: e.libelle || e.displayDate || e.typeElement,
+      motif: e.motif || undefined,
+      justifie: e.justifie ?? undefined,
+      par: e.par || undefined,
+      commentaire: e.commentaire || undefined,
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date));
 }

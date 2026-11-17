@@ -60,6 +60,47 @@ export type DonneesNotes = {
   parametrage: Parametrage;
 };
 
+/** Un cours de l'emploi du temps. Dates locales « AAAA-MM-JJ HH:MM ». */
+export type Cours = {
+  id: string;
+  matiere: string;
+  codeMatiere?: string;
+  debut: string;
+  fin: string;
+  salle?: string;
+  prof?: string;
+  type?: string;
+  annule: boolean;
+  modifie: boolean;
+};
+
+/** Un devoir du cahier de textes, à faire pour `pour` (AAAA-MM-JJ). */
+export type Devoir = {
+  id: string;
+  pour: string;
+  matiere: string;
+  codeMatiere?: string;
+  donneLe?: string;
+  effectue: boolean;
+  interrogation: boolean;
+  /** Consigne en texte brut (ED l'envoie en HTML encodé en base64), si le détail du jour a été chargé. */
+  contenu?: string;
+};
+
+export type TypeEvenement = 'absence' | 'retard' | 'punition' | 'sanction' | 'encouragement' | 'dispense' | 'autre';
+
+/** Un événement de vie scolaire : absence, retard, punition, sanction, encouragement, dispense. */
+export type EvenementVieScolaire = {
+  id: string;
+  type: TypeEvenement;
+  date: string;
+  libelle: string;
+  motif?: string;
+  justifie?: boolean;
+  par?: string;
+  commentaire?: string;
+};
+
 export type Eleve = {
   id: string;
   prenom: string;

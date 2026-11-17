@@ -1,14 +1,14 @@
 // Client EcoleDirecte, parcours « application mobile » (voir docs/API-ED.md pour chaque hypothèse).
 import type { z } from 'zod';
 
-import type { DonneesNotes } from '@/domain/types';
+import type { Cours, Devoir, DonneesNotes, EvenementVieScolaire } from '@/domain/types';
 
 import { ErreurReseau, requete } from '../http';
 import { decoderBase64, encoderBase64 } from './base64';
 import { CAPTURE, capturer } from './capture';
 import { ErreurED } from './erreurs';
-import { versDonneesNotes } from './mapping';
-import { cleAppareil, type CompteED, donneesConnexion, donneesNotes, enveloppe, questionQCM } from './schemas';
+import { versCours, versDevoirs, versDonneesNotes, versVieScolaire } from './mapping';
+import { cahierDuJour, cleAppareil, type CompteED, devoirsAFaire, donneesConnexion, donneesNotes, emploiDuTemps, enveloppe, questionQCM, vieScolaire } from './schemas';
 
 export const API = 'https://api.ecoledirecte.com/v3';
 /** Paramètre v= : hypothèse, à corriger ici si ED renvoie le code 517. */
@@ -197,6 +197,30 @@ export class ClientED {
       }
     })();
     return this.renouvellement;
+  }
+
+  /** Cours entre deux dates (AAAA-MM-JJ). Chemin et format supposés : docs/API-ED.md. */
+  async emploiDuTemps(eleveId: string, debut: string, fin: string): Promise<Cours[]> {
+    const data = await this.post(`/E/${eleveId}/emploidutemps.awp`, { dateDebut: debut, dateFin: fin, avecTrous: false });
+    return versCours(valider(emploiDuTemps, data, 'emploidutemps'));
+  }
+
+  /**
+   * Devoirs à faire, avec la consigne des `joursDetailles` premiers jours (une requête par jour, en file :
+   * pas de rafale). Chemins et formats supposés : docs/API-ED.md.
+   */
+  async devoirs(eleveId: string, joursDetailles = 7): Promise<Devoir[]> {
+    const liste = valider(devoirsAFaire, await this.post(`/Eleves/${eleveId}/cahierdetexte.awp`, {}), 'cahierdetexte');
+    const jours = [];
+    for (const date of Object.keys(liste).sort().slice(0, joursDetailles)) {
+      jours.push(valider(cahierDuJour, await this.post(`/Eleves/${eleveId}/cahierdetexte/${date}.awp`, {}), 'cahierdetexte/jour'));
+    }
+    return versDevoirs(liste, jours);
+  }
+
+  /** Absences, retards, sanctions, encouragements, dispenses. Chemin et format supposés : docs/API-ED.md. */
+  async vieScolaire(eleveId: string): Promise<EvenementVieScolaire[]> {
+    return versVieScolaire(valider(vieScolaire, await this.post(`/eleves/${eleveId}/viescolaire.awp`, {}), 'viescolaire'));
   }
 
   /** Notes, périodes et paramétrage d'un élève, validés puis traduits vers le domaine. */

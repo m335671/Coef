@@ -8,7 +8,7 @@ export const CAPTURE = process.env.EXPO_PUBLIC_CAPTURE === '1';
 // Clés dont la valeur (et tout ce qu'elle contient) identifie une personne, un lieu ou une session.
 // Sensible à la casse : « nombre… » ou « profile » ne doivent pas être effacés.
 const SENSIBLE =
-  /[tT]oken|^(cn|cv|uid|uuid|login|identifiant|sexe|civilite|photo|ville|question|propositions)$|^id|^(nom|prenom|particule|e?mail|tel|adresse|rne|ogec|codePostal)($|[A-Z])|Nom|Prenom|[eE]tablissement|Mail|Tel|Naissance|Adresse|[pP]rofesseur|auteur|Ogec|[nN]umero|^foStat$|^lastConnexion$|[aA]ppreciation|^unc|^logo/;
+  /[tT]oken|^(cn|cv|uid|uuid|login|identifiant|sexe|civilite|photo|ville|question|propositions)$|^id|^(nom|prenom|particule|e?mail|tel|adresse|rne|ogec|codePostal)($|[A-Z])|Nom|Prenom|[eE]tablissement|Mail|Tel|Naissance|Adresse|[pP]rofesseur|auteur|Ogec|[nN]umero|^foStat$|^lastConnexion$|[aA]ppreciation|^unc|^logo|^prof$|contenu|motif|commentaire|^par$|nomEleve/;
 const BASE64 = /^(question|propositions)$/i;
 // Valeurs qui trahissent un identifiant quelle que soit la clé : e-mail, suite de 6 chiffres ou plus (badge, UAI…).
 const IDENTIFIANT = /[^\s@]+@[^\s@]+\.[^\s@]+|\d{6,}/;
@@ -41,7 +41,7 @@ const captures: Capture[] = [];
 export function capturer(chemin: string, statut: number, entetes: Headers, corps: unknown): void {
   const noms: string[] = [];
   entetes.forEach((_, nom) => noms.push(nom));
-  captures.push({ chemin: chemin.replace(/\/eleves\/\d+\//, '/eleves/<id>/'), statut, entetes: noms, corps: anonymiser(corps) });
+  captures.push({ chemin: chemin.replace(/\/(eleves|E)\/\d+\//i, '/$1/<id>/'), statut, entetes: noms, corps: anonymiser(corps) });
 }
 
 /** Erreur hors ED (stockage, natif…) : message gardé, clés et jetons hexadécimaux masqués. */

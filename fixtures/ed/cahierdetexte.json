@@ -1,0 +1,57 @@
+{
+ "code": 200,
+ "token": "jeton-fictif",
+ "host": "HTTP000",
+ "data": {
+  "2026-11-18": [
+   {
+    "matiere": "PHYSIQUE-CHIMIE",
+    "codeMatiere": "PH-CH",
+    "aFaire": true,
+    "idDevoir": 501,
+    "documentsAFaire": false,
+    "donneLe": "2026-11-12",
+    "effectue": false,
+    "interrogation": true,
+    "rendreEnLigne": false
+   }
+  ],
+  "2026-11-19": [
+   {
+    "matiere": "MATHEMATIQUES",
+    "codeMatiere": "MATHS",
+    "aFaire": true,
+    "idDevoir": 502,
+    "documentsAFaire": false,
+    "donneLe": "2026-11-16",
+    "effectue": true,
+    "interrogation": false,
+    "rendreEnLigne": false
+   },
+   {
+    "matiere": "PHILOSOPHIE",
+    "codeMatiere": "PHILO",
+    "aFaire": true,
+    "idDevoir": 503,
+    "documentsAFaire": false,
+    "donneLe": "2026-11-13",
+    "effectue": false,
+    "interrogation": false,
+    "rendreEnLigne": false
+   }
+  ],
+  "2026-11-24": [
+   {
+    "matiere": "ANGLAIS LV1",
+    "codeMatiere": "AGL1",
+    "aFaire": true,
+    "idDevoir": 504,
+    "documentsAFaire": false,
+    "donneLe": "2026-11-17",
+    "effectue": false,
+    "interrogation": false,
+    "rendreEnLigne": true
+   }
+  ]
+ }
+}

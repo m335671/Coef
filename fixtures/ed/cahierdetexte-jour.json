@@ -1,0 +1,46 @@
+{
+ "code": 200,
+ "token": "jeton-fictif",
+ "host": "HTTP000",
+ "data": {
+  "date": "2026-11-19",
+  "matieres": [
+   {
+    "entityCode": "TX",
+    "entityLibelle": "Terminale X",
+    "entityType": "C",
+    "matiere": "MATHEMATIQUES",
+    "codeMatiere": "MATHS",
+    "nomProf": "M. PROF A",
+    "id": 1,
+    "interrogation": false,
+    "aFaire": {
+     "idDevoir": 502,
+     "contenu": "PHA+RXhlcmNpY2VzIDEyICZhZ3JhdmU7IDE1IHBhZ2UgODQuPC9wPjxwPlJldm9pciBsYSBkJmVhY3V0ZTtmaW5pdGlvbiBkZSBsYSBsaW1pdGU8YnI+ZCYjMzk7dW5lIHN1aXRlLjwvcD4=",
+     "rendreEnLigne": false,
+     "donneLe": "2026-11-16",
+     "effectue": true,
+     "documents": []
+    }
+   },
+   {
+    "entityCode": "TX",
+    "entityLibelle": "Terminale X",
+    "entityType": "C",
+    "matiere": "PHILOSOPHIE",
+    "codeMatiere": "PHILO",
+    "nomProf": "M. PROF C",
+    "id": 2,
+    "interrogation": false,
+    "aFaire": {
+     "idDevoir": 503,
+     "contenu": "PHVsPjxsaT5MaXJlIGxlIHRleHRlIGRpc3RyaWJ1w6k8L2xpPjxsaT5QcsOpcGFyZXIgZGV1eCBxdWVzdGlvbnM8L2xpPjwvdWw+",
+     "rendreEnLigne": false,
+     "donneLe": "2026-11-13",
+     "effectue": false,
+     "documents": []
+    }
+   }
+  ]
+ }
+}

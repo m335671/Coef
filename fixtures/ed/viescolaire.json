@@ -1,0 +1,72 @@
+{
+ "code": 200,
+ "token": "jeton-fictif",
+ "host": "HTTP000",
+ "data": {
+  "absencesRetards": [
+   {
+    "id": 11,
+    "typeElement": "Absence",
+    "date": "2026-11-03",
+    "displayDate": "le lundi 3 novembre 2026 de 08:00 à 12:00",
+    "libelle": "2 demi-journées",
+    "motif": "Rendez-vous médical",
+    "justifie": true,
+    "par": "",
+    "commentaire": "",
+    "dateDeCreation": "2026-11-03 09:12"
+   },
+   {
+    "id": 12,
+    "typeElement": "Retard",
+    "date": "2026-11-12",
+    "displayDate": "le mercredi 12 novembre 2026 à 08:10",
+    "libelle": "10 minutes",
+    "motif": "",
+    "justifie": false,
+    "par": "",
+    "commentaire": "",
+    "dateDeCreation": "2026-11-12 08:15"
+   },
+   {
+    "id": 13,
+    "typeElement": "Absence",
+    "date": "2026-10-06",
+    "displayDate": "le lundi 6 octobre 2026",
+    "libelle": "1 cours",
+    "motif": "",
+    "justifie": false,
+    "par": "",
+    "commentaire": "",
+    "dateDeCreation": "2026-10-06 10:01"
+   }
+  ],
+  "dispenses": [],
+  "sanctionsEncouragements": [
+   {
+    "id": 21,
+    "typeElement": "Encouragement",
+    "date": "2026-11-05",
+    "displayDate": "le 5 novembre 2026",
+    "libelle": "Félicitations pour l'exposé",
+    "motif": "Travail remarquable",
+    "justifie": false,
+    "par": "MME PROF E",
+    "commentaire": "",
+    "dateDeCreation": "2026-11-05 16:00"
+   },
+   {
+    "id": 22,
+    "typeElement": "Punition",
+    "date": "2026-10-14",
+    "displayDate": "le 14 octobre 2026",
+    "libelle": "Devoir supplémentaire",
+    "motif": "Oubli de matériel répété",
+    "justifie": false,
+    "par": "M. PROF D",
+    "commentaire": "",
+    "dateDeCreation": "2026-10-14 15:30"
+   }
+  ]
+ }
+}
