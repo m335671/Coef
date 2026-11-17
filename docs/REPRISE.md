@@ -1,6 +1,6 @@
 # Reprise de session
 
-État au 16 novembre 2026, branche `claude/sleepy-pasteur-aayww4`. Les règles du projet sont dans `CLAUDE.md` ; ce fichier ne dit que **où on en est**.
+État au 17 novembre 2026, branche `main`. Les règles du projet sont dans `CLAUDE.md` ; ce fichier ne dit que **où on en est**.
 
 ## Où on en est
 - **Étape 1 (squelette)** : validée. Expo SDK 58, TS strict, lint, Jest, CI GitHub Actions verte, mode démo web.
