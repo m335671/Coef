@@ -135,8 +135,18 @@ export function versCours(d: z.infer<typeof emploiDuTemps>): Cours[] {
 
 /** Liste des devoirs à faire, enrichie du contenu des jours dont le détail a été chargé. */
 export function versDevoirs(liste: z.infer<typeof devoirsAFaire>, jours: z.infer<typeof cahierDuJour>[]): Devoir[] {
-  const contenus = new Map<string, string | undefined>();
-  for (const j of jours) for (const m of j.matieres) if (m.aFaire) contenus.set(String(m.aFaire.idDevoir), contenuED(m.aFaire.contenu));
+  const details = new Map<string, Pick<Devoir, 'contenu' | 'prof' | 'seance' | 'pieces'>>();
+  for (const j of jours)
+    for (const m of j.matieres)
+      if (m.aFaire) {
+        const pieces = (m.aFaire.documents ?? []).map((d) => d.libelle).filter((x): x is string => !!x);
+        details.set(String(m.aFaire.idDevoir), {
+          contenu: contenuED(m.aFaire.contenu),
+          prof: m.nomProf?.trim() || undefined,
+          seance: contenuED(m.contenuDeSeance?.contenu),
+          pieces: pieces.length ? pieces : undefined,
+        });
+      }
   return Object.entries(liste)
     .flatMap(([pour, devoirs]) =>
       devoirs.map((dv) => ({
@@ -147,7 +157,7 @@ export function versDevoirs(liste: z.infer<typeof devoirsAFaire>, jours: z.infer
         donneLe: dv.donneLe || undefined,
         effectue: dv.effectue ?? false,
         interrogation: dv.interrogation ?? false,
-        contenu: contenus.get(String(dv.idDevoir)),
+        ...details.get(String(dv.idDevoir)),
       })),
     )
     .sort((a, b) => a.pour.localeCompare(b.pour) || a.matiere.localeCompare(b.matiere));

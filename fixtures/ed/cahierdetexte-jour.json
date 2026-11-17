@@ -20,6 +20,17 @@
      "rendreEnLigne": false,
      "donneLe": "2026-11-16",
      "effectue": true,
+     "documents": [
+      {
+       "id": 11,
+       "libelle": "Fiche exercices limites.pdf",
+       "type": "FICHIER_CDT"
+      }
+     ]
+    },
+    "contenuDeSeance": {
+     "idDevoir": 502,
+     "contenu": "PHA+TGltaXRlcyBkZSBzdWl0ZXMgOiB0aCZlYWN1dGU7b3ImZWdyYXZlO21lIGRlcyBnZW5kYXJtZXMsIGV4ZW1wbGVzIGNvcnJpZyZlYWN1dGU7cy48L3A+",
      "documents": []
     }
    },

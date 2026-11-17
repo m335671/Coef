@@ -139,7 +139,9 @@ export const cahierDuJour = z.object({
     z.object({
       matiere: z.string().nullish(),
       codeMatiere: z.string().nullish(),
-      aFaire: z.object({ idDevoir: idED, contenu: z.string().nullish() }).nullish(),
+      nomProf: z.string().nullish(),
+      aFaire: z.object({ idDevoir: idED, contenu: z.string().nullish(), documents: z.array(z.object({ libelle: z.string().nullish() })).nullish() }).nullish(),
+      contenuDeSeance: z.object({ contenu: z.string().nullish() }).nullish(),
     }),
   ),
 });

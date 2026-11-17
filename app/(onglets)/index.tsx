@@ -1,13 +1,15 @@
 // Écran des notes, la vitrine. Sa question : « Où en est ma moyenne ce trimestre, et qu'est-ce qui l'a fait bouger ? »
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Switch, View } from 'react-native';
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
+import { avecHypotheses, type NoteHypothetique } from '@/domain/moyennes/simulateur';
 import type { Note, Periode } from '@/domain/types';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { familleDe, NOM_FAMILLE, ORDRE_FAMILLES } from '@/features/notes/familles';
+import { cleSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
 import { evolution, type LigneMatiere, periodeParDefaut, periodesAffichees, type VueNotes, vueNotes } from '@/features/notes/vue';
 import { ecrirePreference, lirePreference } from '@/storage/base';
@@ -40,6 +42,7 @@ import { espace, police, rayon, taille, useCouleurs, useFamilles } from '@/ui/th
 
 type Affichage = 'liste' | 'familles' | 'notes';
 const PREF_AFFICHAGE = 'notes.affichage';
+const AUCUNE: NoteHypothetique[] = [];
 
 export default function Notes() {
   const c = useCouleurs();
@@ -65,10 +68,53 @@ export default function Notes() {
   const instantane = etat?.instantane;
   const periodes = instantane ? periodesAffichees(instantane.donnees) : [];
   const periode = periodeChoisie ?? (instantane && periodeParDefaut(instantane.donnees, new Date().toISOString().slice(0, 10))?.code);
-  const vue = useMemo(() => (instantane && periode ? vueNotes(instantane, periode) : undefined), [instantane, periode]);
-  const courbe = useMemo(() => (instantane && vue ? evolution(instantane.donnees, vue.periode) : []), [instantane, vue]);
-  const ouvrir = (code: string) => router.push({ pathname: '/matiere/[code]', params: { code, periode: vue!.periode.code, eleve: eleveId } });
-  const ouvrirNote = (id: string) => router.push({ pathname: '/note/[id]', params: { id, periode: vue!.periode.code, eleve: eleveId } });
+  const simulation = useSimulation();
+  useEffect(() => void simulation.charger(), [simulation.charger]); // eslint-disable-line react-hooks/exhaustive-deps
+  const simulees = (periode && simulation.notes[cleSimulation(eleveId, periode)]) || AUCUNE;
+  const simule = simulation.active && simulees.length > 0;
+  const reelle = useMemo(() => (instantane && periode ? vueNotes(instantane, periode) : undefined), [instantane, periode]);
+  // Simulation active : les notes simulées rejoignent les vraies ; le reste (calibration, nouveautés) reste réel.
+  const instantaneVu = useMemo(
+    () =>
+      instantane && reelle && simule
+        ? {
+            ...instantane,
+            donnees: {
+              ...instantane.donnees,
+              notes: avecHypotheses(reelle.periode, instantane.donnees.notes, simulees),
+            },
+          }
+        : instantane,
+    [instantane, reelle, simule, simulees],
+  );
+  const vue = useMemo(() => {
+    if (!reelle || !simule || !instantaneVu) return reelle;
+    const v = vueNotes(instantaneVu, reelle.periode.code)!;
+    return {
+      ...v,
+      calibration: reelle.calibration,
+      nouvelles: reelle.nouvelles,
+      enAvance: reelle.enAvance,
+      ecart: undefined,
+      depuis: undefined,
+    };
+  }, [reelle, simule, instantaneVu]);
+  const courbe = useMemo(() => (instantaneVu && vue ? evolution(instantaneVu.donnees, vue.periode) : []), [instantaneVu, vue]);
+  const ouvrirSimulation = () =>
+    router.push({
+      pathname: '/simulateur',
+      params: { periode: vue!.periode.code, eleve: eleveId },
+    });
+  const ouvrir = (code: string) =>
+    router.push({
+      pathname: '/matiere/[code]',
+      params: { code, periode: vue!.periode.code, eleve: eleveId },
+    });
+  const ouvrirNote = (id: string) =>
+    router.push({
+      pathname: '/note/[id]',
+      params: { id, periode: vue!.periode.code, eleve: eleveId },
+    });
 
   return (
     <Ecran>
@@ -77,7 +123,7 @@ export default function Notes() {
         action={
           <View style={{ flexDirection: 'row', gap: espace.s }}>
             {vue ? (
-              <BoutonRond libelle="Simulation" onPress={() => router.push({ pathname: '/simulateur', params: { periode: vue.periode.code, eleve: eleveId } })}>
+              <BoutonRond libelle="Simulation" onPress={ouvrirSimulation}>
                 <IconeSimulation />
               </BoutonRond>
             ) : null}
@@ -97,13 +143,29 @@ export default function Notes() {
           <Deroulant libelle="Période" groupes={groupesPeriodes(periodes)} valeur={periode} onChange={setPeriode} />
         </Entree>
       ) : null}
+      {simulees.length > 0 ? (
+        <Entree rang={2}>
+          <BandeauSimulation n={simulees.length} active={simulation.active} onActiver={simulation.activer} onModifier={ouvrirSimulation} />
+        </Entree>
+      ) : null}
       <Entree rang={2}>
-        <Moyenne vue={vue} courbe={courbe} chargement={etat?.chargement ?? true} erreur={etat?.erreur} synchro={instantane?.synchro} onReessayer={() => charger(eleveId, true)} />
+        <Moyenne
+          vue={vue}
+          reelle={simule ? reelle?.resultat.generale : undefined}
+          courbe={courbe}
+          chargement={etat?.chargement ?? true}
+          erreur={etat?.erreur}
+          synchro={instantane?.synchro}
+          onReessayer={() => charger(eleveId, true)}
+        />
       </Entree>
       {vue && instantane ? (
         <>
           {vue.nouvelles.length > 0 ? (
-            <Section titre={vue.nouvelles.length === 1 ? 'Nouvelle note' : `${vue.nouvelles.length} nouvelles notes`} aide={vue.depuis ? `Depuis la synchro du ${jour(vue.depuis)}` : undefined} rang={3}>
+            <Section
+              titre={vue.nouvelles.length === 1 ? 'Nouvelle note' : `${vue.nouvelles.length} nouvelles notes`}
+              aide={vue.depuis ? `Depuis la synchro du ${jour(vue.depuis)}` : undefined}
+              rang={3}>
               <View style={{ gap: espace.s }}>
                 {vue.nouvelles.slice(0, 5).map((n, i) => (
                   <Entree key={n.id} rang={4 + i}>
@@ -129,7 +191,7 @@ export default function Notes() {
               </View>
             </Section>
           ) : null}
-          <Section titre="Matières" aide={`${vue.periode.libelle} · moyennes prévues`} rang={5}>
+          <Section titre="Matières" aide={`${vue.periode.libelle} · moyennes ${simule ? 'simulées' : 'prévues'}`} rang={5}>
             <Segments
               libelle="Affichage des matières"
               options={[
@@ -149,7 +211,7 @@ export default function Notes() {
             ) : affichage === 'familles' ? (
               <ParFamille vue={vue} onPress={ouvrir} />
             ) : (
-              <ParNote vue={vue} notes={instantane.donnees.notes} onMatiere={ouvrir} onNote={ouvrirNote} />
+              <ParNote vue={vue} notes={instantaneVu!.donnees.notes} onMatiere={ouvrir} onNote={ouvrirNote} />
             )}
           </Section>
           <Texte variante="petit" attenue>
@@ -163,7 +225,14 @@ export default function Notes() {
 
 /** Périodes du menu, regroupées : trimestres et année, relevés, examens blancs. */
 function groupesPeriodes(periodes: Periode[]) {
-  const de = (types: Periode['type'][]) => periodes.filter((p) => types.includes(p.type)).map((p) => ({ cle: p.code, libelle: p.libelle, aide: `${jour(p.debut)} – ${jour(p.fin)}` }));
+  const de = (types: Periode['type'][]) =>
+    periodes
+      .filter((p) => types.includes(p.type))
+      .map((p) => ({
+        cle: p.code,
+        libelle: p.libelle,
+        aide: `${jour(p.debut)} – ${jour(p.fin)}`,
+      }));
   return [
     { titre: 'Trimestres', options: de(['trimestre', 'annee']) },
     { titre: 'Relevés', options: de(['releve']) },
@@ -178,9 +247,7 @@ function ParNote({ vue, notes, onMatiere, onNote }: { vue: VueNotes; notes: Note
   const groupes = vue.matieres
     .map(({ matiere: m }) => ({
       m,
-      lignes: [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)]
-        .map((d) => ({ d, n: parId.get(d.id)! }))
-        .sort((a, b) => b.n.date.localeCompare(a.n.date)),
+      lignes: [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)].map((d) => ({ d, n: parId.get(d.id)! })).sort((a, b) => b.n.date.localeCompare(a.n.date)),
     }))
     .filter((g) => g.lignes.length > 0);
   if (groupes.length === 0) {
@@ -201,25 +268,37 @@ function ParNote({ vue, notes, onMatiere, onNote }: { vue: VueNotes; notes: Note
             <Chiffre valeur={m.moyenne} couleur={c.accent} />
           </Presse>
           <Panneau>
-            {lignes.map(({ d, n }, j) => (
-              <Presse key={n.id} onPress={() => onNote(n.id)} style={[styles.ligneNote, { borderBottomColor: c.filet, borderBottomWidth: j === lignes.length - 1 ? 0 : StyleSheet.hairlineWidth }]}>
-                <View style={{ flex: 1 }}>
-                  <Texte variante="liste" numberOfLines={1}>
-                    {n.devoir || 'Devoir'}
+            {lignes.map(({ d, n }, j) => {
+              const simulee = n.id.startsWith('hypothese-');
+              return (
+                <Presse
+                  key={n.id}
+                  onPress={simulee ? undefined : () => onNote(n.id)}
+                  style={[
+                    styles.ligneNote,
+                    {
+                      borderBottomColor: c.filet,
+                      borderBottomWidth: j === lignes.length - 1 ? 0 : StyleSheet.hairlineWidth,
+                    },
+                  ]}>
+                  <View style={{ flex: 1 }}>
+                    <Texte variante="liste" numberOfLines={1} style={simulee ? { color: c.negatif } : undefined}>
+                      {simulee ? 'Note simulée' : n.devoir || 'Devoir'}
+                    </Texte>
+                    <Texte variante="petit" attenue numberOfLines={1}>
+                      {jour(n.date)} · coef {coef(n.coef)}
+                      {d.exclue ? ' · non comptée' : ''}
+                    </Texte>
+                  </View>
+                  <Texte variante="liste" attenue={!!d.exclue} style={styles.note}>
+                    {brute(n.valeurBrute)}
+                    <Texte variante="liste" attenue>
+                      /{n.noteSur}
+                    </Texte>
                   </Texte>
-                  <Texte variante="petit" attenue numberOfLines={1}>
-                    {jour(n.date)} · coef {coef(n.coef)}
-                    {d.exclue ? ' · non comptée' : ''}
-                  </Texte>
-                </View>
-                <Texte variante="liste" attenue={!!d.exclue} style={styles.note}>
-                  {brute(n.valeurBrute)}
-                  <Texte variante="liste" attenue>
-                    /{n.noteSur}
-                  </Texte>
-                </Texte>
-              </Presse>
-            ))}
+                </Presse>
+              );
+            })}
           </Panneau>
         </Entree>
       ))}
@@ -267,9 +346,10 @@ function ParFamille({ vue, onPress }: { vue: VueNotes; onPress: (code: string) =
   const c = useCouleurs();
   const familles = useFamilles();
   const nouvelles = new Set(vue.nouvelles.map((n) => n.matiereCode));
-  const groupes = ORDRE_FAMILLES.map((f) => ({ f, lignes: vue.matieres.filter((l) => familleDe(l.matiere.code, l.matiere.libelle) === f) })).filter(
-    (g) => g.lignes.length > 0,
-  );
+  const groupes = ORDRE_FAMILLES.map((f) => ({
+    f,
+    lignes: vue.matieres.filter((l) => familleDe(l.matiere.code, l.matiere.libelle) === f),
+  })).filter((g) => g.lignes.length > 0);
   return (
     <View style={{ gap: espace.m }}>
       {groupes.map(({ f, lignes }, i) => (
@@ -296,6 +376,37 @@ function ParFamille({ vue, onPress }: { vue: VueNotes; onPress: (code: string) =
   );
 }
 
+/** Rappel d'une simulation en cours : l'afficher ou non, la modifier. */
+function BandeauSimulation({ n, active, onActiver, onModifier }: { n: number; active: boolean; onActiver: (v: boolean) => void; onModifier: () => void }) {
+  const c = useCouleurs();
+  return (
+    <View
+      style={[
+        styles.bandeau,
+        {
+          borderColor: active ? c.negatif : c.bord,
+          backgroundColor: c.surface,
+        },
+      ]}>
+      <Presse onPress={onModifier} libelleAccessible={`${n} notes simulées. Modifier la simulation`} style={{ flex: 1 }}>
+        <Texte variante="liste" moyen style={{ color: active ? c.negatif : c.texte }}>
+          {n} note{n > 1 ? 's' : ''} simulée{n > 1 ? 's' : ''}
+        </Texte>
+        <Texte variante="petit" attenue>
+          {active ? 'Moyennes simulées ci-dessous · modifier' : 'Masquée : moyennes réelles · modifier'}
+        </Texte>
+      </Presse>
+      <Switch
+        accessibilityLabel="Afficher la simulation"
+        value={active}
+        onValueChange={onActiver}
+        trackColor={{ true: c.negatif, false: c.controle }}
+        thumbColor={c.surface}
+      />
+    </View>
+  );
+}
+
 /** Le bloc qui répond à la question de l'écran : moyenne prévue, ce qui a bougé, sa courbe, son état face à ED. */
 function Moyenne({
   vue,
@@ -304,8 +415,11 @@ function Moyenne({
   erreur,
   synchro,
   onReessayer,
+  reelle,
 }: {
   vue?: VueNotes;
+  /** Moyenne prévue sans la simulation, quand la simulation est affichée. */
+  reelle?: number;
   courbe: { date: string; moyenne: number }[];
   chargement: boolean;
   erreur?: unknown;
@@ -330,9 +444,15 @@ function Moyenne({
     <Panneau teinte style={{ paddingVertical: espace.xl, gap: espace.m }}>
       <View style={styles.rangee}>
         <Texte variante="liste" style={{ flex: 1, color: c.accentEncre }}>
-          Moyenne générale prévue
+          Moyenne générale {reelle !== undefined ? 'simulée' : 'prévue'}
         </Texte>
-        {cal?.verifie ? <Pastille texte="Calcul vérifié" /> : cal && cal.comparees > 0 ? <Pastille texte={`Écart ${moyenne(cal.ecartMax)} avec ED`} /> : null}
+        {reelle !== undefined ? (
+          <Pastille texte="Simulation" fond={c.surface} encre={c.negatif} />
+        ) : cal?.verifie ? (
+          <Pastille texte="Calcul vérifié" />
+        ) : cal && cal.comparees > 0 ? (
+          <Pastille texte={`Écart ${moyenne(cal.ecartMax)} avec ED`} />
+        ) : null}
       </View>
       <View style={styles.phare}>
         {vue ? <ChiffreAnime valeur={g} taillePx={taille.phare} couleur={c.accent} /> : <View style={[styles.attente, { backgroundColor: c.teinte100 }]} />}
@@ -342,6 +462,7 @@ function Moyenne({
           </Texte>
         ) : null}
       </View>
+      {reelle !== undefined && g !== undefined ? <Ecart valeur={g - reelle} suffixe={`par rapport à ta moyenne prévue (${moyenne(reelle)})`} /> : null}
       {vue?.ecart !== undefined && vue.depuis ? <Ecart valeur={vue.ecart} suffixe={`depuis la synchro du ${jour(vue.depuis)}`} /> : null}
       {g !== undefined ? <Barre ratio={g / 20} hauteur={10} delai={150} /> : null}
       {courbe.length > 1 ? (
@@ -383,14 +504,49 @@ function Moyenne({
 }
 
 const styles = StyleSheet.create({
-  phare: { flexDirection: 'row', alignItems: 'baseline', gap: espace.xs, minHeight: 56 },
+  phare: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: espace.xs,
+    minHeight: 56,
+  },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
   attente: { width: 140, height: 48, borderRadius: 8 },
   colonne: { width: 52, alignItems: 'flex-end' },
   note: { fontFamily: police.fort, fontVariant: ['tabular-nums'] },
-  carteNote: { flexDirection: 'row', alignItems: 'center', gap: espace.m, paddingHorizontal: 14, paddingVertical: espace.m, borderRadius: 14, borderWidth: 1 },
+  carteNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espace.m,
+    paddingHorizontal: 14,
+    paddingVertical: espace.m,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
   ligneMatiere: { paddingVertical: espace.m, gap: espace.s },
   famille: { borderRadius: rayon.phare, padding: espace.l, gap: espace.s },
-  ligneNote: { flexDirection: 'row', alignItems: 'center', gap: espace.m, minHeight: 52, paddingVertical: espace.s },
-  tuile: { flexDirection: 'row', alignItems: 'center', gap: espace.s, paddingHorizontal: espace.m, paddingVertical: 10, borderRadius: 12 },
+  ligneNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espace.m,
+    minHeight: 52,
+    paddingVertical: espace.s,
+  },
+  bandeau: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espace.m,
+    paddingHorizontal: espace.m,
+    paddingVertical: espace.s,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  tuile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espace.s,
+    paddingHorizontal: espace.m,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
 });

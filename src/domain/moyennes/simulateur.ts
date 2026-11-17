@@ -11,7 +11,7 @@ function versNote(p: Periode, h: NoteHypothetique, i: number): Note {
     matiereCode: h.matiereCode,
     sousMatiereCode: h.sousMatiereCode,
     devoir: 'Note hypothétique',
-    date: p.debut,
+    date: p.fin, // en fin de période : la courbe d'évolution finit sur la simulation
     valeurBrute: String(h.valeur),
     noteSur: h.noteSur,
     coef: h.coef,

@@ -7,6 +7,7 @@ import { CAPTURE } from '@/api/ecoledirecte/capture';
 import { MODE_DEMO } from '@/demo';
 import { exporterCaptures, messageErreur } from '@/features/compte/essai';
 import { useCompte } from '@/features/compte/store';
+import { useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
 import { annonce } from '@/sync/annonce';
 import { depot, ecrirePreference, lirePreference } from '@/storage/base';
@@ -44,6 +45,7 @@ export default function Reglages() {
   async function effacer() {
     await toutEffacer();
     vider();
+    useSimulation.setState({ notes: {}, active: true, modifie: false, charge: false });
     router.replace('/connexion');
   }
 

@@ -35,6 +35,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.fond }, animation: 'default' }}>
         <Stack.Screen name="simulateur" options={{ presentation: 'modal' }} />
         <Stack.Screen name="note/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="devoir/[id]" options={{ presentation: 'modal' }} />
       </Stack>
     </GestureHandlerRootView>
   );

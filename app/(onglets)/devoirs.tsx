@@ -1,5 +1,6 @@
 // Devoirs. Sa question : « Qu'est-ce que j'ai à faire, pour quand, et qu'est-ce qui est une interro ? »
-import { useEffect, useState } from 'react';
+import { router } from 'expo-router';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
@@ -18,7 +19,6 @@ export default function Devoirs() {
   const cle = `devoirs:${eleve?.id}`;
   const etat = useDonnee<Devoir[]>(cle);
   const charger = useDonneesED((s) => s.charger);
-  const [ouverts, setOuverts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (eleve) void charger(cle, (cl) => cl.devoirs(eleve.id), devoirsDemo);
@@ -27,9 +27,11 @@ export default function Devoirs() {
   const aujourdhui = iso(new Date());
   const demain = ajouterJours(aujourdhui, 1);
   const devoirs = etat?.valeur ?? [];
-  const parJour = [...new Set(devoirs.map((d) => d.pour))].map((pour) => ({ pour, liste: devoirs.filter((d) => d.pour === pour) }));
+  const parJour = [...new Set(devoirs.map((d) => d.pour))].map((pour) => ({
+    pour,
+    liste: devoirs.filter((d) => d.pour === pour),
+  }));
   const restants = devoirs.filter((d) => !d.effectue).length;
-  const basculer = (id: string) => setOuverts((o) => (o.has(id) ? new Set([...o].filter((x) => x !== id)) : new Set([...o, id])));
 
   return (
     <Ecran>
@@ -66,22 +68,39 @@ export default function Devoirs() {
           <Section key={pour} titre={pour === aujourdhui ? 'Pour aujourd’hui' : pour === demain ? 'Pour demain' : `Pour ${jourLong(pour)}`} rang={2 + i}>
             <View style={{ gap: espace.s }}>
               {liste.map((d) => {
-                const ouvert = ouverts.has(d.id);
                 return (
                   <Presse
                     key={d.id}
-                    onPress={d.contenu ? () => basculer(d.id) : undefined}
-                    libelleAccessible={`${d.matiere}${d.interrogation ? ', interrogation' : ''}${d.effectue ? ', fait' : ''}. ${d.contenu ?? ''}`}
-                    style={[styles.carte, { backgroundColor: d.effectue ? c.surface : c.teinte50, borderColor: d.effectue ? c.bord : 'transparent' }]}>
+                    onPress={() =>
+                      router.push({
+                        pathname: '/devoir/[id]',
+                        params: { id: d.id, eleve: eleve!.id },
+                      })
+                    }
+                    libelleAccessible={`${d.matiere}${d.interrogation ? ', interrogation' : ''}${d.effectue ? ', fait' : ''}. ${d.contenu ?? ''}. Ouvrir le détail`}
+                    style={[
+                      styles.carte,
+                      {
+                        backgroundColor: d.effectue ? c.surface : c.teinte50,
+                        borderColor: d.effectue ? c.bord : 'transparent',
+                      },
+                    ]}>
                     <View style={styles.rangee}>
-                      <Texte variante="liste" moyen numberOfLines={1} style={{ flex: 1, color: d.effectue ? c.attenue : c.texte }}>
+                      <Texte
+                        variante="liste"
+                        moyen
+                        numberOfLines={1}
+                        style={{
+                          flex: 1,
+                          color: d.effectue ? c.attenue : c.texte,
+                        }}>
                         {d.matiere}
                       </Texte>
                       {d.interrogation ? <Pastille texte="Interro" fond={c.surface} encre={c.negatif} /> : null}
                       {d.effectue ? <Pastille texte="Fait" /> : null}
                     </View>
                     {d.contenu ? (
-                      <Texte variante="liste" numberOfLines={ouvert ? undefined : 3} style={{ color: d.effectue ? c.attenue : c.texte }}>
+                      <Texte variante="liste" numberOfLines={3} style={{ color: d.effectue ? c.attenue : c.texte }}>
                         {d.contenu}
                       </Texte>
                     ) : (
@@ -101,6 +120,11 @@ export default function Devoirs() {
 }
 
 const styles = StyleSheet.create({
-  carte: { borderRadius: rayon.carte, borderWidth: 1, padding: espace.m, gap: espace.xs },
+  carte: {
+    borderRadius: rayon.carte,
+    borderWidth: 1,
+    padding: espace.m,
+    gap: espace.xs,
+  },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
 });

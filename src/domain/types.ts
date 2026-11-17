@@ -85,6 +85,11 @@ export type Devoir = {
   interrogation: boolean;
   /** Consigne en texte brut (ED l'envoie en HTML encodé en base64), si le détail du jour a été chargé. */
   contenu?: string;
+  prof?: string;
+  /** Ce qui a été fait en classe ce jour-là (contenu de séance), en texte brut. */
+  seance?: string;
+  /** Noms des pièces jointes (le téléchargement viendra avec les documents). */
+  pieces?: string[];
 };
 
 export type TypeEvenement = 'absence' | 'retard' | 'punition' | 'sanction' | 'encouragement' | 'dispense' | 'autre';

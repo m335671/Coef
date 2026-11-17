@@ -16,7 +16,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
+import { GestureDetector, GestureHandlerRootView, usePanGesture } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
   FadeIn,
@@ -387,16 +387,19 @@ export function Feuille({ visible, onFermer, titre, children }: { visible: boole
   const c = useCouleurs();
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onFermer} statusBarTranslucent>
-      <Animated.View entering={FadeIn.duration(180)} style={styles.voile}>
-        <Pressable accessibilityLabel="Fermer" style={StyleSheet.absoluteFill} onPress={onFermer} />
-        <Animated.View entering={SlideInDown.duration(300).easing(EASE).reduceMotion(ReduceMotion.System)} style={[styles.feuille, { backgroundColor: c.surface, paddingBottom: espace.xxl }]}>
-          <View style={[styles.poignee, { backgroundColor: c.controle }]} />
-          <Texte variante="section" role="heading" aria-level={2}>
-            {titre}
-          </Texte>
-          {children}
+      {/* Android : une Modal est une fenêtre native à part, les gestes (curseur) y ont besoin de leur propre racine. */}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Animated.View entering={FadeIn.duration(180)} style={styles.voile}>
+          <Pressable accessibilityLabel="Fermer" style={StyleSheet.absoluteFill} onPress={onFermer} />
+          <Animated.View entering={SlideInDown.duration(300).easing(EASE).reduceMotion(ReduceMotion.System)} style={[styles.feuille, { backgroundColor: c.surface, paddingBottom: espace.xxl }]}>
+            <View style={[styles.poignee, { backgroundColor: c.controle }]} />
+            <Texte variante="section" role="heading" aria-level={2}>
+              {titre}
+            </Texte>
+            {children}
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }

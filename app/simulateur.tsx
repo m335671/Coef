@@ -1,12 +1,13 @@
 // Simulation. Deux questions : « Si j'ajoute ces notes, où va ma moyenne ? » et « Pour viser X de générale, où agir ? »
 // Tout part de la moyenne PRÉVUE (calcul officiel vérifié + notes qu'ED n'a pas encore comptées).
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Switch, View } from 'react-native';
 
 import { leviers } from '@/domain/moyennes/impact';
 import { calculer } from '@/domain/moyennes/moteur';
 import { avecHypotheses, type NoteHypothetique } from '@/domain/moyennes/simulateur';
+import { cleSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
 import {
   Bouton,
@@ -30,17 +31,26 @@ import { coef as formatCoef, moyenne } from '@/ui/format';
 import { espace, police, taille, useCouleurs } from '@/ui/theme';
 
 const POIDS = [0.5, 1, 2, 3, 4];
+const AUCUNE: NoteHypothetique[] = [];
 type Onglet = 'ajouter' | 'objectif';
 type Saisie = { code: string; valeur: number; sur: number; poids: number };
 
 export default function Simulation() {
   const c = useCouleurs();
-  const params = useLocalSearchParams<{ periode: string; eleve: string; code?: string }>();
+  const params = useLocalSearchParams<{
+    periode: string;
+    eleve: string;
+    code?: string;
+  }>();
   const d = useNotes((s) => s.eleves[params.eleve]?.instantane?.donnees);
   const p = d?.periodes.find((x) => x.code === params.periode);
 
   const [onglet, setOnglet] = useState<Onglet>('ajouter');
-  const [hypotheses, setHypotheses] = useState<NoteHypothetique[]>([]);
+  const cle = cleSimulation(params.eleve, params.periode);
+  const hypotheses = useSimulation((s) => s.notes[cle]) ?? AUCUNE;
+  const { active, modifie, definir, activer, enregistrer, charger } = useSimulation();
+  const setHypotheses = (h: NoteHypothetique[]) => definir(cle, h);
+  useEffect(() => void charger(), [charger]);
   const [saisie, setSaisie] = useState<Saisie | undefined>(params.code ? { code: params.code, valeur: 14, sur: 20, poids: 1 } : undefined);
   const [objectif, setObjectif] = useState(14);
 
@@ -65,7 +75,16 @@ export default function Simulation() {
   const notesSimulees = avecHypotheses(p, d.notes, hypotheses);
   const apres = calculer(p, notesSimulees, d.periodes, options);
   const libelle = (code: string) => p.matieres.find((m) => m.code === code && !m.sousCode)?.libelle ?? code;
-  const ajouter = (s: Saisie) => setHypotheses([...hypotheses, { matiereCode: s.code, valeur: Math.min(s.valeur, s.sur), noteSur: s.sur, coef: s.poids }]);
+  const ajouter = (s: Saisie) =>
+    setHypotheses([
+      ...hypotheses,
+      {
+        matiereCode: s.code,
+        valeur: Math.min(s.valeur, s.sur),
+        noteSur: s.sur,
+        coef: s.poids,
+      },
+    ]);
 
   return (
     <Ecran>
@@ -84,7 +103,10 @@ export default function Simulation() {
           <View style={styles.rangee}>
             {apres.generale !== undefined && avant.generale !== undefined ? (
               <View style={{ flex: 1 }}>
-                <Ecart valeur={apres.generale - avant.generale} suffixe={`avec ${hypotheses.length} note${hypotheses.length > 1 ? 's' : ''} ajoutée${hypotheses.length > 1 ? 's' : ''}`} />
+                <Ecart
+                  valeur={apres.generale - avant.generale}
+                  suffixe={`avec ${hypotheses.length} note${hypotheses.length > 1 ? 's' : ''} ajoutée${hypotheses.length > 1 ? 's' : ''}`}
+                />
               </View>
             ) : (
               <View style={{ flex: 1 }} />
@@ -130,7 +152,16 @@ export default function Simulation() {
                         </Texte>
                       ) : null}
                       <Chiffre valeur={m.moyenne} couleur={siennes.length > 0 ? c.accent : undefined} />
-                      <BoutonRond libelle={`Ajouter une note en ${m.libelle}`} onPress={() => setSaisie({ code: m.code, valeur: 14, sur: 20, poids: 1 })}>
+                      <BoutonRond
+                        libelle={`Ajouter une note en ${m.libelle}`}
+                        onPress={() =>
+                          setSaisie({
+                            code: m.code,
+                            valeur: 14,
+                            sur: 20,
+                            poids: 1,
+                          })
+                        }>
                         <Texte variante="section" style={{ color: c.accent }}>
                           +
                         </Texte>
@@ -144,7 +175,12 @@ export default function Simulation() {
                             libelleAccessible={`Retirer la note ${moyenne(h.valeur)} sur ${h.noteSur}`}
                             onPress={() => setHypotheses(hypotheses.filter((_, k) => k !== j))}
                             style={[styles.puce, { backgroundColor: c.teinte100 }]}>
-                            <Texte variante="petit" style={{ color: c.accentEncre, fontFamily: police.fort }}>
+                            <Texte
+                              variante="petit"
+                              style={{
+                                color: c.accentEncre,
+                                fontFamily: police.fort,
+                              }}>
                               {moyenne(h.valeur).replace(/,00$/, '')}/{h.noteSur} ×{formatCoef(h.coef)} ✕
                             </Texte>
                           </Presse>
@@ -165,13 +201,44 @@ export default function Simulation() {
           liste={leviers(p, notesSimulees, d.periodes, objectif, options)}
           onChoisir={(code, note) => {
             setOnglet('ajouter');
-            setSaisie({ code, valeur: Math.min(20, Math.ceil(note * 4) / 4), sur: 20, poids: 1 });
+            setSaisie({
+              code,
+              valeur: Math.min(20, Math.ceil(note * 4) / 4),
+              sur: 20,
+              poids: 1,
+            });
           }}
         />
       )}
 
+      <Panneau style={{ paddingVertical: espace.m, gap: espace.m }}>
+        <View style={styles.rangee}>
+          <View style={{ flex: 1 }}>
+            <Texte variante="liste" moyen>
+              Afficher sur l’écran Notes
+            </Texte>
+            <Texte variante="petit" attenue>
+              Les moyennes y deviennent « simulées », bien signalées.
+            </Texte>
+          </View>
+          <Switch
+            accessibilityLabel="Afficher la simulation sur l’écran Notes"
+            value={active}
+            onValueChange={activer}
+            trackColor={{ true: c.accent, false: c.controle }}
+            thumbColor={c.surface}
+          />
+        </View>
+        <Bouton
+          variante={modifie ? 'primaire' : 'texte'}
+          desactive={!modifie}
+          titre={modifie ? 'Enregistrer la simulation' : 'Simulation enregistrée'}
+          onPress={() => void enregistrer()}
+        />
+      </Panneau>
       <Texte variante="petit" attenue>
-        Notes hypothétiques : jamais envoyées ni enregistrées. Le calcul part de ta moyenne prévue.
+        Notes hypothétiques : jamais envoyées à EcoleDirecte. Enregistrées seulement sur ce téléphone, dans la base chiffrée, si tu le demandes. Le calcul part
+        de ta moyenne prévue.
       </Texte>
 
       <Feuille visible={!!saisie} onFermer={() => setSaisie(undefined)} titre={saisie ? `Une note en ${libelle(saisie.code)}` : ''}>
@@ -187,7 +254,13 @@ export default function Simulation() {
                 libelle="Barème"
                 options={[20, 10].map((v) => ({ cle: v, libelle: `sur ${v}` }))}
                 valeur={saisie.sur}
-                onChange={(sur) => setSaisie({ ...saisie, sur, valeur: Math.min(saisie.valeur, sur) })}
+                onChange={(sur) =>
+                  setSaisie({
+                    ...saisie,
+                    sur,
+                    valeur: Math.min(saisie.valeur, sur),
+                  })
+                }
               />
             </View>
             <Curseur
@@ -202,7 +275,16 @@ export default function Simulation() {
             <Texte variante="liste" moyen>
               Poids du devoir
             </Texte>
-            <Segments libelle="Poids du devoir" plein options={POIDS.map((v) => ({ cle: v, libelle: `×${formatCoef(v)}` }))} valeur={saisie.poids} onChange={(poids) => setSaisie({ ...saisie, poids })} />
+            <Segments
+              libelle="Poids du devoir"
+              plein
+              options={POIDS.map((v) => ({
+                cle: v,
+                libelle: `×${formatCoef(v)}`,
+              }))}
+              valeur={saisie.poids}
+              onChange={(poids) => setSaisie({ ...saisie, poids })}
+            />
             <Bouton
               titre="Ajouter cette note"
               onPress={() => {
@@ -234,11 +316,22 @@ function Objectif({
   const c = useCouleurs();
   const atteint = generale !== undefined && generale >= objectif;
   return (
-    <Section titre={`Viser ${moyenne(objectif)} de générale`} aide={generale === undefined ? undefined : atteint ? 'Déjà atteint avec tes notes actuelles.' : `Il manque ${moyenne(objectif - generale)} point.`} rang={3}>
-      <Curseur libelle="Moyenne générale visée" texteValeur={`${moyenne(objectif)} sur 20`} valeur={objectif} min={8} max={20} pas={0.25} onChange={setObjectif} />
+    <Section
+      titre={`Viser ${moyenne(objectif)} de générale`}
+      aide={generale === undefined ? undefined : atteint ? 'Déjà atteint avec tes notes actuelles.' : `Il manque ${moyenne(objectif - generale)} point.`}
+      rang={3}>
+      <Curseur
+        libelle="Moyenne générale visée"
+        texteValeur={`${moyenne(objectif)} sur 20`}
+        valeur={objectif}
+        min={8}
+        max={20}
+        pas={0.25}
+        onChange={setObjectif}
+      />
       <Texte variante="petit" attenue>
-        Pour chaque matière : ce qu’un point de plus y rapporte, puis la note (sur 20, poids ×1) qui suffirait seule, ou à défaut la moyenne qu’il y faudrait. Touche une
-        matière pour l’essayer.
+        Pour chaque matière : ce qu’un point de plus y rapporte, puis la note (sur 20, poids ×1) qui suffirait seule, ou à défaut la moyenne qu’il y faudrait.
+        Touche une matière pour l’essayer.
       </Texte>
       <View style={{ gap: espace.s }}>
         {liste.map((l, i) => (
@@ -252,7 +345,8 @@ function Objectif({
                   {l.libelle}
                 </Texte>
                 <Texte variante="petit" attenue>
-                  {l.parPoint > 0 ? `1 point ici = +${moyenne(l.parPoint)} sur la générale` : 'Pas encore de note : sa première comptera'} · coef {formatCoef(l.coef)}
+                  {l.parPoint > 0 ? `1 point ici = +${moyenne(l.parPoint)} sur la générale` : 'Pas encore de note : sa première comptera'} · coef{' '}
+                  {formatCoef(l.coef)}
                 </Texte>
               </View>
               {l.noteSeule === undefined ? (
@@ -291,5 +385,12 @@ const styles = StyleSheet.create({
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
   puces: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   puce: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
-  levier: { flexDirection: 'row', alignItems: 'center', gap: espace.m, padding: espace.m, borderRadius: 14, borderWidth: 1 },
+  levier: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espace.m,
+    padding: espace.m,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
 });
