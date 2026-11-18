@@ -2,7 +2,7 @@
 import { router } from 'expo-router';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
@@ -705,17 +705,14 @@ function NotesTriees({
   );
 }
 
-/** Le bouton à droite de « Matières » change (crayon, OK, tri) : le nouveau arrive en tournant, avec un petit rebond. */
+/** Le bouton à droite de « Matières » change (crayon, OK, tri) : bref fondu, à peine grossi. */
 function Bascule({ children }: { children: ReactNode }) {
   const reduit = useReducedMotion();
   const p = useSharedValue(reduit ? 1 : 0);
   useEffect(() => {
-    if (!reduit) p.set(withSpring(1, { damping: 13, stiffness: 240 }));
+    if (!reduit) p.set(withTiming(1, { duration: 160 }));
   }, [reduit, p]);
-  const style = useAnimatedStyle(() => ({
-    opacity: Math.min(p.get() * 1.5, 1),
-    transform: [{ scale: 0.4 + 0.6 * p.get() }, { rotate: `${(1 - p.get()) * -120}deg` }],
-  }));
+  const style = useAnimatedStyle(() => ({ opacity: p.get(), transform: [{ scale: 0.9 + 0.1 * p.get() }] }));
   return <Animated.View style={style}>{children}</Animated.View>;
 }
 
