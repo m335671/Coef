@@ -117,6 +117,8 @@ export function MiniCourbe({ points, couleur, largeur = 64, hauteur = 18 }: { po
 export type Marque = { valeur: number; couleur: string; texte?: string; forme: 'point' | 'trait'; cote?: 'haut' | 'bas' };
 
 const LARGEUR_ETIQUETTE = 104;
+/** Épaisseur de la barre des échelles : celle de l'anneau. */
+const EPAISSEUR_RAIL = 14;
 const LIGNE = 20;
 const nombre = (v: number) => String(Math.round(v * 100) / 100).replace('.', ',');
 
@@ -170,34 +172,51 @@ export function Echelle({
   const principal = marques.find((m) => m.forme === 'point');
   const p = useProgression(principal ? borne((principal.valeur - min) / (max - min)) : 0, 200);
   const glisse = useAnimatedStyle(() => ({ transform: [{ translateX: p.value * l }] }));
+  // La barre se remplit jusqu'au point, comme l'anneau (même épaisseur, même mouvement).
+  const remplit = useAnimatedStyle(() => ({ width: Math.max(p.value * l, EPAISSEUR_RAIL) }));
 
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={libelle} onLayout={(e) => setL(e.nativeEvent.layout.width)} style={{ height: hauteur }}>
       {l > 0 ? (
         <>
           <Svg width={l} height={hauteur} style={StyleSheet.absoluteFill}>
-            <Rect x={0} y={yRail - 5} width={l} height={10} rx={5} fill={c.teinte50} stroke={c.bord} strokeWidth={StyleSheet.hairlineWidth} />
-            {plage ? <Rect x={x(plage[0])} y={yRail - 5} width={Math.max(x(plage[1]) - x(plage[0]), 10)} height={10} rx={5} fill={c.teinte100} /> : null}
+            <Rect x={0} y={yRail - EPAISSEUR_RAIL / 2} width={l} height={EPAISSEUR_RAIL} rx={EPAISSEUR_RAIL / 2} fill={c.teinte100} />
             {graduations.map((v) => (
               <Line
                 key={v}
                 x1={x(v)}
                 x2={x(v)}
-                y1={yRail + 7}
-                y2={yRail + (grand(v) ? 13 : 10)}
+                y1={yRail + EPAISSEUR_RAIL / 2 + 3}
+                y2={yRail + EPAISSEUR_RAIL / 2 + (grand(v) ? 9 : 6)}
                 stroke={grand(v) ? c.attenue : c.controle}
                 strokeWidth={grand(v) ? 1.5 : 1}
               />
             ))}
-            {marques
-              .filter((m) => m.forme === 'trait')
-              .map((m, i) => (
-                <G key={i}>
-                  <Line x1={x(m.valeur)} x2={x(m.valeur)} y1={yRail - 12} y2={yRail + 12} stroke={c.surface} strokeWidth={6} strokeLinecap="round" />
-                  <Line x1={x(m.valeur)} x2={x(m.valeur)} y1={yRail - 12} y2={yRail + 12} stroke={m.couleur} strokeWidth={3} strokeLinecap="round" />
-                </G>
-              ))}
           </Svg>
+          {principal ? (
+            <Animated.View
+              style={[styles.remplissage, { top: yRail - EPAISSEUR_RAIL / 2, backgroundColor: principal.couleur }, remplit]}
+              pointerEvents="none"
+            />
+          ) : null}
+          {plage ? (
+            <View
+              pointerEvents="none"
+              style={[
+                styles.plage,
+                { top: yRail - EPAISSEUR_RAIL / 2, left: x(plage[0]), width: Math.max(x(plage[1]) - x(plage[0]), EPAISSEUR_RAIL), borderColor: c.attenue },
+              ]}
+            />
+          ) : null}
+          {marques
+            .filter((m) => m.forme === 'trait')
+            .map((m, i) => (
+              <View
+                key={i}
+                pointerEvents="none"
+                style={[styles.trait, { top: yRail - 14, left: x(m.valeur) - 3.5, backgroundColor: m.couleur, borderColor: c.surface }]}
+              />
+            ))}
           {principal ? <Animated.View style={[styles.point, { top: yRail - 11, backgroundColor: principal.couleur, borderColor: c.surface }, glisse]} /> : null}
           {graduations.filter(grand).map((v) => (
             <Texte key={v} variante="petit" attenue style={[styles.chiffre, { top: yChiffres - 2, left: x(v) - 20 }]}>
@@ -283,6 +302,9 @@ export function Hachures({ couleur, opacite = 0.14 }: { couleur?: string; opacit
 const styles = StyleSheet.create({
   centre: { alignItems: 'center', justifyContent: 'center' },
   point: { position: 'absolute', left: -11, width: 22, height: 22, borderRadius: 11, borderWidth: 3 },
+  remplissage: { position: 'absolute', left: 0, height: EPAISSEUR_RAIL, borderRadius: EPAISSEUR_RAIL / 2 },
+  plage: { position: 'absolute', height: EPAISSEUR_RAIL, borderRadius: EPAISSEUR_RAIL / 2, borderWidth: 1.5, borderStyle: 'dashed' },
+  trait: { position: 'absolute', width: 7, height: 28, borderRadius: 3.5, borderWidth: 2 },
   chiffre: { position: 'absolute', width: 40, textAlign: 'center', fontVariant: ['tabular-nums'] },
   etiquette: { position: 'absolute', width: LARGEUR_ETIQUETTE, textAlign: 'center', fontVariant: ['tabular-nums'] },
 });

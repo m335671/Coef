@@ -313,6 +313,21 @@ export function Squelette({ largeur = '100%', hauteur = 14, style }: { largeur?:
   return <Animated.View style={[{ width: largeur, height: hauteur, borderRadius: hauteur / 2, backgroundColor: c.bord }, style, anime]} />;
 }
 
+const LANCEMENT = Date.now();
+/**
+ * Vrai pendant les tout premiers instants après l'ouverture de l'app : les squelettes restent visibles un court
+ * moment même si le cache répond tout de suite, pour que tout arrive d'un bloc plutôt que par à-coups.
+ */
+export function useDemarrage(ms = 450): boolean {
+  const [actif, setActif] = useState(() => Date.now() - LANCEMENT < ms);
+  useEffect(() => {
+    if (!actif) return;
+    const t = setTimeout(() => setActif(false), Math.max(ms - (Date.now() - LANCEMENT), 0));
+    return () => clearTimeout(t);
+  }, [actif, ms]);
+  return actif;
+}
+
 /** Liste en chargement : des lignes squelettes dans un panneau, à la forme de la liste à venir. Annoncée au lecteur d'écran. */
 export function ListeSquelette({ lignes = 3, libelle = 'Chargement' }: { lignes?: number; libelle?: string }) {
   return (

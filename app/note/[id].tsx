@@ -7,7 +7,7 @@ import { calculer, type Exclusion, lireNote } from '@/domain/moyennes/moteur';
 import { useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
 import { libelleMatiere } from '@/sync/annonce';
-import { Bouton, Ecart, Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
+import { Bouton, Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
 import { brute, coef, ecart, jour, moyenne } from '@/ui/format';
 import { Regle } from '@/ui/graphiques';
 import { espace, police, taille, useCouleurs } from '@/ui/theme';
@@ -106,29 +106,11 @@ export default function DetailNote() {
         </Section>
       ) : null}
 
-      {impact.generale !== undefined || impact.matiere !== undefined ? (
-        <Section titre="Ce qu’elle a changé" aide="Tes moyennes prévues avec cette note, comparées à sans elle." rang={3}>
+      {impact.valeurs && (impact.generale !== undefined || impact.matiere !== undefined) ? (
+        <Section titre="Ce qu’elle a changé" aide="Tes moyennes prévues sans cette note, puis avec." rang={3}>
           <Panneau>
-            <Ligne dernier={impact.generale === undefined}>
-              <Texte variante="liste" style={{ flex: 1 }} numberOfLines={2}>
-                Moyenne de {matiere}
-              </Texte>
-              {impact.matiere !== undefined ? (
-                <Ecart valeur={impact.matiere} />
-              ) : (
-                <Texte variante="petit" attenue>
-                  première note
-                </Texte>
-              )}
-            </Ligne>
-            {impact.generale !== undefined ? (
-              <Ligne dernier>
-                <Texte variante="liste" style={{ flex: 1 }}>
-                  Moyenne générale
-                </Texte>
-                <Ecart valeur={impact.generale} />
-              </Ligne>
-            ) : null}
+            <AvantApres libelle={`Moyenne de ${matiere}`} valeurs={impact.valeurs.matiere} dernier={impact.generale === undefined} />
+            {impact.generale !== undefined ? <AvantApres libelle="Moyenne générale" valeurs={impact.valeurs.generale} dernier /> : null}
           </Panneau>
         </Section>
       ) : null}
@@ -141,6 +123,42 @@ export default function DetailNote() {
         />
       </Entree>
     </Ecran>
+  );
+}
+
+/** « 13,57 → 13,91 » puis l'écart en clair ; sans valeur avant : c'est la première note. */
+function AvantApres({ libelle, valeurs, dernier }: { libelle: string; valeurs: { sans?: number; avec?: number }; dernier?: boolean }) {
+  const c = useCouleurs();
+  const { sans, avec } = valeurs;
+  if (avec === undefined) return null;
+  const d = sans !== undefined && avec !== undefined ? avec - sans : undefined;
+  const sens =
+    d === undefined || Math.abs(d) < 0.005
+      ? 'ne change pas'
+      : d > 0
+        ? `gagne ${moyenne(d)} point${Math.abs(d) >= 2 ? 's' : ''}`
+        : `perd ${moyenne(-d)} point${Math.abs(d) >= 2 ? 's' : ''}`;
+  return (
+    <Ligne
+      dernier={dernier}
+      libelleAccessible={`${libelle} : ${sans === undefined ? `première note, ${moyenne(avec)}` : `${moyenne(sans)} sans elle, ${moyenne(avec)} avec, elle ${sens}`}`}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Texte variante="liste" numberOfLines={2}>
+          {libelle}
+        </Texte>
+        <Texte variante="petit" style={{ color: d === undefined || Math.abs(d) < 0.005 ? c.attenue : d > 0 ? c.positif : c.negatif }}>
+          {sans === undefined ? 'Première note de la matière' : `Elle ${sens}`}
+        </Texte>
+      </View>
+      <Texte variante="liste" style={{ fontVariant: ['tabular-nums'] }}>
+        <Texte variante="liste" attenue>
+          {sans === undefined ? '' : `${moyenne(sans)} → `}
+        </Texte>
+        <Texte variante="liste" style={{ fontFamily: police.fort }}>
+          {moyenne(avec)}
+        </Texte>
+      </Texte>
+    </Ligne>
   );
 }
 

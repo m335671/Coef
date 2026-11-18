@@ -9,10 +9,10 @@ import type { Note } from '@/domain/types';
 import { impactMatiere } from '@/domain/moyennes/impact';
 import { useNotes } from '@/features/notes/store';
 import { evolution, vueNotes } from '@/features/notes/vue';
-import { Bouton, Chiffre, ChiffreAnime, Courbe, Ecart, Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
+import { Bouton, Chiffre, ChiffreAnime, Courbe, Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
 import { brute, coef, jour, moyenne } from '@/ui/format';
 import { Regle } from '@/ui/graphiques';
-import { espace, taille, useCouleurs } from '@/ui/theme';
+import { espace, police, taille, useCouleurs } from '@/ui/theme';
 
 const RAISON: Record<Exclusion, string> = {
   'non-significative': 'non significative',
@@ -39,6 +39,7 @@ export default function DetailMatiere() {
 
   const courbe = evolution(instantane.donnees, vue.periode, code);
   const poids = impactMatiere(vue.periode, instantane.donnees.notes, instantane.donnees.periodes, code, { parametrage: instantane.donnees.parametrage });
+  const generale = vue.resultat.generale;
   const classe = m.matiere.classe;
   const parId = new Map(instantane.donnees.notes.map((n) => [n.id, n]));
   const lignes = [m.matiere, ...m.matiere.sousMatieres].flatMap((s) =>
@@ -95,12 +96,26 @@ export default function DetailMatiere() {
                 <Chiffre valeur={classe.moyenne} />
               </Ligne>
             ) : null}
-            {poids !== undefined ? (
+            {poids !== undefined && generale !== undefined ? (
               <Ligne dernier>
-                <Texte variante="liste" style={{ flex: 1 }} numberOfLines={2}>
-                  Ce que cette matière fait à ta générale
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Texte variante="liste">Ta générale sans cette matière</Texte>
+                  <Texte variante="petit" style={{ color: Math.abs(poids) < 0.005 ? c.attenue : poids > 0 ? c.positif : c.negatif }}>
+                    {Math.abs(poids) < 0.005
+                      ? 'Elle ne change rien à ta générale'
+                      : poids > 0
+                        ? `Elle te fait gagner ${moyenne(poids)} point${poids >= 2 ? 's' : ''}`
+                        : `Elle te fait perdre ${moyenne(-poids)} point${-poids >= 2 ? 's' : ''}`}
+                  </Texte>
+                </View>
+                <Texte variante="liste" style={{ fontVariant: ['tabular-nums'] }}>
+                  <Texte variante="liste" attenue>
+                    {moyenne(generale - poids)} →{' '}
+                  </Texte>
+                  <Texte variante="liste" style={{ fontFamily: police.fort }}>
+                    {moyenne(generale)}
+                  </Texte>
                 </Texte>
-                <Ecart valeur={poids} />
               </Ligne>
             ) : null}
           </Panneau>

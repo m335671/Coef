@@ -14,7 +14,22 @@ import { useSimulation } from '@/features/notes/simulation';
 import { evolution, periodeParDefaut, vueNotes } from '@/features/notes/vue';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
 import { libelleMatiere } from '@/sync/annonce';
-import { Courbe, Ecart, Ecran, EnTete, Entree, Pastille, Presse, Pulsation, Squelette, Texte, useMinute } from '@/ui/composants';
+import {
+  BoutonRond,
+  Courbe,
+  Ecart,
+  Ecran,
+  EnTete,
+  Entree,
+  IconeActualiser,
+  Pastille,
+  Presse,
+  Pulsation,
+  Squelette,
+  Texte,
+  useDemarrage,
+  useMinute,
+} from '@/ui/composants';
 import { ajouterJours, brute, ecart, heure, iso, jour, jourCourt, jourLong, lundiDe, moyenne } from '@/ui/format';
 import { Anneau } from '@/ui/graphiques';
 import { Tuile } from '@/ui/Tuile';
@@ -34,18 +49,26 @@ export default function Accueil() {
   // Mêmes clés que les onglets : ce qui est chargé ici leur sert aussi (et l'inverse).
   const chargerNotes = useNotes((s) => s.charger);
   const charger = useDonneesED((s) => s.charger);
-  useEffect(() => {
+  const tout = (forcer = false) => {
     if (!id) return;
-    void chargerNotes(id);
-    void charger(cles.edt, (cl) => cl.emploiDuTemps(id, lundi, ajouterJours(lundi, 6)), coursDemo);
-    void charger(cles.devoirs, (cl) => cl.devoirs(id), devoirsDemo);
-    void charger(cles.vie, (cl) => cl.vieScolaire(id), vieScolaireDemo);
-  }, [id, lundi, cles.edt, cles.devoirs, cles.vie, chargerNotes, charger]);
+    void chargerNotes(id, forcer);
+    void charger(cles.edt, (cl) => cl.emploiDuTemps(id, lundi, ajouterJours(lundi, 6)), coursDemo, forcer);
+    void charger(cles.devoirs, (cl) => cl.devoirs(id), devoirsDemo, forcer);
+    void charger(cles.vie, (cl) => cl.vieScolaire(id), vieScolaireDemo, forcer);
+  };
+  useEffect(tout, [id, lundi, cles.edt, cles.devoirs, cles.vie, chargerNotes, charger]);
 
-  const instantane = useNotes((s) => s.eleves[id]?.instantane);
-  const cours = useDonnee<Cours[]>(cles.edt)?.valeur ?? [];
-  const devoirs = useDonnee<Devoir[]>(cles.devoirs)?.valeur ?? [];
+  const etatNotes = useNotes((s) => s.eleves[id]);
+  const instantane = etatNotes?.instantane;
+  const etatEdt = useDonnee<Cours[]>(cles.edt);
+  const etatDevoirs = useDonnee<Devoir[]>(cles.devoirs);
+  const cours = etatEdt?.valeur ?? [];
+  const devoirs = etatDevoirs?.valeur ?? [];
   const vie = useDonnee<EvenementVieScolaire[]>(cles.vie)?.valeur ?? [];
+  // Squelette tant que la donnée n'est pas là (et un court instant au lancement, pour que tout arrive d'un bloc).
+  const demarrage = useDemarrage();
+  const pret = (e?: { valeur?: unknown; chargement?: boolean }) => !demarrage && (e?.valeur !== undefined || e?.chargement === false);
+  const occupe = !!etatNotes?.chargement || !!etatEdt?.chargement || !!etatDevoirs?.chargement;
 
   const vue = useMemo(() => {
     const p = instantane && periodeParDefaut(instantane.donnees, aujourdhui);
@@ -90,7 +113,16 @@ export default function Accueil() {
             {date.replace(/^./, (x) => x.toUpperCase())}
           </Texte>
         </Entree>
-        <EnTete titre="Aujourd’hui" />
+        <EnTete
+          titre="Aujourd’hui"
+          action={
+            <BoutonRond libelle={occupe ? 'Actualisation en cours' : 'Tout actualiser'} onPress={() => !occupe && tout(true)}>
+              <View style={{ opacity: occupe ? 0.35 : 1 }}>
+                <IconeActualiser />
+              </View>
+            </BoutonRond>
+          }
+        />
       </View>
 
       <View style={styles.bento}>
@@ -103,9 +135,11 @@ export default function Accueil() {
           libelle={`Moyenne générale prévue ${g === undefined ? 'pas encore calculée' : moyenne(g)}. Ouvrir les notes`}>
           <View style={styles.rangee}>
             <Anneau valeur={g} taillePx={124} epaisseur={11} fond={c.teinte50} libelle="" reperes={reperes}>
-              <Texte style={{ fontFamily: police.gras, fontSize: 24, color: c.accent, fontVariant: ['tabular-nums'] }}>
-                {g === undefined ? '—' : moyenne(g)}
-              </Texte>
+              {g === undefined || demarrage ? (
+                <Squelette largeur={64} hauteur={24} />
+              ) : (
+                <Texte style={{ fontFamily: police.gras, fontSize: 24, color: c.accent, fontVariant: ['tabular-nums'] }}>{moyenne(g)}</Texte>
+              )}
               <Texte variante="petit" attenue>
                 sur 20
               </Texte>
@@ -146,7 +180,12 @@ export default function Accueil() {
             <Texte variante="petit" style={{ color: famille?.encre ?? c.accentEncre }}>
               {prochain && prochain.debut <= maintenant ? 'En ce moment' : 'Prochain cours'}
             </Texte>
-            {prochain ? (
+            {!pret(etatEdt) ? (
+              <View style={{ gap: espace.s, marginTop: espace.xs }}>
+                <Squelette largeur="85%" hauteur={18} />
+                <Squelette largeur="55%" hauteur={12} />
+              </View>
+            ) : prochain ? (
               <>
                 <Texte variante="section" numberOfLines={2} style={{ color: famille?.encre }}>
                   {prochain.matiere}
@@ -176,7 +215,12 @@ export default function Accueil() {
             <Texte variante="petit" attenue>
               {pour ? (pour === ajouterJours(aujourdhui, 1) ? 'Pour demain' : `Pour ${jourLong(pour)}`) : 'Devoirs'}
             </Texte>
-            {pour ? (
+            {!pret(etatDevoirs) ? (
+              <View style={{ gap: espace.s, marginTop: espace.xs }}>
+                <Squelette largeur={30} hauteur={30} />
+                <Squelette largeur="50%" hauteur={12} />
+              </View>
+            ) : pour ? (
               <>
                 <Texte style={{ fontFamily: police.gras, fontSize: 30, lineHeight: 34, color: c.texte, fontVariant: ['tabular-nums'] }}>{lot.length}</Texte>
                 <Texte variante="petit" style={{ color: lot.some((d) => d.interrogation) ? c.negatif : c.attenue }}>
@@ -193,7 +237,13 @@ export default function Accueil() {
 
         <Tuile rang={4} large fond={c.surface} bord={c.bord} onPress={() => router.navigate('/agenda')} libelle={`Ta journée : ${duJour.length} cours`}>
           <Texte variante="section">Ta journée</Texte>
-          {duJour.length === 0 ? (
+          {!pret(etatEdt) ? (
+            <View style={{ gap: espace.m, paddingVertical: espace.s }}>
+              {[70, 50, 62].map((l) => (
+                <Squelette key={l} largeur={`${l}%`} />
+              ))}
+            </View>
+          ) : duJour.length === 0 ? (
             <Texte variante="liste" attenue>
               Pas de cours aujourd’hui.
             </Texte>
@@ -245,7 +295,7 @@ export default function Accueil() {
               </Texte>
             </Presse>
           </View>
-          {!instantane ? (
+          {!instantane || demarrage ? (
             <View style={{ gap: espace.m, paddingVertical: espace.s }}>
               {[60, 45, 55].map((l) => (
                 <Squelette key={l} largeur={`${l}%`} />
@@ -284,7 +334,13 @@ export default function Accueil() {
 
         <Tuile rang={6} large fond={c.surface} bord={c.bord} onPress={() => router.navigate('/devoirs')} libelle={`${aFaire.length} devoirs à venir`}>
           <Texte variante="section">À venir</Texte>
-          {aVenir.length === 0 ? (
+          {!pret(etatDevoirs) ? (
+            <View style={{ gap: espace.m, paddingVertical: espace.s }}>
+              {[55, 65].map((l) => (
+                <Squelette key={l} largeur={`${l}%`} />
+              ))}
+            </View>
+          ) : aVenir.length === 0 ? (
             <Texte variante="liste" attenue>
               Rien à faire.
             </Texte>

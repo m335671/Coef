@@ -2,13 +2,16 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
+import Animated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
 import { avecHypotheses, type NoteHypothetique } from '@/domain/moyennes/simulateur';
 import type { Note, Periode } from '@/domain/types';
+import type { Famille } from '@/ui/theme';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { familleDe, NOM_FAMILLE, ORDRE_FAMILLES } from '@/features/notes/familles';
+import { deplacer, ordonner, TRIS, type Tri, trierNotes } from '@/features/notes/ordre';
 import { cleSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
 import { evolution, evolutionsMatieres, type LigneMatiere, periodeParDefaut, periodesAffichees, type VueNotes, vueNotes } from '@/features/notes/vue';
@@ -24,15 +27,18 @@ import {
   Ecart,
   Ecran,
   EnTete,
+  Feuille,
   IconeActualiser,
   Entree,
   IconeReglages,
+  ListeSquelette,
   Panneau,
   Pastille,
   Presse,
   Pulsation,
   Section,
   Segments,
+  Squelette,
   Texte,
 } from '@/ui/composants';
 import { brute, coef, jour, moyenne } from '@/ui/format';
@@ -43,6 +49,11 @@ import { espace, police, rayon, taille, useCouleurs, useFamilles } from '@/ui/th
 
 type Affichage = 'liste' | 'familles' | 'notes';
 const PREF_AFFICHAGE = 'notes.affichage';
+const PREF_ORDRE_MATIERES = 'notes.ordre.matieres';
+const PREF_ORDRE_FAMILLES = 'notes.ordre.familles';
+const PREF_TRI = 'notes.tri';
+/** Réorganisation : les lignes glissent à leur nouvelle place. */
+const GLISSE = LinearTransition.duration(260).reduceMotion(ReduceMotion.System);
 const AUCUNE: NoteHypothetique[] = [];
 
 export default function Notes() {
@@ -58,12 +69,33 @@ export default function Notes() {
   useEffect(() => {
     if (eleveId) void charger(eleveId);
   }, [eleveId, charger]);
+  const [ordreMatieres, setOrdreMatieres] = useState<string[]>([]);
+  const [ordreFamilles, setOrdreFamilles] = useState<Famille[]>(ORDRE_FAMILLES);
+  const [tri, setTri] = useState<Tri>('matiere');
+  const [edition, setEdition] = useState(false);
+  const [choixTri, setChoixTri] = useState(false);
   useEffect(() => {
-    if (!MODE_DEMO) void lirePreference<Affichage>(PREF_AFFICHAGE, 'liste').then(setAffichage, () => undefined);
+    if (MODE_DEMO) return;
+    void lirePreference<Affichage>(PREF_AFFICHAGE, 'liste').then(setAffichage, () => undefined);
+    void lirePreference<string[]>(PREF_ORDRE_MATIERES, []).then(setOrdreMatieres, () => undefined);
+    void lirePreference<Famille[]>(PREF_ORDRE_FAMILLES, ORDRE_FAMILLES).then(
+      (o) => setOrdreFamilles(ordonner(ORDRE_FAMILLES, o, (f) => f)),
+      () => undefined,
+    );
+    void lirePreference<Tri>(PREF_TRI, 'matiere').then(setTri, () => undefined);
   }, []);
+  const garder = <T,>(cle: string, v: T) => {
+    if (!MODE_DEMO) void ecrirePreference(cle, v);
+  };
   const changerAffichage = (a: Affichage) => {
     setAffichage(a);
-    if (!MODE_DEMO) void ecrirePreference(PREF_AFFICHAGE, a);
+    setEdition(false);
+    garder(PREF_AFFICHAGE, a);
+  };
+  const changerTri = (t: Tri) => {
+    setTri(t);
+    setChoixTri(false);
+    garder(PREF_TRI, t);
   };
 
   const instantane = etat?.instantane;
@@ -108,6 +140,21 @@ export default function Notes() {
   const tendances = useMemo(() => (instantaneVu && vue ? evolutionsMatieres(instantaneVu.donnees, vue.periode) : {}), [instantaneVu, vue]);
   /** Moyennes réelles par matière, quand la simulation est affichée (pour montrer « réelle » sous la simulée). */
   const reellesMatieres = simule && reelle ? new Map(reelle.matieres.map((l) => [l.matiere.code, l.matiere.moyenne])) : undefined;
+  const matieres = vue ? ordonner(vue.matieres, ordreMatieres, (l) => l.matiere.code) : [];
+  const deplacerMatiere = (code: string, sens: -1 | 1) => {
+    const o = deplacer(
+      matieres.map((l) => l.matiere.code),
+      code,
+      sens,
+    );
+    setOrdreMatieres(o);
+    garder(PREF_ORDRE_MATIERES, o);
+  };
+  const deplacerFamille = (visibles: Famille[]) => {
+    const o = ordonner(ORDRE_FAMILLES, visibles, (f) => f);
+    setOrdreFamilles(o);
+    garder(PREF_ORDRE_FAMILLES, o);
+  };
   const ouvrirSimulation = () =>
     router.push({
       pathname: '/simulateur',
@@ -138,9 +185,12 @@ export default function Notes() {
               </View>
             </BoutonRond>
             {vue ? (
-              <BoutonRond libelle="Simulation" onPress={ouvrirSimulation}>
+              <Presse onPress={ouvrirSimulation} libelleAccessible="Simuler des notes" style={[styles.simuler, { backgroundColor: c.teinte100 }]}>
                 <IconeSimulation />
-              </BoutonRond>
+                <Texte variante="petit" style={{ color: c.accentEncre, fontFamily: police.fort }}>
+                  Simuler
+                </Texte>
+              </Presse>
             ) : null}
             <BoutonRond libelle="Réglages" onPress={() => router.push('/reglages')}>
               <IconeReglages />
@@ -177,6 +227,11 @@ export default function Notes() {
           onReessayer={() => charger(eleveId, true)}
         />
       </Entree>
+      {!vue && etat?.chargement !== false ? (
+        <Section titre="Matières" rang={3}>
+          <ListeSquelette lignes={5} libelle="Chargement des matières" />
+        </Section>
+      ) : null}
       {vue && instantane ? (
         <>
           {vue.nouvelles.length > 0 ? (
@@ -214,7 +269,30 @@ export default function Notes() {
               </View>
             </Section>
           ) : null}
-          <Section titre="Matières" aide={`${vue.periode.libelle} · moyennes ${simule ? 'simulées' : 'prévues'}`} rang={5}>
+          <Section
+            titre="Matières"
+            aide={edition ? 'Flèches : change l’ordre. Il est gardé sur ce téléphone.' : `${vue.periode.libelle} · moyennes ${simule ? 'simulées' : 'prévues'}`}
+            rang={5}
+            action={
+              affichage === 'notes' ? (
+                <BoutonRond libelle={`Trier les notes : ${TRIS[tri]}`} onPress={() => setChoixTri(true)}>
+                  <IconeTri />
+                </BoutonRond>
+              ) : edition ? (
+                <Presse
+                  onPress={() => setEdition(false)}
+                  libelleAccessible="Terminer la réorganisation"
+                  style={[styles.simuler, { backgroundColor: c.accent }]}>
+                  <Texte variante="petit" style={{ color: c.surAccent, fontFamily: police.fort }}>
+                    OK
+                  </Texte>
+                </Presse>
+              ) : (
+                <BoutonRond libelle={affichage === 'familles' ? 'Réorganiser les familles' : 'Réorganiser les matières'} onPress={() => setEdition(true)}>
+                  <IconeCrayon />
+                </BoutonRond>
+              )
+            }>
             <Segments
               libelle="Affichage des matières"
               options={[
@@ -225,25 +303,59 @@ export default function Notes() {
               valeur={affichage}
               onChange={changerAffichage}
             />
-            {affichage === 'liste' ? (
-              <View>
-                {vue.matieres.map((l, i) => (
-                  <LigneMatiereListe
-                    key={l.matiere.code}
-                    l={l}
-                    rang={6 + i}
-                    tendance={tendances[l.matiere.code] ?? []}
-                    reelle={reellesMatieres ? { valeur: reellesMatieres.get(l.matiere.code) } : undefined}
-                    dernier={i === vue.matieres.length - 1}
-                    onPress={() => ouvrir(l.matiere.code)}
-                  />
+            {/* Changer d'affichage ou de tri rejoue l'entrée : le contenu arrive en fondu. */}
+            <Entree key={affichage === 'notes' ? `notes-${tri}` : affichage}>
+              {affichage === 'liste' ? (
+                <View>
+                  {matieres.map((l, i) => (
+                    <Animated.View key={l.matiere.code} layout={GLISSE}>
+                      <LigneMatiereListe
+                        l={l}
+                        rang={i}
+                        tendance={tendances[l.matiere.code] ?? []}
+                        reelle={reellesMatieres ? { valeur: reellesMatieres.get(l.matiere.code) } : undefined}
+                        dernier={i === matieres.length - 1}
+                        onPress={() => ouvrir(l.matiere.code)}
+                        edition={
+                          edition
+                            ? { premier: i === 0, dernier: i === matieres.length - 1, deplacer: (sens) => deplacerMatiere(l.matiere.code, sens) }
+                            : undefined
+                        }
+                      />
+                    </Animated.View>
+                  ))}
+                </View>
+              ) : affichage === 'familles' ? (
+                <ParFamille vue={vue} matieres={matieres} ordre={ordreFamilles} onPress={ouvrir} edition={edition} onDeplacer={deplacerFamille} />
+              ) : (
+                <ParNote
+                  vue={vue}
+                  matieres={matieres}
+                  tri={tri}
+                  notes={instantaneVu!.donnees.notes}
+                  etaitSimulee={etaitSimulee}
+                  onMatiere={ouvrir}
+                  onNote={ouvrirNote}
+                />
+              )}
+            </Entree>
+            <Feuille visible={choixTri} onFermer={() => setChoixTri(false)} titre="Trier les notes">
+              <View style={{ gap: 2 }}>
+                {(Object.keys(TRIS) as Tri[]).map((t) => (
+                  <Presse
+                    key={t}
+                    onPress={() => changerTri(t)}
+                    role="radio"
+                    selectionne={t === tri}
+                    libelleAccessible={TRIS[t]}
+                    style={[styles.optionTri, { backgroundColor: t === tri ? c.teinte100 : 'transparent' }]}>
+                    <Texte variante="liste" style={{ color: t === tri ? c.accentEncre : c.texte, fontFamily: t === tri ? police.fort : undefined }}>
+                      {TRIS[t]}
+                    </Texte>
+                  </Presse>
                 ))}
               </View>
-            ) : affichage === 'familles' ? (
-              <ParFamille vue={vue} onPress={ouvrir} />
-            ) : (
-              <ParNote vue={vue} notes={instantaneVu!.donnees.notes} etaitSimulee={etaitSimulee} onMatiere={ouvrir} onNote={ouvrirNote} />
-            )}
+            </Feuille>
           </Section>
           <Texte variante="petit" attenue>
             Moyennes prévues par Coef à partir de tes notes. Client non officiel, non affilié à EcoleDirecte.
@@ -274,12 +386,16 @@ function groupesPeriodes(periodes: Periode[]) {
 /** Toutes les notes de la période, rangées par matière, de la plus récente à la plus ancienne. */
 function ParNote({
   vue,
+  matieres,
+  tri,
   notes,
   etaitSimulee,
   onMatiere,
   onNote,
 }: {
   vue: VueNotes;
+  matieres: LigneMatiere[];
+  tri: Tri;
   notes: Note[];
   etaitSimulee: Map<string, NoteHypothetique>;
   onMatiere: (code: string) => void;
@@ -287,7 +403,8 @@ function ParNote({
 }) {
   const c = useCouleurs();
   const parId = new Map(notes.map((n) => [n.id, n]));
-  const groupes = vue.matieres
+  if (tri !== 'matiere') return <NotesTriees vue={vue} matieres={matieres} tri={tri} notes={notes} onNote={onNote} />;
+  const groupes = matieres
     .map(({ matiere: m }) => ({
       m,
       lignes: [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)].map((d) => ({ d, n: parId.get(d.id)! })).sort((a, b) => b.n.date.localeCompare(a.n.date)),
@@ -303,7 +420,7 @@ function ParNote({
   return (
     <View style={{ gap: espace.l }}>
       {groupes.map(({ m, lignes }, i) => (
-        <Entree key={m.code} rang={6 + i} style={{ gap: espace.xs }}>
+        <Entree key={m.code} rang={i} style={{ gap: espace.xs }}>
           <Presse onPress={() => onMatiere(m.code)} libelleAccessible={`${m.libelle}, voir le détail`} style={styles.rangee}>
             <Texte variante="section" style={{ flex: 1 }} numberOfLines={1}>
               {m.libelle}
@@ -362,7 +479,7 @@ function IconeSimulation() {
   );
 }
 
-/** Une matière : bande de sa famille, mini-courbe de tendance, variation à sa dernière note ; simulée : sa moyenne réelle dessous. */
+/** Une matière : bande de sa famille, mini-courbe de tendance ; simulée : sa moyenne réelle dessous. En réorganisation : flèches. */
 function LigneMatiereListe({
   l,
   rang,
@@ -370,6 +487,7 @@ function LigneMatiereListe({
   reelle,
   dernier,
   onPress,
+  edition,
 }: {
   l: LigneMatiere;
   rang: number;
@@ -377,62 +495,115 @@ function LigneMatiereListe({
   reelle?: { valeur?: number };
   dernier: boolean;
   onPress: () => void;
+  edition?: Deplacement;
 }) {
   const c = useCouleurs();
   const famille = useFamilles()[familleDe(l.matiere.code, l.matiere.libelle)];
   const m = l.matiere;
   const simulee = reelle !== undefined && reelle.valeur !== m.moyenne;
-  const variation = tendance.length > 1 ? tendance.at(-1)! - tendance.at(-2)! : undefined;
   const etat = m.moyenne === undefined ? 'pas de note' : `moyenne ${simulee ? 'simulée' : 'prévue'} ${moyenne(m.moyenne)}`;
   return (
     <Entree rang={rang}>
-      <Presse
-        onPress={onPress}
-        libelleAccessible={`${m.libelle}, coefficient ${coef(m.coef)}, ${etat}${simulee && reelle.valeur !== undefined ? `, réelle ${moyenne(reelle.valeur)}` : ''}`}
-        style={[styles.ligneMatiere, { borderBottomColor: c.filet, borderBottomWidth: dernier ? 0 : StyleSheet.hairlineWidth }]}>
-        <View style={[styles.bande, { backgroundColor: famille.trait }]} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <Texte variante="liste" moyen numberOfLines={2}>
-            {m.libelle}
-          </Texte>
-          <View style={styles.rangee}>
-            <MiniCourbe points={tendance} couleur={famille.trait} />
-            <Texte variante="petit" attenue>
-              coef {coef(m.coef)}
+      {edition ? (
+        // En réorganisation, la ligne n'est plus un bouton : seules ses flèches répondent.
+        <View style={[styles.ligneMatiere, { borderBottomColor: c.filet, borderBottomWidth: dernier ? 0 : StyleSheet.hairlineWidth }]}>
+          <View style={[styles.bande, { backgroundColor: famille.trait }]} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Texte variante="liste" moyen numberOfLines={2}>
+              {m.libelle}
             </Texte>
+            <View style={styles.rangee}>
+              <MiniCourbe points={tendance} couleur={famille.trait} />
+              <Texte variante="petit" attenue>
+                coef {coef(m.coef)}
+              </Texte>
+            </View>
           </View>
+          <Fleches nom={m.libelle} {...edition} />
         </View>
-        <View style={styles.colonne}>
-          <Chiffre valeur={m.moyenne} couleur={simulee ? c.negatif : undefined} />
-          {simulee ? (
-            <Texte variante="petit" attenue style={{ fontVariant: ['tabular-nums'] }}>
-              {reelle.valeur === undefined ? 'simulée' : `réelle ${moyenne(reelle.valeur)}`}
+      ) : (
+        <Presse
+          onPress={onPress}
+          libelleAccessible={`${m.libelle}, coefficient ${coef(m.coef)}, ${etat}${simulee && reelle.valeur !== undefined ? `, réelle ${moyenne(reelle.valeur)}` : ''}`}
+          style={[styles.ligneMatiere, { borderBottomColor: c.filet, borderBottomWidth: dernier ? 0 : StyleSheet.hairlineWidth }]}>
+          <View style={[styles.bande, { backgroundColor: famille.trait }]} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Texte variante="liste" moyen numberOfLines={2}>
+              {m.libelle}
             </Texte>
-          ) : variation !== undefined ? (
-            <Ecart valeur={variation} />
-          ) : null}
-        </View>
-      </Presse>
+            <View style={styles.rangee}>
+              <MiniCourbe points={tendance} couleur={famille.trait} />
+              <Texte variante="petit" attenue>
+                coef {coef(m.coef)}
+              </Texte>
+            </View>
+          </View>
+          <View style={styles.colonne}>
+            <Chiffre valeur={m.moyenne} couleur={simulee ? c.negatif : undefined} />
+            {simulee ? (
+              <Texte variante="petit" attenue style={{ fontVariant: ['tabular-nums'] }}>
+                {reelle.valeur === undefined ? 'simulée' : `réelle ${moyenne(reelle.valeur)}`}
+              </Texte>
+            ) : null}
+          </View>
+        </Presse>
+      )}
     </Entree>
   );
 }
 
 /** Affichage « par famille » (repris du style pastel) : une tuile teintée par famille, ses matières dedans. */
-function ParFamille({ vue, onPress }: { vue: VueNotes; onPress: (code: string) => void }) {
+function ParFamille({
+  vue,
+  matieres,
+  ordre,
+  onPress,
+  edition,
+  onDeplacer,
+}: {
+  vue: VueNotes;
+  matieres: LigneMatiere[];
+  ordre: Famille[];
+  onPress: (code: string) => void;
+  edition: boolean;
+  /** Nouvel ordre des familles visibles. */
+  onDeplacer: (ordre: Famille[]) => void;
+}) {
   const c = useCouleurs();
   const familles = useFamilles();
   const nouvelles = new Set(vue.nouvelles.map((n) => n.matiereCode));
-  const groupes = ORDRE_FAMILLES.map((f) => ({
-    f,
-    lignes: vue.matieres.filter((l) => familleDe(l.matiere.code, l.matiere.libelle) === f),
-  })).filter((g) => g.lignes.length > 0);
+  const groupes = ordre
+    .map((f) => ({
+      f,
+      lignes: matieres.filter((l) => familleDe(l.matiere.code, l.matiere.libelle) === f),
+    }))
+    .filter((g) => g.lignes.length > 0);
   return (
     <View style={{ gap: espace.m }}>
       {groupes.map(({ f, lignes }, i) => (
-        <Entree key={f} rang={6 + i} style={[styles.famille, { backgroundColor: familles[f].fond }]}>
-          <Texte variante="section" role="heading" aria-level={3} style={{ color: familles[f].encre }}>
-            {NOM_FAMILLE[f]}
-          </Texte>
+        <Animated.View key={f} layout={GLISSE} style={[styles.famille, { backgroundColor: familles[f].fond }]}>
+          <View style={styles.rangee}>
+            <Texte variante="section" role="heading" aria-level={3} style={{ flex: 1, color: familles[f].encre }}>
+              {NOM_FAMILLE[f]}
+            </Texte>
+            {edition ? (
+              <Fleches
+                nom={NOM_FAMILLE[f]}
+                premier={i === 0}
+                dernier={i === groupes.length - 1}
+                deplacer={(sens) =>
+                  onDeplacer(
+                    deplacer(
+                      groupes.map((g) => g.f),
+                      f,
+                      sens,
+                    ),
+                  )
+                }
+                encre={familles[f].encre}
+              />
+            ) : null}
+          </View>
           {lignes.map(({ matiere: m }) => (
             <Presse
               key={m.code}
@@ -446,9 +617,128 @@ function ParFamille({ vue, onPress }: { vue: VueNotes; onPress: (code: string) =
               <Chiffre valeur={m.moyenne} taillePx={16} couleur={familles[f].encre} />
             </Presse>
           ))}
-        </Entree>
+        </Animated.View>
       ))}
     </View>
+  );
+}
+
+type Deplacement = { premier: boolean; dernier: boolean; deplacer: (sens: -1 | 1) => void };
+
+/** Monter, descendre : la réorganisation au doigt, sans glisser-déposer (plus sûr au lecteur d'écran). */
+function Fleches({ nom, premier, dernier, deplacer, encre }: Deplacement & { nom: string; encre?: string }) {
+  const c = useCouleurs();
+  const couleur = encre ?? c.accent;
+  return (
+    <View style={styles.fleches}>
+      {(
+        [
+          [-1, 'M6 15l6-6 6 6', 'Monter', premier],
+          [1, 'M6 9l6 6 6-6', 'Descendre', dernier],
+        ] as const
+      ).map(([sens, d, verbe, bloque]) => (
+        <Presse
+          key={sens}
+          onPress={() => deplacer(sens)}
+          desactive={bloque}
+          libelleAccessible={`${verbe} ${nom}`}
+          style={[styles.fleche, { backgroundColor: `${couleur}22`, opacity: bloque ? 0.3 : 1 }]}>
+          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={couleur} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+            <Path d={d} />
+          </Svg>
+        </Presse>
+      ))}
+    </View>
+  );
+}
+
+/** Toutes les notes de la période en une liste, triées (récentes, meilleures, moins bonnes) ; la matière sous chaque note. */
+function NotesTriees({
+  vue,
+  matieres,
+  tri,
+  notes,
+  onNote,
+}: {
+  vue: VueNotes;
+  matieres: LigneMatiere[];
+  tri: Exclude<Tri, 'matiere'>;
+  notes: Note[];
+  onNote: (id: string) => void;
+}) {
+  const c = useCouleurs();
+  const familles = useFamilles();
+  const ids = new Set(matieres.flatMap(({ matiere: m }) => [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)]).map((d) => d.id));
+  const exclues = new Set(
+    matieres
+      .flatMap(({ matiere: m }) => [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)])
+      .filter((d) => d.exclue)
+      .map((d) => d.id),
+  );
+  const libelle = new Map(vue.matieres.map((l) => [l.matiere.code, l.matiere.libelle]));
+  const liste = trierNotes(
+    notes.filter((n) => ids.has(n.id)),
+    tri,
+  );
+  if (liste.length === 0) {
+    return (
+      <Texte variante="liste" attenue>
+        Aucune note pour l’instant dans cette période.
+      </Texte>
+    );
+  }
+  return (
+    <Panneau>
+      {liste.map((n, j) => {
+        const simulee = n.id.startsWith('hypothese-');
+        const nom = libelle.get(n.matiereCode) ?? n.matiereCode;
+        return (
+          <Animated.View key={n.id} layout={GLISSE}>
+            <Presse
+              onPress={simulee ? undefined : () => onNote(n.id)}
+              libelleAccessible={`${nom}, ${n.devoir || 'devoir'}, ${brute(n.valeurBrute)} sur ${n.noteSur}`}
+              style={[styles.ligneNote, { borderBottomColor: c.filet, borderBottomWidth: j === liste.length - 1 ? 0 : StyleSheet.hairlineWidth }]}>
+              <View style={[styles.bande, { backgroundColor: familles[familleDe(n.matiereCode, nom)].trait }]} />
+              <View style={{ flex: 1 }}>
+                <Texte variante="liste" numberOfLines={1} style={simulee ? { color: c.negatif } : undefined}>
+                  {simulee ? 'Note simulée' : n.devoir || 'Devoir'}
+                </Texte>
+                <Texte variante="petit" attenue numberOfLines={1}>
+                  {nom} · {jour(n.date)} · coef {coef(n.coef)}
+                  {exclues.has(n.id) ? ' · non comptée' : ''}
+                </Texte>
+              </View>
+              <Texte variante="liste" attenue={exclues.has(n.id)} style={[styles.note, simulee ? { color: c.negatif } : undefined]}>
+                {brute(n.valeurBrute)}
+                <Texte variante="liste" attenue>
+                  /{n.noteSur}
+                </Texte>
+              </Texte>
+            </Presse>
+          </Animated.View>
+        );
+      })}
+    </Panneau>
+  );
+}
+
+function IconeCrayon() {
+  const c = useCouleurs();
+  return (
+    <Svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z" />
+      <Path d="M13.5 6.5l4 4" />
+    </Svg>
+  );
+}
+
+function IconeTri() {
+  const c = useCouleurs();
+  return (
+    <Svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M7 4v16M3.5 16.5L7 20l3.5-3.5" />
+      <Path d="M13 6h8M13 11h6M13 16h4" />
+    </Svg>
   );
 }
 
@@ -512,6 +802,7 @@ function Moyenne({
 }) {
   const c = useCouleurs();
   const [survol, setSurvol] = useState<number>();
+  const [detailED, setDetailED] = useState(false);
   const pointSurvole = survol === undefined ? undefined : courbe[survol];
   const g = vue?.resultat.generale;
   const officielle = vue?.resultat.officielleGenerale;
@@ -550,10 +841,20 @@ function Moyenne({
         </Texte>
         {reelle !== undefined ? (
           <Pastille texte="Simulation" fond={c.surface} encre={c.negatif} />
-        ) : cal?.verifie ? (
-          <Pastille texte="Calcul vérifié" />
         ) : cal && cal.comparees > 0 ? (
-          <Pastille texte={`Écart ${moyenne(cal.ecartMax)} avec ED`} />
+          <Presse
+            onPress={() => setDetailED(true)}
+            libelleAccessible={cal.verifie ? 'Calcul vérifié avec EcoleDirecte. Voir le détail' : 'Calcul différent d’EcoleDirecte. Voir le détail'}>
+            <Pastille
+              texte={
+                cal.verifie
+                  ? 'Calcul vérifié ›'
+                  : `${cal.ecarts.filter((e) => e.ecart >= 0.005).length} écart${cal.ecarts.filter((e) => e.ecart >= 0.005).length > 1 ? 's' : ''} avec ED ›`
+              }
+              fond={cal.verifie ? undefined : c.surface}
+              encre={cal.verifie ? undefined : c.negatif}
+            />
+          </Presse>
         ) : null}
       </View>
       {vue ? (
@@ -569,7 +870,7 @@ function Moyenne({
           </Texte>
         </Anneau>
       ) : (
-        <View style={[styles.attente, { backgroundColor: c.teinte100 }]} />
+        <Squelette largeur={184} hauteur={184} style={{ alignSelf: 'center' }} />
       )}
       {g !== undefined ? (
         <ZoomMoyenne
@@ -585,7 +886,10 @@ function Moyenne({
       ) : null}
       {/* L'objectif se règle et s'affiche ou se masque dans Simulation, onglet Objectif : masqué, il n'apparaît nulle part ici. */}
       {objectif !== undefined && objectifAffiche ? (
-        <Presse onPress={onModifierObjectif} libelleAccessible={`Objectif ${moyenne(objectif)}. Modifier dans la simulation`} style={[styles.rangee, { minHeight: 44 }]}>
+        <Presse
+          onPress={onModifierObjectif}
+          libelleAccessible={`Objectif ${moyenne(objectif)}. Modifier dans la simulation`}
+          style={[styles.rangee, { minHeight: 44 }]}>
           <View style={[styles.pointObjectif, { backgroundColor: c.objectif }]} />
           <Texte variante="petit" style={{ flex: 1, color: c.objectif, fontFamily: police.fort, fontVariant: ['tabular-nums'] }}>
             Objectif {moyenne(objectif)}
@@ -618,6 +922,7 @@ function Moyenne({
           {etatED}
         </Texte>
       ) : null}
+      {cal ? <ComparaisonED visible={detailED} onFermer={() => setDetailED(false)} vue={vue!} /> : null}
       {erreur ? (
         <View style={{ gap: espace.xs }}>
           <Texte variante="liste">
@@ -635,7 +940,50 @@ function Moyenne({
   );
 }
 
+/** Le détail derrière « Calcul vérifié » : chaque moyenne ED comparée au calcul de Coef, les écarts d'abord. */
+function ComparaisonED({ visible, onFermer, vue }: { visible: boolean; onFermer: () => void; vue: VueNotes }) {
+  const c = useCouleurs();
+  const cal = vue.calibration;
+  const ecarts = [...cal.ecarts].sort((a, b) => b.ecart - a.ecart);
+  const calcul = vue.periode.dateCalcul;
+  return (
+    <Feuille visible={visible} onFermer={onFermer} titre={cal.verifie ? 'Calcul vérifié' : 'Écarts avec EcoleDirecte'}>
+      <Texte variante="petit" attenue>
+        EcoleDirecte recalcule ses moyennes une fois par nuit{calcul ? ` (dernier calcul le ${jour(calcul)})` : ''}. Coef refait ce calcul avec les mêmes notes,
+        sans celles saisies depuis, et compare au centième près.
+        {cal.verifie
+          ? ' Tout tombe juste : la moyenne prévue suit la règle de ton établissement.'
+          : ' Une différence persistante veut dire qu’ED applique une règle que Coef ne connaît pas encore.'}
+      </Texte>
+      <View style={{ maxHeight: 380 }}>
+        <Animated.ScrollView contentContainerStyle={{ paddingBottom: espace.m }}>
+          {ecarts.map((e, i) => (
+            <View key={i} style={[styles.ligneED, { borderBottomColor: c.filet, borderBottomWidth: i === ecarts.length - 1 ? 0 : StyleSheet.hairlineWidth }]}>
+              <Texte variante="liste" numberOfLines={2} style={{ flex: 1 }}>
+                {e.libelle}
+              </Texte>
+              <Texte variante="petit" attenue style={{ fontVariant: ['tabular-nums'] }}>
+                Coef {e.prevue === undefined ? '—' : moyenne(e.prevue)} · ED {moyenne(e.officielle)}
+              </Texte>
+              <Pastille
+                texte={e.ecart < 0.005 ? 'juste' : Number.isFinite(e.ecart) ? `écart ${moyenne(e.ecart)}` : 'absente'}
+                fond={e.ecart < 0.005 ? undefined : c.surface}
+                encre={e.ecart < 0.005 ? undefined : c.negatif}
+              />
+            </View>
+          ))}
+        </Animated.ScrollView>
+      </View>
+    </Feuille>
+  );
+}
+
 const styles = StyleSheet.create({
+  simuler: { minHeight: 44, borderRadius: 22, paddingHorizontal: espace.m, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  optionTri: { minHeight: 52, borderRadius: 14, paddingHorizontal: espace.m, justifyContent: 'center' },
+  fleches: { flexDirection: 'row', gap: espace.xs },
+  fleche: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  ligneED: { flexDirection: 'row', alignItems: 'center', gap: espace.s, minHeight: 52, paddingVertical: espace.s },
   bande: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
   simulee: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 12, paddingHorizontal: espace.s, marginVertical: 2, overflow: 'hidden' },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },

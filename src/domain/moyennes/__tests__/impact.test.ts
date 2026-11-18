@@ -1,7 +1,15 @@
 import type { MatierePeriode, Note, Periode } from '../../types';
 import { impactMatiere, impactNote, leviers } from '../impact';
 
-const periode = (matieres: MatierePeriode[]): Periode => ({ code: 'A001', libelle: 'T1', type: 'trimestre', debut: '2026-09-01', fin: '2026-11-30', cloture: false, matieres });
+const periode = (matieres: MatierePeriode[]): Periode => ({
+  code: 'A001',
+  libelle: 'T1',
+  type: 'trimestre',
+  debut: '2026-09-01',
+  fin: '2026-11-30',
+  cloture: false,
+  matieres,
+});
 const note = (id: string, matiereCode: string, valeurBrute: string, coef = 1): Note => ({
   id,
   periodeCode: 'A001',
@@ -23,9 +31,13 @@ const notes = [note('a', 'MATHS', '8'), note('b', 'MATHS', '12'), note('c', 'PHI
 
 test('impact d’une note : sur sa matière et sur la générale', () => {
   // Avec : MATHS 10, PHILO 16 → (30 + 16) / 4 = 11,5. Sans « b » : MATHS 8 → (24 + 16) / 4 = 10.
-  expect(impactNote(p, notes, [], 'b')).toEqual({ generale: 1.5, matiere: 2 });
+  expect(impactNote(p, notes, [], 'b')).toEqual({
+    generale: 1.5,
+    matiere: 2,
+    valeurs: { generale: { sans: 10, avec: 11.5 }, matiere: { sans: 8, avec: 10 } },
+  });
   // Seule note de sa matière : la matière disparaît, son impact sur elle-même n'existe pas.
-  expect(impactNote(p, notes, [], 'c')).toEqual({ generale: 11.5 - 10, matiere: undefined });
+  expect(impactNote(p, notes, [], 'c')).toMatchObject({ generale: 11.5 - 10, matiere: undefined, valeurs: { matiere: { sans: undefined, avec: 16 } } });
   expect(impactNote(p, notes, [], 'inconnue')).toEqual({});
 });
 
