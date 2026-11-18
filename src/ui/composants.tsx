@@ -616,13 +616,13 @@ export function Courbe({
   const [survol, setSurvol] = useState<number>();
   const largeurVue = useRef(0);
   const dernier = useRef<number>(undefined);
-  const { xy, d, longueur, fin, milieu } = useMemo(() => {
+  const { xy, d, longueur, fin } = useMemo(() => {
     const min = Math.min(...points) - 0.3;
     const max = Math.max(...points) + 0.3;
     const xy = points.map((p, i) => [points.length === 1 ? largeur : (i / (points.length - 1)) * (largeur - 8) + 4, hauteur - 6 - ((p - min) / (max - min)) * (hauteur - 12)] as const);
     let l = 0;
     for (let i = 1; i < xy.length; i++) l += Math.hypot(xy[i]![0] - xy[i - 1]![0], xy[i]![1] - xy[i - 1]![1]);
-    return { xy, d: xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' '), longueur: Math.max(l, 1), fin: xy.at(-1)!, milieu: hauteur / 2 };
+    return { xy, d: xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' '), longueur: Math.max(l, 1), fin: xy.at(-1)! };
   }, [points, hauteur]);
   useEffect(() => {
     trace.value = 0;
@@ -654,7 +654,6 @@ export function Courbe({
     <GestureDetector gesture={geste}>
       <View accessible accessibilityRole="image" accessibilityLabel={libelle} onLayout={(e) => (largeurVue.current = e.nativeEvent.layout.width)}>
         <Svg width="100%" height={hauteur} viewBox={`0 0 ${largeur} ${hauteur}`} preserveAspectRatio="none">
-          <Line x1={0} y1={milieu} x2={largeur} y2={milieu} stroke={c.teinte100} strokeDasharray="3 5" />
           {p === undefined ? (
             <>
               <CheminAnime d={d} fill="none" stroke={teinte} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={longueur} animatedProps={props} />
