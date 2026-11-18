@@ -6,7 +6,7 @@ import { AppState } from 'react-native';
 
 import { ClientED, reconnexion } from '@/api/ecoledirecte/client';
 import { versProfil } from '@/api/ecoledirecte/mapping';
-import { depot, lirePreference } from '@/storage/base';
+import { depot, ecrirePreference, lirePreference } from '@/storage/base';
 import { comptesEnregistres, lireAcces, sauverAcces } from '@/storage/secrets';
 
 import { afficher, type EcranVerrouille } from '../../modules/notifications-locales';
@@ -18,13 +18,19 @@ import { synchroniser } from './synchro';
 
 export const TACHE = 'coef.synchro-notes';
 export const PREF_ECRAN_VERROUILLE = 'notifications.ecran-verrouille';
+/** Bilan de la dernière synchro d'arrière-plan, affiché dans Réglages : sans lui, un échec passe inaperçu. */
+export const PREF_BILAN_FOND = 'synchro.fond';
+export type BilanFond = { date: string; resultat: 'ok' | 'premier-plan' | 'echec'; notifiees?: number; erreur?: string };
+const bilan = (b: Omit<BilanFond, 'date'>) =>
+  ecrirePreference(PREF_BILAN_FOND, { date: new Date().toISOString(), ...b } satisfies BilanFond).catch(() => undefined);
 /** Minutes. Le système peut espacer davantage (batterie, réseau). */
 const INTERVALLE = 60;
 
 const idNotification = (eleveId: string) => Number(eleveId) % 2_147_483_647 || 1;
 
 /** Synchronise chaque élève de chaque compte enregistré et notifie ses nouvelles notes. */
-export async function synchroniserComptes(): Promise<void> {
+export async function synchroniserComptes(): Promise<number> {
+  let notifiees = 0;
   const ecranVerrouille = await lirePreference<EcranVerrouille>(PREF_ECRAN_VERROUILLE, 'rien');
   for (const id of await comptesEnregistres()) {
     const acces = await lireAcces(id);
@@ -41,19 +47,27 @@ export async function synchroniserComptes(): Promise<void> {
       const remplacees = await remplacerEnBase(e.id, r.nouvelles, d);
       // Une note simulée est arrivée : notification dédiée (elle prime sur « nouvelle note »).
       const a = annonceRemplacement(remplacees, d, (n) => libelleMatiere(d, n), prenom) ?? annonce(r, d, prenom);
-      if (a) await afficher(idNotification(e.id), a.titre, a.texte, ecranVerrouille);
+      if (a && (await afficher(idNotification(e.id), a.titre, a.texte, ecranVerrouille))) notifiees++;
     }
   }
+  return notifiees;
 }
 
 TaskManager.defineTask(TACHE, async () => {
   // App au premier plan : elle synchronise elle-même. Deux reconnexions simultanées useraient deux fois
   // le même accessToken (usage unique) et déconnecteraient le compte.
-  if (AppState.currentState === 'active') return BackgroundTask.BackgroundTaskResult.Success;
-  try {
-    await synchroniserComptes();
+  if (AppState.currentState === 'active') {
+    await bilan({ resultat: 'premier-plan' });
     return BackgroundTask.BackgroundTaskResult.Success;
-  } catch {
+  }
+  try {
+    await bilan({ resultat: 'ok', notifiees: await synchroniserComptes() });
+    return BackgroundTask.BackgroundTaskResult.Success;
+  } catch (e) {
+    // Le message d'erreur ne contient ni identifiant ni jeton (ErreurED, ErreurReseau) : il peut être gardé et montré.
+    const erreur = e instanceof Error ? `${e.name} : ${e.message}` : String(e);
+    console.warn('[coef] synchro de fond :', erreur);
+    await bilan({ resultat: 'echec', erreur });
     return BackgroundTask.BackgroundTaskResult.Failed;
   }
 });

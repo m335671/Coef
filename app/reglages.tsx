@@ -12,7 +12,7 @@ import { useNotes } from '@/features/notes/store';
 import { annonce } from '@/sync/annonce';
 import { depot, ecrirePreference, lirePreference } from '@/storage/base';
 import { synchroniser } from '@/sync/synchro';
-import { PREF_ECRAN_VERROUILLE } from '@/sync/tache';
+import { type BilanFond, PREF_BILAN_FOND, PREF_ECRAN_VERROUILLE } from '@/sync/tache';
 import { Bouton, Ecran, EnTete, Ligne, Panneau, Section, Texte } from '@/ui/composants';
 import { espace, useCouleurs } from '@/ui/theme';
 
@@ -33,8 +33,11 @@ export default function Reglages() {
   const [ecran, setEcran] = useState<EcranVerrouille>('rien');
   const [info, setInfo] = useState('');
 
+  const [bilanFond, setBilanFond] = useState<BilanFond>();
   useEffect(() => {
-    if (!MODE_DEMO) void lirePreference<EcranVerrouille>(PREF_ECRAN_VERROUILLE, 'rien').then(setEcran, () => undefined);
+    if (MODE_DEMO) return;
+    void lirePreference<EcranVerrouille>(PREF_ECRAN_VERROUILLE, 'rien').then(setEcran, () => undefined);
+    void lirePreference<BilanFond | undefined>(PREF_BILAN_FOND, undefined).then(setBilanFond, () => undefined);
   }, []);
 
   function choisir(v: EcranVerrouille) {
@@ -66,7 +69,11 @@ export default function Reglages() {
       const i = await depot.lire(eleveId);
       const derniere = i && [...i.donnees.notes].sort((a, b) => (a.dateSaisie ?? a.date).localeCompare(b.dateSaisie ?? b.date)).pop();
       if (!i || !derniere || !client) return setInfo('Synchronise d’abord tes notes.');
-      await depot.ecrire(eleveId, { ...i, donnees: { ...i.donnees, notes: i.donnees.notes.filter((n) => n.id !== derniere.id) }, synchro: new Date(0).toISOString() });
+      await depot.ecrire(eleveId, {
+        ...i,
+        donnees: { ...i.donnees, notes: i.donnees.notes.filter((n) => n.id !== derniere.id) },
+        synchro: new Date(0).toISOString(),
+      });
       const r = await synchroniser(eleveId, () => client.notes(eleveId), depot);
       const a = annonce(r, r.instantane.donnees);
       const ok = a ? await afficher(1, a.titre, a.texte, ecran) : false;
@@ -91,6 +98,19 @@ export default function Reglages() {
             <Choix key={ch.cle} {...ch} actif={ecran === ch.cle} dernier={i === CHOIX.length - 1} onPress={() => choisir(ch.cle)} />
           ))}
         </Panneau>
+        <Texte variante="petit" attenue>
+          {!bilanFond
+            ? 'Vérification en arrière-plan : pas encore passée. Android choisit le moment (batterie, réseau).'
+            : `Dernière vérification en arrière-plan : ${new Date(bilanFond.date).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}, ${
+                bilanFond.resultat === 'ok'
+                  ? bilanFond.notifiees
+                    ? `${bilanFond.notifiees} notification${bilanFond.notifiees > 1 ? 's' : ''}`
+                    : 'rien de nouveau'
+                  : bilanFond.resultat === 'premier-plan'
+                    ? 'app ouverte, elle s’en est chargée'
+                    : `échec (${bilanFond.erreur})`
+              }.`}
+        </Texte>
       </Section>
 
       {!MODE_DEMO ? (
@@ -110,15 +130,14 @@ export default function Reglages() {
 
       <Section titre="Confidentialité">
         <Texte variante="liste">
-          Tes notes restent sur ce téléphone, dans une base chiffrée dont la clé ne le quitte jamais. Coef ne parle qu’à EcoleDirecte :
-          aucun serveur à nous, aucune mesure d’audience, aucune publicité.
+          Tes notes restent sur ce téléphone, dans une base chiffrée dont la clé ne le quitte jamais. Coef ne parle qu’à EcoleDirecte : aucun serveur à nous,
+          aucune mesure d’audience, aucune publicité.
         </Texte>
       </Section>
 
       <Section titre="À propos">
         <Texte variante="liste">
-          Coef est un client non officiel, non affilié à EcoleDirecte ni à Aplim. Les moyennes affichées sont prévues par l’app ;
-          seule EcoleDirecte fait foi.
+          Coef est un client non officiel, non affilié à EcoleDirecte ni à Aplim. Les moyennes affichées sont prévues par l’app ; seule EcoleDirecte fait foi.
         </Texte>
       </Section>
 
@@ -139,7 +158,9 @@ function Choix({ titre, aide, actif, dernier, onPress }: { titre: string; aide: 
   const c = useCouleurs();
   return (
     <Ligne dernier={dernier} onPress={onPress} libelleAccessible={`${titre}${actif ? ', choisi' : ''}`}>
-      <View style={[styles.radio, { borderColor: actif ? c.accent : c.controle }]}>{actif ? <View style={[styles.point, { backgroundColor: c.accent }]} /> : null}</View>
+      <View style={[styles.radio, { borderColor: actif ? c.accent : c.controle }]}>
+        {actif ? <View style={[styles.point, { backgroundColor: c.accent }]} /> : null}
+      </View>
       <View style={{ flex: 1, gap: espace.xs }}>
         <Texte variante="liste" moyen>
           {titre}
