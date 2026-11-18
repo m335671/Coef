@@ -3,6 +3,12 @@
 /** Hôtes EcoleDirecte autorisés. Toute autre destination est refusée avant envoi. */
 export const HOTES_AUTORISES = ['api.ecoledirecte.com'] as const;
 
+/**
+ * Banc d'essai des notifications seulement (`scripts/faux-ed.mjs`, docs/REPRISE.md) : faux serveur ED local,
+ * fixé à la construction de l'APK d'essai. Jamais défini pour les APK publiés : la liste blanche reste alors seule.
+ */
+export const FAUX_ED = process.env.EXPO_PUBLIC_FAUX_ED || undefined;
+
 const DELAI_MAX_MS = 30_000;
 
 export class ErreurReseau extends Error {
@@ -22,6 +28,7 @@ export function verifierHote(url: string): URL {
   } catch {
     throw new ErreurReseau('Adresse invalide.');
   }
+  if (FAUX_ED && url.startsWith(FAUX_ED)) return u;
   if (u.protocol !== 'https:' || !(HOTES_AUTORISES as readonly string[]).includes(u.hostname)) {
     throw new ErreurReseau(`Hôte refusé : ${u.hostname}`);
   }

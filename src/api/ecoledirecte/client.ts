@@ -3,7 +3,7 @@ import type { z } from 'zod';
 
 import type { Cours, Devoir, DocumentEleve, DonneesNotes, EvenementVieScolaire, Fichier, Message } from '@/domain/types';
 
-import { ErreurReseau, requete } from '../http';
+import { ErreurReseau, FAUX_ED, requete } from '../http';
 import { decoderBase64, encoderBase64 } from './base64';
 import { CAPTURE, capturer } from './capture';
 import { ErreurED } from './erreurs';
@@ -24,7 +24,7 @@ import {
   vieScolaire,
 } from './schemas';
 
-export const API = 'https://api.ecoledirecte.com/v3';
+export const API = FAUX_ED ?? 'https://api.ecoledirecte.com/v3';
 /** Paramètre v= : hypothèse, à corriger ici si ED renvoie le code 517. */
 export const VERSION_API = '8.0.0';
 // Même User-Agent que blocksdirecte (Papillon, en production) : un User-Agent à nous serait peut-être refusé.
