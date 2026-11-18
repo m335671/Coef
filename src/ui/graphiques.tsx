@@ -268,19 +268,6 @@ export function Regle({
   return <Echelle min={0} max={sur} pas={sur / 4} sousPas={sur % 4 === 0 && sur >= 8 ? sur / 20 : sur / 4} plage={plage} marques={marques} libelle={libelle} />;
 }
 
-/**
- * Zoom sur la générale : l'échelle ne couvre que l'intervalle utile (au moins 2 points), au quart de point près.
- * Rend lisibles les écarts que l'anneau sur 20 écrase (13,70 contre un objectif de 14).
- */
-export function ZoomMoyenne({ marques, libelle }: { marques: Marque[]; libelle: string }) {
-  const valeurs = marques.map((m) => m.valeur);
-  let min = Math.max(0, Math.floor(Math.min(...valeurs) - 0.5));
-  let max = Math.min(20, Math.ceil(Math.max(...valeurs) + 0.5));
-  if (max - min < 2) [min, max] = max >= 20 ? [18, 20] : [min, min + 2];
-  const ecart = max - min;
-  return <Echelle min={min} max={max} pas={ecart <= 6 ? 1 : 2} sousPas={ecart <= 3 ? 0.25 : ecart <= 6 ? 0.5 : 1} marques={marques} libelle={libelle} />;
-}
-
 /** Hachures orange du simulé, en fond d'un bloc (le parent pose `overflow: 'hidden'` et son arrondi). */
 export function Hachures({ couleur, opacite = 0.14 }: { couleur?: string; opacite?: number }) {
   const c = useCouleurs();

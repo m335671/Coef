@@ -20,9 +20,6 @@ import {
 import { GestureDetector, GestureHandlerRootView, usePanGesture } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
-  FadeIn,
-  SlideInDown,
-  ReduceMotion,
   runOnJS,
   useAnimatedProps,
   useAnimatedReaction,
@@ -464,16 +461,36 @@ export function Segments<T extends string | number>({
   );
 }
 
+/**
+ * Montée d'une feuille : voile en fondu, feuille qui glisse du bas. Style animé (transform, opacité) et non animation
+ * d'entrée : sur Android, celle-ci mesurait la feuille avant sa mise en page finale, elle montait trop haut puis
+ * retombait.
+ */
+function useMontee(visible: boolean) {
+  const reduit = useReducedMotion();
+  const p = useSharedValue(0);
+  useEffect(() => {
+    if (visible) {
+      p.value = 0;
+      p.value = reduit ? 1 : withTiming(1, { duration: 300, easing: EASE });
+    }
+  }, [visible, reduit, p]);
+  const voile = useAnimatedStyle(() => ({ opacity: Math.min(p.value * 1.6, 1) }));
+  const feuille = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - p.value) * 520 }] }));
+  return { voile, feuille };
+}
+
 /** Feuille qui monte du bas, sur un voile : choix ou saisie rapide sans quitter l'écran. */
 export function Feuille({ visible, onFermer, titre, children }: { visible: boolean; onFermer: () => void; titre: string; children: ReactNode }) {
   const c = useCouleurs();
+  const m = useMontee(visible);
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onFermer} statusBarTranslucent>
       {/* Android : une Modal est une fenêtre native à part, les gestes (curseur) y ont besoin de leur propre racine. */}
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <Animated.View entering={FadeIn.duration(180)} style={styles.voile}>
+        <Animated.View style={[styles.voile, m.voile]}>
           <Pressable accessibilityLabel="Fermer" style={StyleSheet.absoluteFill} onPress={onFermer} />
-          <Animated.View entering={SlideInDown.duration(300).easing(EASE).reduceMotion(ReduceMotion.System)} style={[styles.feuille, { backgroundColor: c.surface, paddingBottom: espace.xxl }]}>
+          <Animated.View style={[styles.feuille, { backgroundColor: c.surface, paddingBottom: espace.xxl }, m.feuille]}>
             <View style={[styles.poignee, { backgroundColor: c.controle }]} />
             <Texte variante="section" role="heading" aria-level={2}>
               {titre}
@@ -505,6 +522,7 @@ export function Deroulant<T extends string | number>({
 }) {
   const c = useCouleurs();
   const [ouvert, setOuvert] = useState(false);
+  const m = useMontee(ouvert);
   const courant = groupes.flatMap((g) => g.options).find((o) => o.cle === valeur);
   return (
     <>
@@ -515,9 +533,9 @@ export function Deroulant<T extends string | number>({
         </Svg>
       </Presse>
       <Modal visible={ouvert} transparent animationType="none" onRequestClose={() => setOuvert(false)} statusBarTranslucent>
-        <Animated.View entering={FadeIn.duration(180)} style={styles.voile}>
+        <Animated.View style={[styles.voile, m.voile]}>
           <Pressable accessibilityLabel="Fermer" style={StyleSheet.absoluteFill} onPress={() => setOuvert(false)} />
-          <Animated.View entering={SlideInDown.duration(300).easing(EASE).reduceMotion(ReduceMotion.System)} style={[styles.feuille, { backgroundColor: c.surface }]}>
+          <Animated.View style={[styles.feuille, { backgroundColor: c.surface }, m.feuille]}>
             <View style={[styles.poignee, { backgroundColor: c.controle }]} />
             <Texte variante="section" role="heading" aria-level={2}>
               {libelle}

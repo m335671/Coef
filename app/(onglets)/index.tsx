@@ -96,7 +96,9 @@ export default function Accueil() {
     const ids = new Set(vue.matieres.flatMap(({ matiere: m }) => [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)].map((n) => n.id)));
     return instantane.donnees.notes
       .filter((n) => ids.has(n.id))
-      .sort((a, b) => b.date.localeCompare(a.date))
+      // Les dernières reçues (date de saisie par le professeur), pas les derniers devoirs : une note d'un vieux
+      // contrôle saisie aujourd'hui apparaît en tête.
+      .sort((a, b) => (b.dateSaisie ?? b.date).localeCompare(a.dateSaisie ?? a.date) || b.date.localeCompare(a.date))
       .slice(0, 4);
   }, [vue, instantane]);
   const nouvelles = new Set(vue?.nouvelles.map((n) => n.id));

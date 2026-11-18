@@ -1,8 +1,8 @@
 // Écran des notes, la vitrine. Sa question : « Où en est ma moyenne ce trimestre, et qu'est-ce qui l'a fait bouger ? »
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
-import Animated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
@@ -11,7 +11,7 @@ import type { Note, Periode } from '@/domain/types';
 import type { Famille } from '@/ui/theme';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { familleDe, NOM_FAMILLE, ORDRE_FAMILLES } from '@/features/notes/familles';
-import { deplacer, ordonner, TRIS, type Tri, trierNotes } from '@/features/notes/ordre';
+import { ordonner, TRIS, type Tri, trierNotes } from '@/features/notes/ordre';
 import { cleSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
 import { evolution, evolutionsMatieres, type LigneMatiere, periodeParDefaut, periodesAffichees, type VueNotes, vueNotes } from '@/features/notes/vue';
@@ -42,9 +42,10 @@ import {
   Texte,
 } from '@/ui/composants';
 import { brute, coef, jour, moyenne } from '@/ui/format';
-import { Anneau, Hachures, MiniCourbe, ZoomMoyenne } from '@/ui/graphiques';
+import { Anneau, Echelle, Hachures, MiniCourbe } from '@/ui/graphiques';
 import Svg, { Path } from 'react-native-svg';
 
+import { ListeTriable } from '@/ui/ListeTriable';
 import { espace, police, rayon, taille, useCouleurs, useFamilles } from '@/ui/theme';
 
 type Affichage = 'liste' | 'familles' | 'notes';
@@ -52,8 +53,6 @@ const PREF_AFFICHAGE = 'notes.affichage';
 const PREF_ORDRE_MATIERES = 'notes.ordre.matieres';
 const PREF_ORDRE_FAMILLES = 'notes.ordre.familles';
 const PREF_TRI = 'notes.tri';
-/** Réorganisation : les lignes glissent à leur nouvelle place. */
-const GLISSE = LinearTransition.duration(260).reduceMotion(ReduceMotion.System);
 const AUCUNE: NoteHypothetique[] = [];
 
 export default function Notes() {
@@ -141,12 +140,7 @@ export default function Notes() {
   /** Moyennes réelles par matière, quand la simulation est affichée (pour montrer « réelle » sous la simulée). */
   const reellesMatieres = simule && reelle ? new Map(reelle.matieres.map((l) => [l.matiere.code, l.matiere.moyenne])) : undefined;
   const matieres = vue ? ordonner(vue.matieres, ordreMatieres, (l) => l.matiere.code) : [];
-  const deplacerMatiere = (code: string, sens: -1 | 1) => {
-    const o = deplacer(
-      matieres.map((l) => l.matiere.code),
-      code,
-      sens,
-    );
+  const ordonnerMatieres = (o: string[]) => {
     setOrdreMatieres(o);
     garder(PREF_ORDRE_MATIERES, o);
   };
@@ -271,27 +265,33 @@ export default function Notes() {
           ) : null}
           <Section
             titre="Matières"
-            aide={edition ? 'Flèches : change l’ordre. Il est gardé sur ce téléphone.' : `${vue.periode.libelle} · moyennes ${simule ? 'simulées' : 'prévues'}`}
+            aide={
+              edition
+                ? 'Attrape ≡ et fais glisser. L’ordre est gardé sur ce téléphone.'
+                : `${vue.periode.libelle} · moyennes ${simule ? 'simulées' : 'prévues'}`
+            }
             rang={5}
             action={
-              affichage === 'notes' ? (
-                <BoutonRond libelle={`Trier les notes : ${TRIS[tri]}`} onPress={() => setChoixTri(true)}>
-                  <IconeTri />
-                </BoutonRond>
-              ) : edition ? (
-                <Presse
-                  onPress={() => setEdition(false)}
-                  libelleAccessible="Terminer la réorganisation"
-                  style={[styles.simuler, { backgroundColor: c.accent }]}>
-                  <Texte variante="petit" style={{ color: c.surAccent, fontFamily: police.fort }}>
-                    OK
-                  </Texte>
-                </Presse>
-              ) : (
-                <BoutonRond libelle={affichage === 'familles' ? 'Réorganiser les familles' : 'Réorganiser les matières'} onPress={() => setEdition(true)}>
-                  <IconeCrayon />
-                </BoutonRond>
-              )
+              <Bascule key={affichage === 'notes' ? 'tri' : edition ? 'ok' : 'crayon'}>
+                {affichage === 'notes' ? (
+                  <BoutonRond libelle={`Trier les notes : ${TRIS[tri]}`} onPress={() => setChoixTri(true)}>
+                    <IconeTri />
+                  </BoutonRond>
+                ) : edition ? (
+                  <Presse
+                    onPress={() => setEdition(false)}
+                    libelleAccessible="Terminer la réorganisation"
+                    style={[styles.simuler, { backgroundColor: c.accent }]}>
+                    <Texte variante="petit" style={{ color: c.surAccent, fontFamily: police.fort }}>
+                      OK
+                    </Texte>
+                  </Presse>
+                ) : (
+                  <BoutonRond libelle={affichage === 'familles' ? 'Réorganiser les familles' : 'Réorganiser les matières'} onPress={() => setEdition(true)}>
+                    <IconeCrayon />
+                  </BoutonRond>
+                )}
+              </Bascule>
             }>
             <Segments
               libelle="Affichage des matières"
@@ -306,25 +306,31 @@ export default function Notes() {
             {/* Changer d'affichage ou de tri rejoue l'entrée : le contenu arrive en fondu. */}
             <Entree key={affichage === 'notes' ? `notes-${tri}` : affichage}>
               {affichage === 'liste' ? (
-                <View>
-                  {matieres.map((l, i) => (
-                    <Animated.View key={l.matiere.code} layout={GLISSE}>
+                edition ? (
+                  <ListeTriable
+                    items={matieres}
+                    cle={(l) => l.matiere.code}
+                    nom={(l) => l.matiere.libelle}
+                    onOrdre={ordonnerMatieres}
+                    rendu={(l, poignee) => (
+                      <LigneMatiereListe l={l} rang={0} tendance={tendances[l.matiere.code] ?? []} dernier onPress={() => undefined} poignee={poignee} />
+                    )}
+                  />
+                ) : (
+                  <View>
+                    {matieres.map((l, i) => (
                       <LigneMatiereListe
+                        key={l.matiere.code}
                         l={l}
                         rang={i}
                         tendance={tendances[l.matiere.code] ?? []}
                         reelle={reellesMatieres ? { valeur: reellesMatieres.get(l.matiere.code) } : undefined}
                         dernier={i === matieres.length - 1}
                         onPress={() => ouvrir(l.matiere.code)}
-                        edition={
-                          edition
-                            ? { premier: i === 0, dernier: i === matieres.length - 1, deplacer: (sens) => deplacerMatiere(l.matiere.code, sens) }
-                            : undefined
-                        }
                       />
-                    </Animated.View>
-                  ))}
-                </View>
+                    ))}
+                  </View>
+                )
               ) : affichage === 'familles' ? (
                 <ParFamille vue={vue} matieres={matieres} ordre={ordreFamilles} onPress={ouvrir} edition={edition} onDeplacer={deplacerFamille} />
               ) : (
@@ -479,7 +485,7 @@ function IconeSimulation() {
   );
 }
 
-/** Une matière : bande de sa famille, mini-courbe de tendance ; simulée : sa moyenne réelle dessous. En réorganisation : flèches. */
+/** Une matière : bande de sa famille, mini-courbe de tendance ; simulée : sa moyenne réelle dessous. En réorganisation : la poignée. */
 function LigneMatiereListe({
   l,
   rang,
@@ -487,7 +493,7 @@ function LigneMatiereListe({
   reelle,
   dernier,
   onPress,
-  edition,
+  poignee,
 }: {
   l: LigneMatiere;
   rang: number;
@@ -495,7 +501,8 @@ function LigneMatiereListe({
   reelle?: { valeur?: number };
   dernier: boolean;
   onPress: () => void;
-  edition?: Deplacement;
+  /** En réorganisation : la ligne n'est plus un bouton, la poignée remplace la moyenne. */
+  poignee?: ReactNode;
 }) {
   const c = useCouleurs();
   const famille = useFamilles()[familleDe(l.matiere.code, l.matiere.libelle)];
@@ -504,9 +511,8 @@ function LigneMatiereListe({
   const etat = m.moyenne === undefined ? 'pas de note' : `moyenne ${simulee ? 'simulée' : 'prévue'} ${moyenne(m.moyenne)}`;
   return (
     <Entree rang={rang}>
-      {edition ? (
-        // En réorganisation, la ligne n'est plus un bouton : seules ses flèches répondent.
-        <View style={[styles.ligneMatiere, { borderBottomColor: c.filet, borderBottomWidth: dernier ? 0 : StyleSheet.hairlineWidth }]}>
+      {poignee ? (
+        <View style={[styles.ligneMatiere, styles.ligneTenue, { backgroundColor: c.fond, borderBottomColor: c.filet }]}>
           <View style={[styles.bande, { backgroundColor: famille.trait }]} />
           <View style={{ flex: 1, gap: 2 }}>
             <Texte variante="liste" moyen numberOfLines={2}>
@@ -519,7 +525,7 @@ function LigneMatiereListe({
               </Texte>
             </View>
           </View>
-          <Fleches nom={m.libelle} {...edition} />
+          {poignee}
         </View>
       ) : (
         <Presse
@@ -578,31 +584,37 @@ function ParFamille({
       lignes: matieres.filter((l) => familleDe(l.matiere.code, l.matiere.libelle) === f),
     }))
     .filter((g) => g.lignes.length > 0);
+  if (edition) {
+    // Repliées le temps de la réorganisation : des tuiles courtes se déplacent plus facilement.
+    return (
+      <ListeTriable
+        items={groupes}
+        cle={(g) => g.f}
+        nom={(g) => NOM_FAMILLE[g.f]}
+        gap={espace.s}
+        onOrdre={(o) => onDeplacer(o as Famille[])}
+        rendu={(g, poignee) => (
+          <View style={[styles.famille, styles.rangee, { backgroundColor: familles[g.f].fond, paddingVertical: espace.s }]}>
+            <Texte variante="section" style={{ flex: 1, color: familles[g.f].encre }}>
+              {NOM_FAMILLE[g.f]}
+            </Texte>
+            <Texte variante="petit" style={{ color: familles[g.f].encre }}>
+              {g.lignes.length} matière{g.lignes.length > 1 ? 's' : ''}
+            </Texte>
+            {poignee}
+          </View>
+        )}
+      />
+    );
+  }
   return (
     <View style={{ gap: espace.m }}>
-      {groupes.map(({ f, lignes }, i) => (
-        <Animated.View key={f} layout={GLISSE} style={[styles.famille, { backgroundColor: familles[f].fond }]}>
+      {groupes.map(({ f, lignes }) => (
+        <View key={f} style={[styles.famille, { backgroundColor: familles[f].fond }]}>
           <View style={styles.rangee}>
             <Texte variante="section" role="heading" aria-level={3} style={{ flex: 1, color: familles[f].encre }}>
               {NOM_FAMILLE[f]}
             </Texte>
-            {edition ? (
-              <Fleches
-                nom={NOM_FAMILLE[f]}
-                premier={i === 0}
-                dernier={i === groupes.length - 1}
-                deplacer={(sens) =>
-                  onDeplacer(
-                    deplacer(
-                      groupes.map((g) => g.f),
-                      f,
-                      sens,
-                    ),
-                  )
-                }
-                encre={familles[f].encre}
-              />
-            ) : null}
           </View>
           {lignes.map(({ matiere: m }) => (
             <Presse
@@ -617,36 +629,7 @@ function ParFamille({
               <Chiffre valeur={m.moyenne} taillePx={16} couleur={familles[f].encre} />
             </Presse>
           ))}
-        </Animated.View>
-      ))}
-    </View>
-  );
-}
-
-type Deplacement = { premier: boolean; dernier: boolean; deplacer: (sens: -1 | 1) => void };
-
-/** Monter, descendre : la réorganisation au doigt, sans glisser-déposer (plus sûr au lecteur d'écran). */
-function Fleches({ nom, premier, dernier, deplacer, encre }: Deplacement & { nom: string; encre?: string }) {
-  const c = useCouleurs();
-  const couleur = encre ?? c.accent;
-  return (
-    <View style={styles.fleches}>
-      {(
-        [
-          [-1, 'M6 15l6-6 6 6', 'Monter', premier],
-          [1, 'M6 9l6 6 6-6', 'Descendre', dernier],
-        ] as const
-      ).map(([sens, d, verbe, bloque]) => (
-        <Presse
-          key={sens}
-          onPress={() => deplacer(sens)}
-          desactive={bloque}
-          libelleAccessible={`${verbe} ${nom}`}
-          style={[styles.fleche, { backgroundColor: `${couleur}22`, opacity: bloque ? 0.3 : 1 }]}>
-          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={couleur} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
-            <Path d={d} />
-          </Svg>
-        </Presse>
+        </View>
       ))}
     </View>
   );
@@ -693,7 +676,7 @@ function NotesTriees({
         const simulee = n.id.startsWith('hypothese-');
         const nom = libelle.get(n.matiereCode) ?? n.matiereCode;
         return (
-          <Animated.View key={n.id} layout={GLISSE}>
+          <View key={n.id}>
             <Presse
               onPress={simulee ? undefined : () => onNote(n.id)}
               libelleAccessible={`${nom}, ${n.devoir || 'devoir'}, ${brute(n.valeurBrute)} sur ${n.noteSur}`}
@@ -715,11 +698,25 @@ function NotesTriees({
                 </Texte>
               </Texte>
             </Presse>
-          </Animated.View>
+          </View>
         );
       })}
     </Panneau>
   );
+}
+
+/** Le bouton à droite de « Matières » change (crayon, OK, tri) : le nouveau arrive en tournant, avec un petit rebond. */
+function Bascule({ children }: { children: ReactNode }) {
+  const reduit = useReducedMotion();
+  const p = useSharedValue(reduit ? 1 : 0);
+  useEffect(() => {
+    if (!reduit) p.set(withSpring(1, { damping: 13, stiffness: 240 }));
+  }, [reduit, p]);
+  const style = useAnimatedStyle(() => ({
+    opacity: Math.min(p.get() * 1.5, 1),
+    transform: [{ scale: 0.4 + 0.6 * p.get() }, { rotate: `${(1 - p.get()) * -120}deg` }],
+  }));
+  return <Animated.View style={style}>{children}</Animated.View>;
 }
 
 function IconeCrayon() {
@@ -873,7 +870,11 @@ function Moyenne({
         <Squelette largeur={184} hauteur={184} style={{ alignSelf: 'center' }} />
       )}
       {g !== undefined ? (
-        <ZoomMoyenne
+        <Echelle
+          min={0}
+          max={20}
+          pas={5}
+          sousPas={1}
           marques={[
             { valeur: g, couleur: teinte, texte: `${simule ? 'simulée' : 'toi'} ${moyenne(g)}`, forme: 'point' },
             ...(simule && reelle !== g
@@ -981,8 +982,7 @@ function ComparaisonED({ visible, onFermer, vue }: { visible: boolean; onFermer:
 const styles = StyleSheet.create({
   simuler: { minHeight: 44, borderRadius: 22, paddingHorizontal: espace.m, flexDirection: 'row', alignItems: 'center', gap: 6 },
   optionTri: { minHeight: 52, borderRadius: 14, paddingHorizontal: espace.m, justifyContent: 'center' },
-  fleches: { flexDirection: 'row', gap: espace.xs },
-  fleche: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  ligneTenue: { borderBottomWidth: StyleSheet.hairlineWidth, borderRadius: 12, paddingRight: 0 },
   ligneED: { flexDirection: 'row', alignItems: 'center', gap: espace.s, minHeight: 52, paddingVertical: espace.s },
   bande: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
   simulee: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 12, paddingHorizontal: espace.s, marginVertical: 2, overflow: 'hidden' },
