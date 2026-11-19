@@ -184,6 +184,9 @@ export async function reconnexion(acces: Acces): Promise<Session> {
 }
 
 /** Appels authentifiés, avec reconnexion silencieuse une fois si le jeton a expiré. */
+/** Années passées demandées au plus pour les documents. */
+const ANNEES_ARCHIVES = 8;
+
 export class ClientED {
   private renouvellement?: Promise<void>;
 
@@ -270,10 +273,32 @@ export class ClientED {
     return versMessage(valider(messageED, data, 'messages/id'), annee);
   }
 
-  /** Documents de l'élève (bulletins, certificats…). Pour un compte parent, filtrés sur l'enfant. */
-  async documents(eleveId?: string): Promise<DocumentEleve[]> {
-    const data = await this.post('/elevesDocuments.awp?archive=', {});
-    return versDocuments(valider(documentsED, data ?? {}, 'elevesDocuments'), eleveId);
+  /**
+   * Documents de l'élève (bulletins, certificats…), de cette année puis des années passées, en remontant tant qu'ED
+   * en donne de nouveaux. Pour un compte parent, filtrés sur l'enfant. Format des années : hypothèse, docs/API-ED.md.
+   */
+  async documents(eleveId?: string, aujourdhui = jourLocal()): Promise<DocumentEleve[]> {
+    const lire = async (archive?: string) =>
+      versDocuments(valider(documentsED, (await this.post(`/elevesDocuments.awp?archive=${archive ?? ''}`, {})) ?? {}, 'elevesDocuments'), eleveId, archive);
+    const tous = await lire();
+    const vus = new Set(tous.map((d) => `${d.type}-${d.id}`));
+    let a = Number(anneeScolaire(aujourdhui).slice(0, 4));
+    // ponytail: on s'arrête à la première année vide ; une année sans document au milieu cacherait les plus anciennes.
+    for (let i = 0; i < ANNEES_ARCHIVES; i++) {
+      a -= 1;
+      let liste: DocumentEleve[];
+      try {
+        liste = await lire(`${a}-${a + 1}`);
+      } catch {
+        break; // année refusée par ED : on garde ce qu'on a
+      }
+      // Rien de neuf : année vide, ou ED ignore le paramètre et renvoie l'année en cours.
+      const nouveaux = liste.filter((d) => !vus.has(`${d.type}-${d.id}`));
+      if (nouveaux.length === 0) break;
+      for (const d of nouveaux) vus.add(`${d.type}-${d.id}`);
+      tous.push(...nouveaux);
+    }
+    return tous;
   }
 
   /**
@@ -281,7 +306,7 @@ export class ClientED {
    * d'erreur (session expirée : une reconnexion puis un nouvel essai). Paramètres supposés : docs/API-ED.md.
    */
   async telecharger(f: Fichier): Promise<{ octets: Uint8Array; typeMime?: string }> {
-    const q = new URLSearchParams({ verbe: 'get', fichierId: f.id, leTypeDeFichier: f.type, ...(f.annee ? { anneeMessages: f.annee } : {}), v: VERSION_API });
+    const q = new URLSearchParams({ verbe: 'get', fichierId: f.id, leTypeDeFichier: f.type, ...(f.annee ? { anneeMessages: f.annee } : {}), ...(f.archive ? { archive: 'true', anneeArchive: f.archive } : {}), v: VERSION_API });
     const essai = async () => {
       let rep: Response;
       try {

@@ -134,6 +134,8 @@ export type Fichier = {
   date?: string;
   /** Année scolaire de la messagerie (pièces jointes seulement). */
   annee?: string;
+  /** Document d'une année passée : son année scolaire (AAAA-AAAA). */
+  archive?: string;
 };
 
 /** Un message reçu. `contenu` n'est là qu'une fois le message ouvert (ED le marque alors comme lu). */

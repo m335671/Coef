@@ -268,7 +268,7 @@ const CATEGORIES: Record<string, string> = {
 };
 
 /** Documents rangés par catégorie ; les entrées illisibles sont ignorées, une catégorie inconnue garde son nom. */
-export function versDocuments(d: Record<string, unknown>, eleveId?: string): DocumentEleve[] {
+export function versDocuments(d: Record<string, unknown>, eleveId?: string, archive?: string): DocumentEleve[] {
   const sortie: DocumentEleve[] = [];
   for (const [cle, liste] of Object.entries(d)) {
     if (!Array.isArray(liste)) continue;
@@ -278,7 +278,7 @@ export function versDocuments(d: Record<string, unknown>, eleveId?: string): Doc
       const x = r.data;
       if (eleveId && x.idEleve !== undefined && x.idEleve !== null && String(x.idEleve) !== eleveId && String(x.idEleve) !== '0') continue;
       const f: Fichier = { id: String(x.id), libelle: x.libelle || 'Document', type: x.type || 'Doc', date: x.date?.slice(0, 10) || undefined };
-      sortie.push({ ...f, categorie: CATEGORIES[cle] ?? cle });
+      sortie.push({ ...f, categorie: CATEGORIES[cle] ?? cle, ...(archive ? { archive } : {}) });
     }
   }
   return sortie.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));

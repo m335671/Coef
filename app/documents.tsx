@@ -20,7 +20,9 @@ export default function Documents() {
   useEffect(() => void recharger(), [cle]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const docs = etat?.valeur ?? [];
-  const categories = [...new Set(docs.map((d) => d.categorie))];
+  // Une section par catégorie et par année : cette année d'abord, puis les années passées.
+  const groupe = (d: DocumentEleve) => (d.archive ? `${d.categorie} · ${d.archive}` : d.categorie);
+  const categories = [...new Set(docs.map(groupe))];
 
   return (
     <Ecran>
@@ -51,7 +53,7 @@ export default function Documents() {
         </Texte>
       ) : (
         categories.map((cat, i) => {
-          const liste = docs.filter((d) => d.categorie === cat);
+          const liste = docs.filter((d) => groupe(d) === cat);
           return (
             <Section key={cat} titre={cat} rang={1 + i}>
               <Panneau>
@@ -64,7 +66,7 @@ export default function Documents() {
         })
       )}
       <Texte variante="petit" attenue>
-        Un document s’ouvre avec le visualiseur du téléphone. Seul le dernier ouvert reste dans le cache de Coef ; « Tout effacer » le supprime.
+        Les documents des années passées sont listés après ceux de cette année. Un document s’ouvre avec le visualiseur du téléphone. Seul le dernier ouvert reste dans le cache de Coef ; « Tout effacer » le supprime.
       </Texte>
     </Ecran>
   );
