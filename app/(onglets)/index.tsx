@@ -22,6 +22,7 @@ import {
   EnTete,
   Entree,
   IconeActualiser,
+  IconeReglages,
   Pastille,
   Presse,
   Pulsation,
@@ -118,11 +119,16 @@ export default function Accueil() {
         <EnTete
           titre="Aujourd’hui"
           action={
-            <BoutonRond libelle={occupe ? 'Actualisation en cours' : 'Tout actualiser'} onPress={() => !occupe && tout(true)}>
-              <View style={{ opacity: occupe ? 0.35 : 1 }}>
-                <IconeActualiser />
-              </View>
-            </BoutonRond>
+            <View style={{ flexDirection: 'row', gap: espace.s }}>
+              <BoutonRond libelle={occupe ? 'Actualisation en cours' : 'Tout actualiser'} onPress={() => !occupe && tout(true)}>
+                <View style={{ opacity: occupe ? 0.35 : 1 }}>
+                  <IconeActualiser />
+                </View>
+              </BoutonRond>
+              <BoutonRond libelle="Réglages" onPress={() => router.push('/reglages')}>
+                <IconeReglages />
+              </BoutonRond>
+            </View>
           }
         />
       </View>
