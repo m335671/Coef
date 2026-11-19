@@ -126,19 +126,63 @@ const ENTITES: Record<string, string> = {
   ecirc: 'ê',
   ocirc: 'ô',
   rsquo: '’',
+  lsquo: '‘',
+  ldquo: '“',
+  rdquo: '”',
   laquo: '«',
   raquo: '»',
+  hellip: '…',
+  ndash: '–',
+  mdash: '—',
+  euro: '€',
+  deg: '°',
+  copy: '©',
+  bull: '•',
+  ugrave: 'ù',
+  ucirc: 'û',
+  uuml: 'ü',
+  icirc: 'î',
+  iuml: 'ï',
+  euml: 'ë',
+  acirc: 'â',
+  oelig: 'œ',
+  aelig: 'æ',
+  Eacute: 'É',
+  Egrave: 'È',
+  Ecirc: 'Ê',
+  Agrave: 'À',
+  Ccedil: 'Ç',
+  OElig: 'Œ',
 };
 
-/** HTML d'ED (consigne de devoir) → texte : sauts de ligne gardés, balises retirées, entités décodées. */
+// Caractères 0x80–0x9F : du Windows-1252 passé tel quel (l'apostrophe de Word, 0x92, s'affichait en carré barré).
+const CP1252 = '€\u0081‚ƒ„…†‡ˆ‰Š‹Œ\u008DŽ\u008F\u0090‘’“”•–—˜™š›œ\u009DžŸ';
+const depuis1252 = (car: string) => {
+  const r = CP1252[car.charCodeAt(0) - 0x80] ?? '';
+  return r < '\u00a0' ? '' : r;
+};
+
+/** Un lien `<a href>` : son texte, suivi de l'adresse quand elle n'y est pas déjà (rendue touchable à l'affichage). */
+function lien(href: string, contenu: string): string {
+  const texte = contenu.replace(/<[^>]+>/g, '').trim();
+  const adresse = href.trim().replace(/^mailto:/i, '');
+  if (!/^(https?:\/\/|www\.|[^\s@]+@)/i.test(adresse)) return texte;
+  return !texte || adresse.includes(texte) || texte.includes(adresse) ? adresse : `${texte} (${adresse})`;
+}
+
+/** HTML d'ED (consigne, message) → texte : sauts de ligne gardés, liens écrits en clair, balises retirées, entités décodées. */
 export function htmlEnTexte(html: string): string {
   return html
+    .replace(/<a\b[^>]*?href\s*=\s*["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, href: string, contenu: string) => lien(href, contenu))
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/(p|div|li|h\d)>/gi, '\n')
     .replace(/<li[^>]*>/gi, '• ')
     .replace(/<[^>]+>/g, '')
     .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
-    .replace(/&([a-z]+);/gi, (m, nom: string) => ENTITES[nom.toLowerCase()] ?? m)
+    .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&([a-z]+);/gi, (m, nom: string) => ENTITES[nom] ?? ENTITES[nom.toLowerCase()] ?? m)
+    .replace(/[\u0080-\u009f]/g, depuis1252)
+    .replace(/[\u200b\ufeff]/g, '')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();

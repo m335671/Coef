@@ -104,3 +104,25 @@ export function datesAxe(debut: string, fin: string): { date: string; libelle: s
     return { date, libelle: jour(date) };
   });
 }
+
+type Pt = { date: string; valeur: number };
+
+/**
+ * Points d'une courbe à partir de `debut` (AAAA-MM-JJ) : la valeur en cours à `debut` (dernier point avant) ouvre la
+ * fenêtre, pour que la courbe parte du bord au lieu d'apparaître au milieu.
+ */
+export function fenetre(points: Pt[], debut: string): Pt[] {
+  const avant = points.filter((p) => p.date < debut).at(-1);
+  const dedans = points.filter((p) => p.date >= debut);
+  return avant && dedans[0]?.date !== debut ? [{ date: debut, valeur: avant.valeur }, ...dedans] : dedans;
+}
+
+/** Valeur d'une courbe en escalier au jour `date` : celle du dernier point à cette date ou avant. */
+export function valeurAu(points: Pt[], date: string): number | undefined {
+  let v: number | undefined;
+  for (const p of points) {
+    if (p.date > date) break;
+    v = p.valeur;
+  }
+  return v;
+}

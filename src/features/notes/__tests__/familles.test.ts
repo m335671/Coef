@@ -1,7 +1,7 @@
 import { instantaneDemo } from '@/demo/notes';
 
 import { familleDe } from '../familles';
-import { evolution, evolutions, evolutionsMatieres } from '../vue';
+import { evolution, evolutions, evolutionsClasse, evolutionsMatieres } from '../vue';
 
 test.each([
   ['MATHS', 'MATHEMATIQUES TC', 'sciences'],
@@ -48,4 +48,19 @@ test('évolutions datées : la générale et chaque matière, cohérentes avec e
   const maths = e.matieres.MATHS!;
   expect(maths.at(-1)!.moyenne).toBeCloseTo(evolution(i.donnees, p, 'MATHS').at(-1)!.moyenne, 10);
   expect(maths.map((x) => x.date)).toEqual([...maths.map((x) => x.date)].sort());
+});
+
+test('évolution de la classe : reconstituée avec les moyennes de classe des devoirs, elle bouge', () => {
+  const i = instantaneDemo();
+  const p = i.donnees.periodes[0]!;
+  // Deux devoirs de maths, coef 1 et 2 : la classe a eu 10 puis 16 (sur 20) → 10, puis (10 + 2×16)/3 = 14.
+  const base = i.donnees.notes.find((n) => n.matiereCode === 'MATHS')!;
+  const notes = [
+    { ...base, id: 'c1', date: p.debut, coef: 1, noteSur: 20, valeurBrute: '3', nonSignificative: false, classe: { moyenne: 10 } },
+    { ...base, id: 'c2', date: p.fin, coef: 2, noteSur: 20, valeurBrute: 'Abs', nonSignificative: false, classe: { moyenne: 16 } },
+    { ...base, id: 'c3', date: p.fin, coef: 1, noteSur: 20, valeurBrute: '20', nonSignificative: false, classe: undefined },
+  ];
+  const e = evolutionsClasse({ ...i.donnees, notes }, p);
+  expect(e.matieres.MATHS!.map((x) => x.moyenne)).toEqual([10, 14]);
+  expect(e.generale.map((x) => x.moyenne)).toEqual([10, 14]);
 });

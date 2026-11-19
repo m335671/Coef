@@ -18,6 +18,8 @@ type Enregistre = {
   objectif?: number;
   /** L'objectif est dessiné sur l'écran Notes (indépendant de l'affichage des notes simulées). */
   objectifAffiche?: boolean;
+  /** La plus basse et la plus haute moyenne générale de la classe, en pointillés sur la barre de l'écran Notes. */
+  extremesAffiches?: boolean;
   /** Notes simulées remplacées par la vraie note, les plus récentes d'abord. */
   remplacees?: Remplacement[];
 };
@@ -31,6 +33,7 @@ type EtatSimulation = Enregistre & {
   activer: (active: boolean) => void;
   viser: (objectif: number) => void;
   afficherObjectif: (v: boolean) => void;
+  afficherExtremes: (v: boolean) => void;
   enregistrer: () => Promise<void>;
   /** Nouvelles notes d'une synchro au premier plan : remplace les simulées correspondantes. */
   integrer: (eleveId: string, nouvelles: Note[], d: DonneesNotes) => Promise<Remplacement[]>;
@@ -70,9 +73,10 @@ export const useSimulation = create<EtatSimulation>((set, get) => ({
   activer: (active) => set({ active, modifie: true }),
   viser: (objectif) => set({ objectif, modifie: true }),
   afficherObjectif: (objectifAffiche) => set({ objectifAffiche, modifie: true }),
+  afficherExtremes: (extremesAffiches) => set({ extremesAffiches, modifie: true }),
   async enregistrer() {
-    const { active, notes, objectif, objectifAffiche, remplacees } = get();
-    if (!MODE_DEMO) await ecrirePreference(PREF, { active, notes, objectif, objectifAffiche, remplacees } satisfies Enregistre);
+    const { active, notes, objectif, objectifAffiche, extremesAffiches, remplacees } = get();
+    if (!MODE_DEMO) await ecrirePreference(PREF, { active, notes, objectif, objectifAffiche, extremesAffiches, remplacees } satisfies Enregistre);
     set({ modifie: false });
   },
   async integrer(eleveId, nouvelles, d) {

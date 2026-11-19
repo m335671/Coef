@@ -1,18 +1,20 @@
 // Un message. Sa question : « Qu'est-ce qu'on me dit, et quels fichiers vont avec ? »
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { messageDemo } from '@/demo/vie';
 import type { Message } from '@/domain/types';
+import { decouperLiens } from '@/features/vie/liens';
 import { LigneFichier } from '@/features/vie/LigneFichier';
 import { marquerLu, useDonnee, useDonneesED } from '@/features/vie/store';
 import { Bouton, Ecran, EnTete, Entree, Panneau, Pastille, Section, Texte } from '@/ui/composants';
 import { heure, jourLong } from '@/ui/format';
-import { espace } from '@/ui/theme';
+import { espace, useCouleurs } from '@/ui/theme';
 
 export default function DetailMessage() {
+  const c = useCouleurs();
   const { id, eleve } = useLocalSearchParams<{ id: string; eleve: string }>();
   const cle = `message:${eleve}:${id}`;
   const etat = useDonnee<Message>(cle);
@@ -56,7 +58,25 @@ export default function DetailMessage() {
       <Entree rang={2}>
         <Panneau style={{ paddingVertical: espace.l }}>
           <Texte selectable variante="liste" attenue={!etat?.valeur?.contenu}>
-            {etat?.valeur ? etat.valeur.contenu || 'Message vide.' : 'Chargement du message…'}
+            {etat?.valeur
+              ? etat.valeur.contenu
+                ? // Les adresses s'ouvrent dans le navigateur ou l'appli de mail du téléphone, pas dans Coef.
+                  decouperLiens(etat.valeur.contenu).map((x, i) =>
+                    x.url ? (
+                      <Texte
+                        key={i}
+                        variante="liste"
+                        accessibilityRole="link"
+                        onPress={() => void Linking.openURL(x.url!).catch(() => undefined)}
+                        style={{ color: c.accent, textDecorationLine: 'underline' }}>
+                        {x.texte}
+                      </Texte>
+                    ) : (
+                      x.texte
+                    ),
+                  )
+                : 'Message vide.'
+              : 'Chargement du message…'}
           </Texte>
         </Panneau>
       </Entree>

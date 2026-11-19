@@ -14,7 +14,7 @@ import type { Cours, Devoir } from '@/domain/types';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { useCouleurMatiere } from '@/features/notes/familles';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
-import { Bouton, Ecran, EnTete, Entree, Feuille, Ligne, ListeSquelette, Pastille, Presse, Segments, Texte, useMinute } from '@/ui/composants';
+import { Bouton, BoutonRond, Ecran, EnTete, Entree, IconeActualiser, Feuille, Ligne, ListeSquelette, Pastille, Presse, Segments, Texte, useMinute } from '@/ui/composants';
 import { ajouterJours, heure, iso, jour, jourCourt, jourLong, lundiDe } from '@/ui/format';
 import { Hachures } from '@/ui/graphiques';
 import { espace, police, rayon, useCouleurs } from '@/ui/theme';
@@ -92,7 +92,24 @@ export default function Agenda() {
 
   return (
     <Ecran fixe>
-      <EnTete titre="Agenda" />
+      <EnTete
+        titre="Agenda"
+        action={
+          eleve ? (
+            <BoutonRond
+              libelle={etat?.chargement ? 'Chargement en cours' : 'Actualiser l’agenda'}
+              onPress={() => {
+                if (etat?.chargement) return;
+                void charger(cle, (cl) => cl.emploiDuTemps(eleve.id, lundi, dimanche), coursDemo, true);
+                void charger(cleDevoirs, (cl) => cl.devoirs(eleve.id), devoirsDemo, true);
+              }}>
+              <View style={{ opacity: etat?.chargement ? 0.35 : 1 }}>
+                <IconeActualiser />
+              </View>
+            </BoutonRond>
+          ) : undefined
+        }
+      />
       {eleves.length > 1 && eleve ? (
         <Entree rang={1}>
           <Segments libelle="Élève" options={eleves.map((e) => ({ cle: e.id, libelle: e.prenom }))} valeur={eleve.id} onChange={choisirEleve} />
