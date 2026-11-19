@@ -1,4 +1,5 @@
-// Apparence. Sa question : « À quoi ressemble mon Coef ? » Mode, couleur du thème, couleur de chaque matière.
+// Couleurs des matières. Sa question : « De quelle couleur est chaque matière ? » Un aperçu en haut, puis chaque
+// matière et son nuancier. Le mode et la couleur du thème sont directement dans Réglages.
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -6,21 +7,17 @@ import { changerApparence } from '@/features/apparence';
 import { useEleveActif } from '@/features/compte/eleves';
 import { clesMatiere, useCouleurMatiere } from '@/features/notes/familles';
 import { useNotes } from '@/features/notes/store';
-import { COULEURS_MATIERE, COULEURS_THEME, type ModeAffichage, useApparence } from '@/ui/apparence';
-import { Bouton, Choix, Ecran, EnTete, Ligne, Panneau, Presse, Section, Texte } from '@/ui/composants';
-import { CIBLE, espace, useCouleurs } from '@/ui/theme';
+import { Nuancier } from '@/features/ReglagesApparence';
+import { COULEURS_MATIERE, useApparence } from '@/ui/apparence';
+import { Bouton, Chiffre, Ecran, EnTete, Ligne, Panneau, Section, Texte } from '@/ui/composants';
+import { MiniCourbe } from '@/ui/graphiques';
+import { espace, rayon } from '@/ui/theme';
 
-const MODES: { cle: ModeAffichage; titre: string }[] = [
-  { cle: 'systeme', titre: 'Comme le téléphone' },
-  { cle: 'clair', titre: 'Clair' },
-  { cle: 'sombre', titre: 'Sombre' },
-];
+/** Tendance d'exemple de l'aperçu. */
+const TENDANCE = [12.4, 13.1, 12.8, 14, 14.5];
 
-/** Couleur d'origine de Coef, pour sa pastille. */
-const COEF = '#0f766e';
-
-export default function Apparence() {
-  const { mode, couleur, matieres, accentSysteme } = useApparence();
+export default function CouleursMatieres() {
+  const { matieres } = useApparence();
   const couleurMatiere = useCouleurMatiere();
   const [eleve] = useEleveActif();
   const instantane = useNotes((s) => (eleve ? s.eleves[eleve.id]?.instantane : undefined));
@@ -45,31 +42,34 @@ export default function Apparence() {
     changerApparence({ matieres: suite });
   };
 
-  const themes = [
-    { cle: 'coef', nom: 'Coef', teinte: COEF },
-    ...(accentSysteme ? [{ cle: 'systeme', nom: 'Material You (fond d’écran)', teinte: accentSysteme }] : []),
-    ...COULEURS_THEME.map((t) => ({ cle: t.couleur, nom: t.nom, teinte: t.couleur })),
-  ];
+  // L'aperçu prend la couleur de la matière ouverte (sinon la première) : on voit le choix avant de refermer.
+  const [codeApercu, libelleApercu] = liste.find(([code]) => code === ouverte) ?? liste[0] ?? ['', ''];
+  const apercu = couleurMatiere(codeApercu, libelleApercu);
 
   return (
     <Ecran>
-      <EnTete titre="Apparence" retour />
+      <EnTete titre="Couleurs des matières" retour />
 
-      <Section titre="Mode">
-        <Panneau>
-          {MODES.map((m, i) => (
-            <Choix key={m.cle} titre={m.titre} actif={mode === m.cle} dernier={i === MODES.length - 1} onPress={() => changerApparence({ mode: m.cle })} />
-          ))}
-        </Panneau>
-      </Section>
+      <View
+        style={[styles.apercu, { backgroundColor: apercu.fond }]}
+        accessible
+        accessibilityLabel={`Aperçu${libelleApercu ? ` aux couleurs de ${libelleApercu}` : ''}`}>
+        <Texte variante="section" style={{ color: apercu.encre }}>
+          Matières
+        </Texte>
+        <View style={styles.rangee}>
+          <View style={[styles.bande, { backgroundColor: apercu.trait }]} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Texte variante="liste" moyen style={{ color: apercu.encre }} numberOfLines={1}>
+              {libelleApercu || 'Matière'}
+            </Texte>
+            <MiniCourbe points={TENDANCE} couleur={apercu.trait} />
+          </View>
+          <Chiffre valeur={14.5} taillePx={16} couleur={apercu.encre} />
+        </View>
+      </View>
 
-      <Section
-        titre="Couleur du thème"
-        aide={accentSysteme ? 'Material You suit les couleurs de ton fond d’écran.' : 'Material You : Android 12 ou plus récent.'}>
-        <Nuancier choix={themes} actif={couleur} onChoisir={(cle) => changerApparence({ couleur: cle })} />
-      </Section>
-
-      <Section titre="Couleurs des matières" aide="Par défaut, chaque matière prend la couleur de sa famille (sciences, langues…).">
+      <Section titre="Chaque matière" aide="Par défaut, chaque matière prend la couleur de sa famille (sciences, langues…). Touche une matière pour la changer.">
         {liste.length === 0 ? (
           <Texte variante="liste" attenue>
             Les matières apparaîtront ici après la première synchronisation des notes.
@@ -118,33 +118,10 @@ export default function Apparence() {
   );
 }
 
-/** Pastilles de couleur à choix unique. Sans teinte : pastille barrée (« par défaut »). */
-function Nuancier({ choix, actif, onChoisir }: { choix: { cle: string; nom: string; teinte?: string }[]; actif: string; onChoisir: (cle: string) => void }) {
-  const c = useCouleurs();
-  return (
-    <View style={styles.nuancier} accessibilityRole="radiogroup">
-      {choix.map((x) => {
-        const choisi = x.cle === actif;
-        return (
-          <Presse key={x.cle || 'defaut'} role="radio" selectionne={choisi} libelleAccessible={x.nom} onPress={() => onChoisir(x.cle)}>
-            <View style={[styles.anneau, { borderColor: choisi ? c.texte : 'transparent' }]}>
-              <View style={[styles.pastille, x.teinte ? { backgroundColor: x.teinte } : { borderWidth: 2, borderColor: c.controle }]}>
-                {x.teinte ? null : <View style={[styles.barre, { backgroundColor: c.controle }]} />}
-              </View>
-            </View>
-          </Presse>
-        );
-      })}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  // Tailles fixes : le retour à la ligne avec gap est sûr ici (le piège Android concerne les largeurs en %).
-  nuancier: { flexDirection: 'row', flexWrap: 'wrap', gap: espace.s },
-  anneau: { width: CIBLE + 4, height: CIBLE + 4, borderRadius: (CIBLE + 4) / 2, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  pastille: { width: CIBLE - 8, height: CIBLE - 8, borderRadius: (CIBLE - 8) / 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  barre: { width: 2, height: CIBLE, transform: [{ rotate: '45deg' }] },
+  apercu: { borderRadius: rayon.carte, padding: espace.m, gap: espace.s },
+  rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
+  bande: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
   point: { width: 12, height: 12, borderRadius: 6 },
   deplie: { paddingVertical: espace.m },
 });

@@ -9,6 +9,7 @@ import { reinitialiserApparence } from '@/features/apparence';
 import { exporterCaptures, messageErreur } from '@/features/compte/essai';
 import { useCompte } from '@/features/compte/store';
 import { useSimulation } from '@/features/notes/simulation';
+import { SectionsApparence } from '@/features/ReglagesApparence';
 import { useNotes } from '@/features/notes/store';
 import { annonce } from '@/sync/annonce';
 import { depot, ecrirePreference, lirePreference } from '@/storage/base';
@@ -90,11 +91,12 @@ export default function Reglages() {
     <Ecran>
       <EnTete titre="Réglages" retour />
 
-      <Section titre="Apparence">
+      <SectionsApparence />
+      <Section titre="Matières">
         <Panneau>
-          <Ligne dernier onPress={() => router.push('/apparence')} libelleAccessible="Apparence : mode, couleur du thème, couleurs des matières">
+          <Ligne dernier onPress={() => router.push('/apparence')} libelleAccessible="Couleurs des matières">
             <Texte variante="liste" moyen style={{ flex: 1 }}>
-              Mode, couleurs, matières
+              Couleurs des matières
             </Texte>
             <Texte variante="liste" attenue>
               ›
