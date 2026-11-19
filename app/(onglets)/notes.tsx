@@ -210,6 +210,7 @@ export default function Notes() {
           reelle={simule ? reelle?.resultat.generale : undefined}
           objectif={simulation.objectif}
           objectifAffiche={simulation.objectifAffiche ?? true}
+          extremes={simulation.extremesAffiches ?? false}
           onModifierObjectif={() => router.push({ pathname: '/simulateur', params: { periode: vue!.periode.code, eleve: eleveId, onglet: 'objectif' } })}
           courbe={courbe}
           chargement={etat?.chargement ?? true}
@@ -769,6 +770,7 @@ function Moyenne({
   reelle,
   objectif,
   objectifAffiche,
+  extremes,
   onModifierObjectif,
 }: {
   vue?: VueNotes;
@@ -777,6 +779,8 @@ function Moyenne({
   /** Moyenne générale visée (simulateur, onglet Objectif). */
   objectif?: number;
   objectifAffiche: boolean;
+  /** La plus basse et la plus haute de la classe en pointillés sur la barre (case dans Simulation). */
+  extremes: boolean;
   /** Toucher l'objectif : la simulation s'ouvre sur l'onglet Objectif. */
   onModifierObjectif: () => void;
   courbe: { date: string; moyenne: number }[];
@@ -804,6 +808,8 @@ function Moyenne({
 
   const simule = reelle !== undefined;
   const classe = vue?.periode.classeGenerale?.moyenne;
+  const { min: basse, max: haute } = vue?.periode.classeGenerale ?? {};
+  const plage: [number, number] | undefined = extremes && (basse !== undefined || haute !== undefined) ? [basse ?? 0, haute ?? 20] : undefined;
   const reperes = [
     ...(classe !== undefined ? [{ valeur: classe, couleur: c.attenue, libelle: `classe ${moyenne(classe)}` }] : []),
     ...(objectif !== undefined && objectifAffiche ? [{ valeur: objectif, couleur: c.objectif, libelle: `objectif ${moyenne(objectif)}` }] : []),
@@ -863,6 +869,7 @@ function Moyenne({
           max={20}
           pas={5}
           sousPas={1}
+          plage={plage}
           marques={[
             { valeur: g, couleur: teinte, texte: `${simule ? 'simulée' : 'toi'} ${moyenne(g)}`, forme: 'point' },
             ...(simule && reelle !== g
@@ -870,8 +877,18 @@ function Moyenne({
               : []),
             ...reperes.map((x) => ({ valeur: x.valeur, couleur: x.couleur, texte: x.libelle, forme: 'trait' as const })),
           ]}
-          libelle={`Zoom : moyenne ${moyenne(g)}${reperes.map((x) => `, ${x.libelle}`).join('')}`}
+          libelle={`Zoom : moyenne ${moyenne(g)}${reperes.map((x) => `, ${x.libelle}`).join('')}${plage ? `, classe de ${moyenne(plage[0])} à ${moyenne(plage[1])}` : ''}`}
         />
+      ) : null}
+      {g !== undefined && plage ? (
+        <View style={styles.rangee} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <View style={[styles.echantillonPlage, { borderColor: c.texte }]} />
+          <Texte variante="petit" attenue style={{ flex: 1, fontVariant: ['tabular-nums'] }}>
+            Classe : {basse !== undefined ? `plus basse ${moyenne(basse)}` : ''}
+            {basse !== undefined && haute !== undefined ? ' · ' : ''}
+            {haute !== undefined ? `plus haute ${moyenne(haute)}` : ''}
+          </Texte>
+        </View>
       ) : null}
       {/* L'objectif se règle et s'affiche ou se masque dans Simulation, onglet Objectif : masqué, il n'apparaît nulle part ici. */}
       {objectif !== undefined && objectifAffiche ? (
@@ -976,6 +993,7 @@ const styles = StyleSheet.create({
   simulee: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 12, paddingHorizontal: espace.s, marginVertical: 2, overflow: 'hidden' },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
   pointObjectif: { width: 8, height: 8, borderRadius: 4 },
+  echantillonPlage: { width: 22, height: 10, borderRadius: 5, borderWidth: 2, borderStyle: 'dashed' },
   attente: { width: 184, height: 184, borderRadius: 92, alignSelf: 'center' },
   colonne: { minWidth: 64, alignItems: 'flex-end', gap: 2 },
   note: { fontFamily: police.fort, fontVariant: ['tabular-nums'] },

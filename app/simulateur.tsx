@@ -53,7 +53,8 @@ export default function Simulation() {
   const [onglet, setOnglet] = useState<Onglet>(params.onglet === 'objectif' ? 'objectif' : 'ajouter');
   const cle = cleSimulation(params.eleve, params.periode);
   const hypotheses = useSimulation((s) => s.notes[cle]) ?? AUCUNE;
-  const { active, modifie, definir, activer, enregistrer, charger, viser, afficherObjectif } = useSimulation();
+  const { active, modifie, definir, activer, enregistrer, charger, viser, afficherObjectif, afficherExtremes } = useSimulation();
+  const extremesAffiches = useSimulation((s) => s.extremesAffiches ?? false);
   const objectif = useSimulation((s) => s.objectif) ?? 14;
   const objectifAffiche = useSimulation((s) => s.objectifAffiche ?? s.objectif !== undefined);
   const arrivees = (useSimulation((s) => s.remplacees) ?? []).filter((r) => r.cle === cle);
@@ -297,7 +298,7 @@ export default function Simulation() {
             Afficher sur l’écran Notes
           </Texte>
           <Texte variante="petit" attenue>
-            Chacun séparément : les notes simulées changent les moyennes (en orange), l’objectif n’est qu’un repère (en violet).
+            Chacun séparément : les notes simulées changent les moyennes (en orange), l’objectif et la classe ne sont que des repères.
           </Texte>
         </View>
         <View>
@@ -311,6 +312,7 @@ export default function Simulation() {
             }}
             couleur={c.objectif}
           />
+          <Coche libelle="La plus basse et la plus haute de la classe" coche={extremesAffiches} onChange={afficherExtremes} couleur={c.texte} />
         </View>
       </Panneau>
       <Texte variante="petit" attenue>
