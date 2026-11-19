@@ -1,12 +1,13 @@
 // Graphiques du design system : anneau de moyenne (P1), mini-courbe de matière (P2), règle face à la classe (P3),
 // hachures du simulé (P5). SVG + Reanimated, mouvement coupé si le système réduit les animations.
-import { type ReactNode, useEffect, useId, useState } from 'react';
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Defs, G, Line, Path, Pattern, Rect } from 'react-native-svg';
 
 import { Texte } from './composants';
-import { axeMoyennes, datesAxe, moyenne } from './format';
+import { axeMoyennes, datesAxe, jour, moyenne, valeurAu } from './format';
 import { duree, police, useCouleurs } from './theme';
 
 const EASE = Easing.bezier(0.2, 0.8, 0.2, 1);
@@ -228,7 +229,7 @@ export function Echelle({
                   top: yRail - EPAISSEUR_RAIL / 2,
                   left: x(plage[0]),
                   width: Math.max(x(plage[1]) - x(plage[0]), EPAISSEUR_RAIL),
-                  borderColor: c.attenue,
+                  borderColor: c.texte,
                 },
               ]}
             />
@@ -347,7 +348,7 @@ export function Regle({
     <View style={{ gap: 6 }}>
       {echelle}
       <View style={styles.legende} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <View style={[styles.echantillon, { borderColor: c.attenue }]} />
+        <View style={[styles.echantillon, { borderColor: c.texte }]} />
         <Texte variante="petit" attenue style={{ flex: 1, fontVariant: ['tabular-nums'] }}>
           Classe : {extremes}
         </Texte>
@@ -372,8 +373,9 @@ const MARGE_BAS = 24;
 
 /**
  * Graphique de l'écran Courbes : les dates à l'horizontale, les moyennes à la verticale. Une ligne droite par
- * série, un point sur sa dernière valeur, la moyenne de classe en pointillés de la même couleur. Sa légende est
- * dessinée avec les mêmes couleurs et donne la dernière valeur de chaque courbe.
+ * série, un point par note, la moyenne de classe en pointillés de la même couleur. Le doigt posé dessus et glissé à
+ * l'horizontale promène un curseur d'une date de note à l'autre : la légende donne alors la valeur de chaque courbe
+ * ce jour-là et son écart avec la précédente ; sinon la dernière valeur.
  */
 export function Graphique({ series, debut, fin, hauteur = 220, libelle }: { series: Serie[]; debut: string; fin: string; hauteur?: number; libelle: string }) {
   const c = useCouleurs();
@@ -386,8 +388,39 @@ export function Graphique({ series, debut, fin, hauteur = 220, libelle }: { seri
   const x = (iso: string) => MARGE_GAUCHE + ((jourMs(iso) - t0) / (t1 - t0)) * largeur;
   const y = (v: number) => 8 + (1 - (v - bas) / (haut - bas)) * h;
   const lignes = Array.from({ length: Math.round((haut - bas) / pas) + 1 }, (_, i) => bas + i * pas);
+  // Le curseur se pose sur la date de note la plus proche du doigt (toutes courbes confondues).
+  const dates = [...new Set(series.flatMap((s) => s.points.map((p) => p.date)))].sort();
+  const [curseur, setCurseur] = useState<string>();
+  const precedent = useRef<string>(undefined);
+  const choisir = (px: number | undefined) => {
+    let d: string | undefined;
+    if (px !== undefined && dates.length > 0) {
+      d = dates.reduce((a, b) => (Math.abs(x(b) - px) < Math.abs(x(a) - px) ? b : a));
+    }
+    if (d === precedent.current) return;
+    precedent.current = d;
+    setCurseur(d);
+  };
+  // Glisser à l'horizontale seulement : le défilement vertical de l'écran reste libre.
+  const geste = usePanGesture({
+    runOnJS: true,
+    enabled: dates.length > 0,
+    activeOffsetX: [-6, 6],
+    failOffsetY: [-14, 14],
+    onActivate: (e) => choisir(e.x),
+    onUpdate: (e) => choisir(e.x),
+    onFinalize: () => choisir(undefined),
+  });
+  /** Valeur de la série au curseur (ou la dernière) et l'écart avec la valeur d'avant. */
+  const lecture = (s: Serie) => {
+    const i = curseur === undefined ? s.points.length - 1 : s.points.findLastIndex((p) => p.date <= curseur);
+    const v = i >= 0 ? s.points[i]!.valeur : curseur !== undefined ? valeurAu(s.points, curseur) : undefined;
+    const avant = i > 0 ? s.points[i - 1]!.valeur : undefined;
+    return { v, ecart: v !== undefined && avant !== undefined && s.points[i]!.date === curseur ? v - avant : undefined };
+  };
   return (
     <View style={{ gap: 12 }}>
+      <GestureDetector gesture={geste}>
       <View accessible accessibilityRole="image" accessibilityLabel={libelle} onLayout={(e) => setL(e.nativeEvent.layout.width)} style={{ height: hauteur }}>
         {l > 0 ? (
           <>
@@ -420,10 +453,18 @@ export function Graphique({ series, debut, fin, hauteur = 220, libelle }: { seri
                       strokeLinejoin="round"
                       strokeLinecap="round"
                     />
-                    {xy.length > 0 ? <Circle cx={fx} cy={fy} r={4} fill={s.couleur} /> : null}
+                    {xy.length < 40 ? xy.map(([px, py], i) => <Circle key={i} cx={px} cy={py} r={2.5} fill={s.couleur} />) : null}
+                    {xy.length > 0 && curseur === undefined ? <Circle cx={fx} cy={fy} r={4} fill={s.couleur} /> : null}
+                    {curseur !== undefined && lecture(s).v !== undefined ? (
+                      <>
+                        <Circle cx={x(curseur)} cy={y(lecture(s).v!)} r={10} fill={s.couleur} fillOpacity={0.15} />
+                        <Circle cx={x(curseur)} cy={y(lecture(s).v!)} r={4.5} fill={s.couleur} stroke={c.surface} strokeWidth={1.5} />
+                      </>
+                    ) : null}
                   </G>
                 );
               })}
+              {curseur !== undefined ? <Line x1={x(curseur)} x2={x(curseur)} y1={4} y2={hauteur - MARGE_BAS} stroke={c.texte} strokeOpacity={0.35} strokeWidth={1} /> : null}
             </Svg>
             {lignes.map((v) => (
               <Texte key={v} variante="petit" attenue style={[styles.axeY, { top: y(v) - 9 }]}>
@@ -441,7 +482,11 @@ export function Graphique({ series, debut, fin, hauteur = 220, libelle }: { seri
           </>
         ) : null}
       </View>
+      </GestureDetector>
       <View style={{ gap: 6 }}>
+        <Texte variante="petit" attenue style={{ fontFamily: police.moyen }}>
+          {curseur !== undefined ? `Au ${jour(curseur)}` : 'Dernières valeurs · pose le doigt sur le graphique pour voir une date'}
+        </Texte>
         {series.map((s) => (
           <View key={s.cle} style={styles.ligneLegende}>
             <Svg width={18} height={10}>
@@ -460,6 +505,12 @@ export function Graphique({ series, debut, fin, hauteur = 220, libelle }: { seri
                 </Texte>
               </View>
             ) : null}
+            {lecture(s).ecart !== undefined && Math.abs(lecture(s).ecart!) >= 0.005 ? (
+              <Texte variante="petit" style={{ color: lecture(s).ecart! > 0 ? c.positif : c.negatif, fontVariant: ['tabular-nums'] }}>
+                {lecture(s).ecart! > 0 ? '+' : '−'}
+                {moyenne(Math.abs(lecture(s).ecart!))}
+              </Texte>
+            ) : null}
             <Texte
               variante="petit"
               style={{
@@ -468,7 +519,7 @@ export function Graphique({ series, debut, fin, hauteur = 220, libelle }: { seri
                 minWidth: 40,
                 textAlign: 'right',
               }}>
-              {s.points.length > 0 ? moyenne(s.points.at(-1)!.valeur) : '—'}
+              {lecture(s).v !== undefined ? moyenne(lecture(s).v!) : '—'}
             </Texte>
           </View>
         ))}
@@ -515,7 +566,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     height: EPAISSEUR_RAIL,
     borderRadius: EPAISSEUR_RAIL / 2,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderStyle: 'dashed',
   },
   trait: {
@@ -551,7 +602,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 10,
     borderRadius: 5,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderStyle: 'dashed',
   },
 });

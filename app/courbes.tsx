@@ -7,11 +7,21 @@ import { clesMatiere } from '@/features/notes/familles';
 import { useNotes } from '@/features/notes/store';
 import { evolutions, groupesPeriodes, periodeParDefaut, periodesAffichees } from '@/features/notes/vue';
 import { COULEURS_MATIERE, useApparence, useSombre } from '@/ui/apparence';
-import { Bouton, Coche, Deroulant, Ecran, EnTete, Entree, Panneau, Section, Texte } from '@/ui/composants';
-import { ecart, jour, moyenne } from '@/ui/format';
+import { Bouton, Coche, Deroulant, Ecran, EnTete, Entree, Panneau, Section, Segments, Texte } from '@/ui/composants';
+import { ecart, fenetre, jour, moyenne } from '@/ui/format';
 import { Graphique, type Serie } from '@/ui/graphiques';
 import { matiereDepuis } from '@/ui/palette';
 import { espace, police, taille, useCouleurs } from '@/ui/theme';
+
+/** Plages de dates proposées : toute la période, ou les N derniers jours. */
+const PLAGES = [
+  { cle: 0, libelle: 'Période' },
+  { cle: 90, libelle: '3 mois' },
+  { cle: 30, libelle: '1 mois' },
+  { cle: 14, libelle: '2 sem.' },
+];
+
+const moinsJours = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) - n * 864e5).toISOString().slice(0, 10);
 
 export default function Courbes() {
   const c = useCouleurs();
@@ -33,6 +43,7 @@ export default function Courbes() {
   const [generale, setGenerale] = useState(true);
   const [classe, setClasse] = useState(true);
   const [cochees, setCochees] = useState<string[]>([]);
+  const [plage, setPlage] = useState(0);
 
   if (!instantane || !periode || !evo) {
     return (
@@ -56,15 +67,17 @@ export default function Courbes() {
       return { ...m, couleur: matiereDepuis(choisie ?? COULEURS_MATIERE[i % COULEURS_MATIERE.length]!.couleur, sombre).trait };
     });
 
-  const debut = periode.debut;
   const fin = periode.fin < aujourdhui ? periode.fin : aujourdhui;
+  const debut = plage && moinsJours(fin, plage) > periode.debut ? moinsJours(fin, plage) : periode.debut;
+  const pts = (l: { date: string; moyenne: number }[]) => fenetre(l.map((p) => ({ date: p.date, valeur: p.moyenne })), debut);
+  const evoGenerale = pts(evo.generale);
   const series: Serie[] = [];
-  if (generale && evo.generale.length > 0) {
+  if (generale && evoGenerale.length > 0) {
     series.push({
       cle: 'generale',
       libelle: 'Moyenne générale',
       couleur: c.accent,
-      points: evo.generale.map((p) => ({ date: p.date, valeur: p.moyenne })),
+      points: evoGenerale,
       classe: classe ? periode.classeGenerale?.moyenne : undefined,
     });
   }
@@ -73,15 +86,18 @@ export default function Courbes() {
       cle: m.code,
       libelle: m.libelle,
       couleur: m.couleur,
-      points: evo.matieres[m.code]!.map((p) => ({ date: p.date, valeur: p.moyenne })),
+      points: pts(evo.matieres[m.code]!),
       classe: classe ? m.classe?.moyenne : undefined,
     });
   }
 
-  // Le constat de l'écran : où en est la générale, et de combien elle a bougé depuis la première note.
-  const premiere = evo.generale[0];
-  const derniere = evo.generale.at(-1);
-  const resume = series.map((s) => `${s.libelle} ${moyenne(s.points.at(-1)!.valeur)}`).join(', ');
+  // Le constat de l'écran : où en est la générale, et de combien elle a bougé sur la plage affichée.
+  const premiere = evoGenerale[0];
+  const derniere = evoGenerale.at(-1);
+  const resume = series
+    .filter((s) => s.points.length > 0)
+    .map((s) => `${s.libelle} ${moyenne(s.points.at(-1)!.valeur)}`)
+    .join(', ');
   const basculer = (code: string, v: boolean) => setCochees((l) => (v ? [...l, code] : l.filter((x) => x !== code)));
 
   return (
@@ -95,6 +111,7 @@ export default function Courbes() {
 
       <Entree rang={2}>
         <Panneau style={{ paddingVertical: espace.m, gap: espace.m }}>
+          <Segments libelle="Dates affichées" options={PLAGES} valeur={plage} onChange={setPlage} plein />
           {premiere && derniere ? (
             <View>
               <Texte variante="petit" attenue>
@@ -102,12 +119,12 @@ export default function Courbes() {
               </Texte>
               <View style={styles.constat}>
                 <Texte style={{ fontFamily: police.gras, fontSize: taille.chiffre, color: c.texte, fontVariant: ['tabular-nums'] }}>
-                  {moyenne(derniere.moyenne)}
+                  {moyenne(derniere.valeur)}
                 </Texte>
                 <Texte variante="petit" attenue style={{ flex: 1 }}>
-                  {evo.generale.length > 1
-                    ? `${ecart(derniere.moyenne - premiere.moyenne)} depuis la première note, le ${jour(premiere.date)}`
-                    : `depuis la première note, le ${jour(premiere.date)}`}
+                  {evoGenerale.length > 1
+                    ? `${ecart(derniere.valeur - premiere.valeur)} depuis le ${jour(premiere.date)}`
+                    : `depuis le ${jour(premiere.date)}`}
                 </Texte>
               </View>
             </View>
@@ -117,7 +134,7 @@ export default function Courbes() {
               series={series}
               debut={debut}
               fin={fin}
-              libelle={`Évolution des moyennes, ${periode.libelle}. Dernières valeurs : ${resume || 'aucune'}.`}
+              libelle={`Évolution des moyennes, du ${jour(debut)} au ${jour(fin)}. Dernières valeurs : ${resume || 'aucune'}.`}
             />
           ) : (
             <View style={{ height: 220, justifyContent: 'center' }}>
