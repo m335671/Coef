@@ -29,7 +29,7 @@ import {
   EnTete,
   Feuille,
   Entree,
-  IconeReglages,
+  IconeActualiser,
   ListeSquelette,
   Panneau,
   Pastille,
@@ -183,8 +183,12 @@ export default function Notes() {
                 </Texte>
               </Presse>
             ) : null}
-            <BoutonRond libelle="Réglages" onPress={() => router.push('/reglages')}>
-              <IconeReglages />
+            <BoutonRond
+              libelle={etat?.chargement ? 'Chargement en cours' : 'Actualiser les notes'}
+              onPress={() => !etat?.chargement && charger(eleveId, true)}>
+              <View style={{ opacity: etat?.chargement ? 0.35 : 1 }}>
+                <IconeActualiser />
+              </View>
             </BoutonRond>
           </View>
         }
