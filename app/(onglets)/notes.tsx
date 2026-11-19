@@ -7,14 +7,14 @@ import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTimin
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
 import { avecHypotheses, type NoteHypothetique } from '@/domain/moyennes/simulateur';
-import type { Note, Periode } from '@/domain/types';
+import type { Note } from '@/domain/types';
 import type { Famille } from '@/ui/theme';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { familleDe, NOM_FAMILLE, ORDRE_FAMILLES, useCouleurMatiere } from '@/features/notes/familles';
 import { ordonner, TRIS, type Tri, trierNotes } from '@/features/notes/ordre';
 import { cleSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
-import { evolution, evolutionsMatieres, type LigneMatiere, periodeParDefaut, periodesAffichees, type VueNotes, vueNotes } from '@/features/notes/vue';
+import { evolution, evolutionsMatieres, groupesPeriodes, type LigneMatiere, periodeParDefaut, periodesAffichees, type VueNotes, vueNotes } from '@/features/notes/vue';
 import { ecrirePreference, lirePreference } from '@/storage/base';
 import { libelleMatiere } from '@/sync/annonce';
 import {
@@ -28,7 +28,6 @@ import {
   Ecran,
   EnTete,
   Feuille,
-  IconeActualiser,
   Entree,
   IconeReglages,
   ListeSquelette,
@@ -166,18 +165,16 @@ export default function Notes() {
     });
 
   return (
-    <Ecran>
+    <Ecran actualiser={{ enCours: !!etat?.chargement && !!instantane, onActualiser: () => !etat?.chargement && charger(eleveId, true) }}>
       <EnTete
         titre="Notes"
         action={
           <View style={{ flexDirection: 'row', gap: espace.s }}>
-            <BoutonRond
-              libelle={etat?.chargement ? 'Synchronisation en cours' : 'Actualiser les notes'}
-              onPress={() => !etat?.chargement && charger(eleveId, true)}>
-              <View style={{ opacity: etat?.chargement ? 0.35 : 1 }}>
-                <IconeActualiser />
-              </View>
-            </BoutonRond>
+            {vue ? (
+              <BoutonRond libelle="Courbes des moyennes" onPress={() => router.push({ pathname: '/courbes', params: { periode: vue.periode.code, eleve: eleveId } })}>
+                <IconeCourbes />
+              </BoutonRond>
+            ) : null}
             {vue ? (
               <Presse onPress={ouvrirSimulation} libelleAccessible="Simuler des notes" style={[styles.simuler, { backgroundColor: c.teinte100 }]}>
                 <IconeSimulation />
@@ -372,23 +369,6 @@ export default function Notes() {
   );
 }
 
-/** Périodes du menu, regroupées : trimestres et année, relevés, examens blancs. */
-function groupesPeriodes(periodes: Periode[]) {
-  const de = (types: Periode['type'][]) =>
-    periodes
-      .filter((p) => types.includes(p.type))
-      .map((p) => ({
-        cle: p.code,
-        libelle: p.libelle,
-        aide: `${jour(p.debut)} – ${jour(p.fin)}`,
-      }));
-  return [
-    { titre: 'Trimestres', options: de(['trimestre', 'annee']) },
-    { titre: 'Relevés', options: de(['releve']) },
-    { titre: 'Examens blancs', options: de(['examen']) },
-  ].filter((g) => g.options.length > 0);
-}
-
 /** Toutes les notes de la période, rangées par matière, de la plus récente à la plus ancienne. */
 function ParNote({
   vue,
@@ -472,6 +452,16 @@ function ParNote({
         </Entree>
       ))}
     </View>
+  );
+}
+
+function IconeCourbes() {
+  const c = useCouleurs();
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M4 4v16h16" />
+      <Path d="M7 15l4-5 3 3 5-6" />
+    </Svg>
   );
 }
 

@@ -28,7 +28,12 @@ export default function Apparence() {
 
   // Toutes les matières de l'année, une fois chacune (sous-matières comprises dans leur matière).
   const liste = [
-    ...new Map((instantane?.donnees.periodes ?? []).flatMap((p) => p.matieres).filter((m) => !m.sousCode).map((m) => [m.code, m.libelle])),
+    ...new Map(
+      (instantane?.donnees.periodes ?? [])
+        .flatMap((p) => p.matieres)
+        .filter((m) => !m.sousCode)
+        .map((m) => [m.code, m.libelle]),
+    ),
   ].sort((a, b) => a[1].localeCompare(b[1], 'fr'));
 
   const choisirMatiere = (code: string, libelle: string, teinte?: string) => {
@@ -87,8 +92,15 @@ export default function Apparence() {
                   {ouverte === code ? (
                     <View style={styles.deplie}>
                       <Nuancier
-                        choix={[{ cle: '', nom: 'Couleur de la famille', teinte: undefined }, ...COULEURS_MATIERE.map((t) => ({ cle: t.couleur, nom: t.nom, teinte: t.couleur }))]}
-                        actif={clesMatiere(code, libelle).map((k) => matieres[k]).find(Boolean) ?? ''}
+                        choix={[
+                          { cle: '', nom: 'Couleur de la famille', teinte: undefined },
+                          ...COULEURS_MATIERE.map((t) => ({ cle: t.couleur, nom: t.nom, teinte: t.couleur })),
+                        ]}
+                        actif={
+                          clesMatiere(code, libelle)
+                            .map((k) => matieres[k])
+                            .find(Boolean) ?? ''
+                        }
                         onChoisir={(cle) => choisirMatiere(code, libelle, cle || undefined)}
                       />
                     </View>

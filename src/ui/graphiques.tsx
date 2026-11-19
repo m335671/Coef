@@ -6,6 +6,7 @@ import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useReducedMotion,
 import Svg, { Circle, Defs, G, Line, Path, Pattern, Rect } from 'react-native-svg';
 
 import { Texte } from './composants';
+import { axeMoyennes, datesAxe, moyenne } from './format';
 import { duree, police, useCouleurs } from './theme';
 
 const EASE = Easing.bezier(0.2, 0.8, 0.2, 1);
@@ -50,7 +51,9 @@ export function Anneau({
   const r = centre - epaisseur / 2 - 6;
   const tour = 2 * Math.PI * r;
   const p = useProgression(borne((valeur ?? 0) / 20), 150);
-  const props = useAnimatedProps(() => ({ strokeDashoffset: tour * (1 - p.value) }));
+  const props = useAnimatedProps(() => ({
+    strokeDashoffset: tour * (1 - p.value),
+  }));
   const point = (v: number, rayon: number) => {
     const a = (borne(v / 20) * 2 - 0.5) * Math.PI;
     return { x: centre + Math.cos(a) * rayon, y: centre + Math.sin(a) * rayon };
@@ -114,7 +117,13 @@ export function MiniCourbe({ points, couleur, largeur = 64, hauteur = 18 }: { po
 }
 
 /** Une marque sur une échelle : un point (la valeur de l'élève) ou un trait (classe, objectif), avec son étiquette. */
-export type Marque = { valeur: number; couleur: string; texte?: string; forme: 'point' | 'trait'; cote?: 'haut' | 'bas' };
+export type Marque = {
+  valeur: number;
+  couleur: string;
+  texte?: string;
+  forme: 'point' | 'trait';
+  cote?: 'haut' | 'bas';
+};
 
 const LARGEUR_ETIQUETTE = 104;
 /** Épaisseur de la barre des échelles : celle de l'anneau. */
@@ -171,9 +180,13 @@ export function Echelle({
   const grand = (v: number) => Math.abs(v / pas - Math.round(v / pas)) < 1e-6;
   const principal = marques.find((m) => m.forme === 'point');
   const p = useProgression(principal ? borne((principal.valeur - min) / (max - min)) : 0, 200);
-  const glisse = useAnimatedStyle(() => ({ transform: [{ translateX: p.value * l }] }));
+  const glisse = useAnimatedStyle(() => ({
+    transform: [{ translateX: p.value * l }],
+  }));
   // La barre se remplit jusqu'au point, comme l'anneau (même épaisseur, même mouvement).
-  const remplit = useAnimatedStyle(() => ({ width: Math.max(p.value * l, EPAISSEUR_RAIL) }));
+  const remplit = useAnimatedStyle(() => ({
+    width: Math.max(p.value * l, EPAISSEUR_RAIL),
+  }));
 
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={libelle} onLayout={(e) => setL(e.nativeEvent.layout.width)} style={{ height: hauteur }}>
@@ -195,7 +208,14 @@ export function Echelle({
           </Svg>
           {principal ? (
             <Animated.View
-              style={[styles.remplissage, { top: yRail - EPAISSEUR_RAIL / 2, backgroundColor: principal.couleur }, remplit]}
+              style={[
+                styles.remplissage,
+                {
+                  top: yRail - EPAISSEUR_RAIL / 2,
+                  backgroundColor: principal.couleur,
+                },
+                remplit,
+              ]}
               pointerEvents="none"
             />
           ) : null}
@@ -204,7 +224,12 @@ export function Echelle({
               pointerEvents="none"
               style={[
                 styles.plage,
-                { top: yRail - EPAISSEUR_RAIL / 2, left: x(plage[0]), width: Math.max(x(plage[1]) - x(plage[0]), EPAISSEUR_RAIL), borderColor: c.attenue },
+                {
+                  top: yRail - EPAISSEUR_RAIL / 2,
+                  left: x(plage[0]),
+                  width: Math.max(x(plage[1]) - x(plage[0]), EPAISSEUR_RAIL),
+                  borderColor: c.attenue,
+                },
               ]}
             />
           ) : null}
@@ -214,29 +239,58 @@ export function Echelle({
               <View
                 key={i}
                 pointerEvents="none"
-                style={[styles.trait, { top: yRail - 14, left: x(m.valeur) - 3.5, backgroundColor: m.couleur, borderColor: c.surface }]}
+                style={[
+                  styles.trait,
+                  {
+                    top: yRail - 14,
+                    left: x(m.valeur) - 3.5,
+                    backgroundColor: m.couleur,
+                    borderColor: c.surface,
+                  },
+                ]}
               />
             ))}
-          {principal ? <Animated.View style={[styles.point, { top: yRail - 11, backgroundColor: principal.couleur, borderColor: c.surface }, glisse]} /> : null}
+          {principal ? (
+            <Animated.View
+              style={[
+                styles.point,
+                {
+                  top: yRail - 11,
+                  backgroundColor: principal.couleur,
+                  borderColor: c.surface,
+                },
+                glisse,
+              ]}
+            />
+          ) : null}
           {graduations.filter(grand).map((v) => (
             <Texte key={v} variante="petit" attenue style={[styles.chiffre, { top: yChiffres - 2, left: x(v) - 20 }]}>
               {nombre(v)}
             </Texte>
           ))}
-          {[...haut.map((e) => ({ ...e, y: yRail - 16 - (e.ligne + 1) * LIGNE + 4 })), ...bas.map((e) => ({ ...e, y: yBas + e.ligne * LIGNE }))].map(
-            ({ m, cx, y }, i) => (
-              <Texte
-                key={i}
-                variante="petit"
-                numberOfLines={1}
-                style={[
-                  styles.etiquette,
-                  { top: y, left: cx - LARGEUR_ETIQUETTE / 2, color: m.couleur, fontFamily: m.forme === 'point' ? police.gras : police.moyen },
-                ]}>
-                {m.texte}
-              </Texte>
-            ),
-          )}
+          {[
+            ...haut.map((e) => ({
+              ...e,
+              y: yRail - 16 - (e.ligne + 1) * LIGNE + 4,
+            })),
+            ...bas.map((e) => ({ ...e, y: yBas + e.ligne * LIGNE })),
+          ].map(({ m, cx, y }, i) => (
+            <Texte
+              key={i}
+              variante="petit"
+              numberOfLines={1}
+              style={[
+                styles.etiquette,
+                {
+                  top: y,
+                  left: cx - LARGEUR_ETIQUETTE / 2,
+                  color: m.couleur,
+                  fontFamily: m.forme === 'point' ? police.gras : police.moyen,
+                },
+              ]}>
+              {m.texte}
+            </Texte>
+          ))}
         </>
       ) : null}
     </View>
@@ -260,12 +314,167 @@ export function Regle({
   const c = useCouleurs();
   const marques: Marque[] = [
     ...(classe?.moyenne !== undefined
-      ? [{ valeur: classe.moyenne, couleur: c.attenue, texte: `classe ${nombre(classe.moyenne)}`, forme: 'trait' as const }]
+      ? [
+          {
+            valeur: classe.moyenne,
+            couleur: c.attenue,
+            texte: `classe ${nombre(classe.moyenne)}`,
+            forme: 'trait' as const,
+          },
+        ]
       : []),
-    ...(valeur !== undefined ? [{ valeur, couleur: couleur ?? c.accent, texte: `toi ${nombre(valeur)}`, forme: 'point' as const }] : []),
+    ...(valeur !== undefined
+      ? [
+          {
+            valeur,
+            couleur: couleur ?? c.accent,
+            texte: `toi ${nombre(valeur)}`,
+            forme: 'point' as const,
+          },
+        ]
+      : []),
   ];
   const plage: [number, number] | undefined = classe?.min !== undefined || classe?.max !== undefined ? [classe.min ?? 0, classe.max ?? sur] : undefined;
-  return <Echelle min={0} max={sur} pas={sur / 4} sousPas={sur % 4 === 0 && sur >= 8 ? sur / 20 : sur / 4} plage={plage} marques={marques} libelle={libelle} />;
+  const echelle = (
+    <Echelle min={0} max={sur} pas={sur / 4} sousPas={sur % 4 === 0 && sur >= 8 ? sur / 20 : sur / 4} plage={plage} marques={marques} libelle={libelle} />
+  );
+  if (!plage) return echelle;
+  // La plage en pointillés dit le plus bas et le plus haut de la classe : écrit en clair, pas seulement dessiné.
+  const extremes = [classe?.min !== undefined ? `plus basse ${moyenne(classe.min)}` : '', classe?.max !== undefined ? `plus haute ${moyenne(classe.max)}` : '']
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <View style={{ gap: 6 }}>
+      {echelle}
+      <View style={styles.legende} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <View style={[styles.echantillon, { borderColor: c.attenue }]} />
+        <Texte variante="petit" attenue style={{ flex: 1, fontVariant: ['tabular-nums'] }}>
+          Classe : {extremes}
+        </Texte>
+      </View>
+    </View>
+  );
+}
+
+/** Une série du graphique de l'écran Courbes ; `classe` : la moyenne de classe publiée par ED, tracée en pointillés. */
+export type Serie = {
+  cle: string;
+  libelle: string;
+  couleur: string;
+  points: { date: string; valeur: number }[];
+  classe?: number;
+};
+
+const jourMs = (iso: string) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
+
+const MARGE_GAUCHE = 30;
+const MARGE_BAS = 24;
+
+/**
+ * Graphique de l'écran Courbes : les dates à l'horizontale, les moyennes à la verticale. Une ligne droite par
+ * série, un point sur sa dernière valeur, la moyenne de classe en pointillés de la même couleur. Sa légende est
+ * dessinée avec les mêmes couleurs et donne la dernière valeur de chaque courbe.
+ */
+export function Graphique({ series, debut, fin, hauteur = 220, libelle }: { series: Serie[]; debut: string; fin: string; hauteur?: number; libelle: string }) {
+  const c = useCouleurs();
+  const [l, setL] = useState(0);
+  const { bas, haut, pas } = axeMoyennes(series.flatMap((s) => [...s.points.map((p) => p.valeur), ...(s.classe !== undefined ? [s.classe] : [])]));
+  const t0 = jourMs(debut);
+  const t1 = Math.max(jourMs(fin), t0 + 864e5);
+  const largeur = Math.max(l - MARGE_GAUCHE - 8, 1);
+  const h = hauteur - MARGE_BAS - 8;
+  const x = (iso: string) => MARGE_GAUCHE + ((jourMs(iso) - t0) / (t1 - t0)) * largeur;
+  const y = (v: number) => 8 + (1 - (v - bas) / (haut - bas)) * h;
+  const lignes = Array.from({ length: Math.round((haut - bas) / pas) + 1 }, (_, i) => bas + i * pas);
+  return (
+    <View style={{ gap: 12 }}>
+      <View accessible accessibilityRole="image" accessibilityLabel={libelle} onLayout={(e) => setL(e.nativeEvent.layout.width)} style={{ height: hauteur }}>
+        {l > 0 ? (
+          <>
+            <Svg width={l} height={hauteur} style={StyleSheet.absoluteFill}>
+              {lignes.map((v) => (
+                <Line key={v} x1={MARGE_GAUCHE} x2={l - 8} y1={y(v)} y2={y(v)} stroke={v === 10 ? c.controle : c.filet} strokeWidth={1} />
+              ))}
+              {series.map((s) => {
+                const xy = s.points.map((p) => [x(p.date), y(p.valeur)] as const);
+                const [fx, fy] = xy.at(-1) ?? [0, 0];
+                return (
+                  <G key={s.cle}>
+                    {s.classe !== undefined ? (
+                      <Line
+                        x1={MARGE_GAUCHE}
+                        x2={l - 8}
+                        y1={y(s.classe)}
+                        y2={y(s.classe)}
+                        stroke={s.couleur}
+                        strokeOpacity={0.7}
+                        strokeWidth={1.5}
+                        strokeDasharray="5 5"
+                      />
+                    ) : null}
+                    <Path
+                      d={xy.map(([px, py], i) => `${i ? 'L' : 'M'}${px.toFixed(1)},${py.toFixed(1)}`).join(' ')}
+                      fill="none"
+                      stroke={s.couleur}
+                      strokeWidth={2.5}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                    />
+                    {xy.length > 0 ? <Circle cx={fx} cy={fy} r={4} fill={s.couleur} /> : null}
+                  </G>
+                );
+              })}
+            </Svg>
+            {lignes.map((v) => (
+              <Texte key={v} variante="petit" attenue style={[styles.axeY, { top: y(v) - 9 }]}>
+                {String(v)}
+              </Texte>
+            ))}
+            {/* Une date qui ne tient pas entière dans le tracé est omise plutôt que décalée sur sa voisine. */}
+            {datesAxe(debut, fin)
+              .filter((r) => x(r.date) - 26 >= MARGE_GAUCHE - 8 && x(r.date) + 26 <= l)
+              .map((r) => (
+                <Texte key={r.date} variante="petit" attenue style={[styles.axeX, { top: hauteur - MARGE_BAS + 4, left: x(r.date) - 40 }]}>
+                  {r.libelle}
+                </Texte>
+              ))}
+          </>
+        ) : null}
+      </View>
+      <View style={{ gap: 6 }}>
+        {series.map((s) => (
+          <View key={s.cle} style={styles.ligneLegende}>
+            <Svg width={18} height={10}>
+              <Line x1={1} x2={17} y1={5} y2={5} stroke={s.couleur} strokeWidth={2.5} strokeLinecap="round" />
+            </Svg>
+            <Texte variante="petit" numberOfLines={1} style={{ flex: 1 }}>
+              {s.libelle}
+            </Texte>
+            {s.classe !== undefined ? (
+              <View style={styles.ligneLegende}>
+                <Svg width={14} height={10}>
+                  <Line x1={0} x2={14} y1={5} y2={5} stroke={s.couleur} strokeOpacity={0.7} strokeWidth={1.5} strokeDasharray="3 3" />
+                </Svg>
+                <Texte variante="petit" attenue style={{ fontVariant: ['tabular-nums'] }}>
+                  classe {moyenne(s.classe)}
+                </Texte>
+              </View>
+            ) : null}
+            <Texte
+              variante="petit"
+              style={{
+                fontFamily: police.fort,
+                fontVariant: ['tabular-nums'],
+                minWidth: 40,
+                textAlign: 'right',
+              }}>
+              {s.points.length > 0 ? moyenne(s.points.at(-1)!.valeur) : '—'}
+            </Texte>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
 }
 
 /** Hachures orange du simulé, en fond d'un bloc (le parent pose `overflow: 'hidden'` et son arrondi). */
@@ -288,10 +497,61 @@ export function Hachures({ couleur, opacite = 0.14 }: { couleur?: string; opacit
 
 const styles = StyleSheet.create({
   centre: { alignItems: 'center', justifyContent: 'center' },
-  point: { position: 'absolute', left: -11, width: 22, height: 22, borderRadius: 11, borderWidth: 3 },
-  remplissage: { position: 'absolute', left: 0, height: EPAISSEUR_RAIL, borderRadius: EPAISSEUR_RAIL / 2 },
-  plage: { position: 'absolute', height: EPAISSEUR_RAIL, borderRadius: EPAISSEUR_RAIL / 2, borderWidth: 1.5, borderStyle: 'dashed' },
-  trait: { position: 'absolute', width: 7, height: 28, borderRadius: 3.5, borderWidth: 2 },
-  chiffre: { position: 'absolute', width: 40, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  etiquette: { position: 'absolute', width: LARGEUR_ETIQUETTE, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  point: {
+    position: 'absolute',
+    left: -11,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 3,
+  },
+  remplissage: {
+    position: 'absolute',
+    left: 0,
+    height: EPAISSEUR_RAIL,
+    borderRadius: EPAISSEUR_RAIL / 2,
+  },
+  plage: {
+    position: 'absolute',
+    height: EPAISSEUR_RAIL,
+    borderRadius: EPAISSEUR_RAIL / 2,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+  },
+  trait: {
+    position: 'absolute',
+    width: 7,
+    height: 28,
+    borderRadius: 3.5,
+    borderWidth: 2,
+  },
+  chiffre: {
+    position: 'absolute',
+    width: 40,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
+  },
+  etiquette: {
+    position: 'absolute',
+    width: LARGEUR_ETIQUETTE,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
+  },
+  axeY: {
+    position: 'absolute',
+    left: 0,
+    width: MARGE_GAUCHE - 6,
+    textAlign: 'right',
+    fontVariant: ['tabular-nums'],
+  },
+  axeX: { position: 'absolute', width: 80, textAlign: 'center' },
+  ligneLegende: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  legende: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  echantillon: {
+    width: 22,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+  },
 });

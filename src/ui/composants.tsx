@@ -8,6 +8,7 @@ import {
   Modal,
   type StyleProp,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -794,14 +795,30 @@ export function useMinute(): Date {
 }
 
 /** `fixe` : l'écran tient sur une hauteur, sans défilement (l'agenda : on glisse entre les jours). */
-export function Ecran({ children, fixe }: { children: ReactNode; fixe?: boolean }) {
+export function Ecran({
+  children,
+  fixe,
+  actualiser,
+}: {
+  children: ReactNode;
+  fixe?: boolean;
+  /** Tirer vers le bas pour actualiser (geste natif). */
+  actualiser?: { enCours: boolean; onActualiser: () => void };
+}) {
   const c = useCouleurs();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.fond }} edges={['top', 'left', 'right']}>
       {fixe ? (
         <View style={[styles.contenu, { flex: 1, gap: espace.m, paddingBottom: espace.m }]}>{children}</View>
       ) : (
-        <ScrollView contentContainerStyle={styles.contenu} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.contenu}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            actualiser ? (
+              <RefreshControl refreshing={actualiser.enCours} onRefresh={actualiser.onActualiser} tintColor={c.accent} colors={[c.accent]} progressBackgroundColor={c.surface} />
+            ) : undefined
+          }>
           {children}
         </ScrollView>
       )}

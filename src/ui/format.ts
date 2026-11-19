@@ -55,4 +55,52 @@ export const jourLong = (j: string) => `${JOURS[dateDe(j).getDay()]} ${jour(j)}`
 export const jourCourt = (j: string) => `${JOURS[dateDe(j).getDay()]!.slice(0, 3)}.`;
 
 /** « 08:00 » depuis « AAAA-MM-JJ HH:MM ». */
-export const heure = (dt: string) => dt.slice(11, 16).replace(/^0/, '').replace(':', ' h ').replace(/ h 00$/, ' h');
+export const heure = (dt: string) =>
+  dt
+    .slice(11, 16)
+    .replace(/^0/, '')
+    .replace(':', ' h ')
+    .replace(/ h 00$/, ' h');
+
+/** Bornes et graduations de l'axe des moyennes : resserré autour des valeurs (dans 0–20), pas de 1, 2 ou 5. */
+export function axeMoyennes(valeurs: number[]): { bas: number; haut: number; pas: number } {
+  if (valeurs.length === 0) return { bas: 0, haut: 20, pas: 5 };
+  let bas = Math.max(0, Math.floor(Math.min(...valeurs)) - 1);
+  let haut = Math.min(20, Math.ceil(Math.max(...valeurs)) + 1);
+  const pas = haut - bas <= 6 ? 1 : haut - bas <= 12 ? 2 : 5;
+  bas = Math.max(0, Math.floor(bas / pas) * pas);
+  haut = Math.min(20, Math.ceil(haut / pas) * pas);
+  return { bas, haut, pas };
+}
+
+const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+/**
+ * Repères de l'axe des dates, sur un pas régulier : le 1er de chaque mois (« oct. ») quand il y en a au moins
+ * quatre, sinon le 1er et le 15 (« 15 oct. ») ; sur une plage trop courte, quatre dates à intervalles égaux.
+ */
+export function datesAxe(debut: string, fin: string): { date: string; libelle: string }[] {
+  const jours: { date: string; mois: number; j: number }[] = [];
+  let a = Number(debut.slice(0, 4));
+  let m = Number(debut.slice(5, 7));
+  for (;;) {
+    for (const j of [1, 15]) {
+      const date = `${a}-${String(m).padStart(2, '0')}-${String(j).padStart(2, '0')}`;
+      if (date > debut && date <= fin) jours.push({ date, mois: m, j });
+    }
+    if (`${a}-${String(m).padStart(2, '0')}-31` >= fin) break;
+    if (m === 12) {
+      m = 1;
+      a++;
+    } else m++;
+  }
+  const premiers = jours.filter((x) => x.j === 1);
+  if (premiers.length >= 4) return premiers.map((x) => ({ date: x.date, libelle: MOIS[x.mois - 1]! }));
+  if (jours.length >= 3) return jours.map((x) => ({ date: x.date, libelle: `${x.j} ${MOIS[x.mois - 1]}` }));
+  const t0 = Date.parse(`${debut}T00:00:00Z`);
+  const t1 = Date.parse(`${fin}T00:00:00Z`);
+  return [0, 1, 2, 3].map((k) => {
+    const date = new Date(t0 + ((t1 - t0) * k) / 3).toISOString().slice(0, 10);
+    return { date, libelle: jour(date) };
+  });
+}
