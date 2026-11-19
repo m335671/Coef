@@ -227,8 +227,12 @@ export function Presse({
   const reduit = useReducedMotion();
   const s = useSharedValue(1);
   const anime = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
+  // Le placement (flex, alignSelf) vaut pour le Pressable lui-même : posé sur la vue intérieure, le Pressable
+  // prenait la largeur de son contenu et poussait ses voisins hors de l'écran (interrupteur du bandeau de simulation).
+  const { flex, flexGrow, flexShrink, flexBasis, alignSelf, ...interieur } = StyleSheet.flatten(style) ?? {};
   return (
     <Pressable
+      style={{ flex, flexGrow, flexShrink, flexBasis, alignSelf }}
       accessibilityRole={role}
       accessibilityLabel={libelleAccessible}
       accessibilityState={role === 'checkbox' ? { checked: !!selectionne, disabled: desactive } : { selected: selectionne, disabled: desactive }}
@@ -241,7 +245,7 @@ export function Presse({
         if (!reduit) s.set(withTiming(0.97, { duration: duree.pression }));
       }}
       onPressOut={() => s.set(withTiming(1, { duration: duree.pression }))}>
-      <Animated.View style={[style, anime]}>{children}</Animated.View>
+      <Animated.View style={[interieur, anime]}>{children}</Animated.View>
     </Pressable>
   );
 }
