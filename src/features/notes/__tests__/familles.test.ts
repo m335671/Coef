@@ -1,7 +1,7 @@
 import { instantaneDemo } from '@/demo/notes';
 
 import { familleDe } from '../familles';
-import { evolution, evolutionsMatieres } from '../vue';
+import { evolution, evolutions, evolutionsMatieres } from '../vue';
 
 test.each([
   ['MATHS', 'MATHEMATIQUES TC', 'sciences'],
@@ -38,4 +38,14 @@ test('évolutions par matière : même dernière valeur que la courbe de la mati
   expect(e.MATHS!.at(-1)).toBeCloseTo(evolution(i.donnees, p, 'MATHS').at(-1)!.moyenne, 10);
   expect(e.MATHS!.length).toBeLessThanOrEqual(evolution(i.donnees, p, 'MATHS').length);
   expect(e.INCONNUE).toBeUndefined();
+});
+
+test('évolutions datées : la générale et chaque matière, cohérentes avec evolution()', () => {
+  const i = instantaneDemo();
+  const p = i.donnees.periodes[0]!;
+  const e = evolutions(i.donnees, p);
+  expect(e.generale).toEqual(evolution(i.donnees, p));
+  const maths = e.matieres.MATHS!;
+  expect(maths.at(-1)!.moyenne).toBeCloseTo(evolution(i.donnees, p, 'MATHS').at(-1)!.moyenne, 10);
+  expect(maths.map((x) => x.date)).toEqual([...maths.map((x) => x.date)].sort());
 });

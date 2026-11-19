@@ -3,6 +3,7 @@ import { type Calibration, calibrer } from '@/domain/moyennes/calibration';
 import { calculer, notesDeLaPeriode, type Resultat, type ResultatMatiere } from '@/domain/moyennes/moteur';
 import type { DonneesNotes, Note, Periode } from '@/domain/types';
 import type { Instantane } from '@/storage/base';
+import { jour } from '@/ui/format';
 
 /** Périodes proposées : celles où l'élève a des matières, examens blancs compris s'ils ont des notes. */
 export function periodesAffichees(d: DonneesNotes): Periode[] {
@@ -73,14 +74,43 @@ export function evolution(d: DonneesNotes, periode: Periode, matiere?: string): 
   return points;
 }
 
-/** Évolution de chaque matière en une passe (mini-courbes) : un point par date où la matière a reçu une note. */
-export function evolutionsMatieres(d: DonneesNotes, periode: Periode): Record<string, number[]> {
+export type PointCourbe = { date: string; moyenne: number };
+
+/**
+ * Évolutions datées en une passe : la générale à chaque date où une note apparaît, et chaque matière aux dates
+ * où elle a reçu une note. Pour l'écran Courbes et les mini-courbes.
+ */
+export function evolutions(d: DonneesNotes, periode: Periode): { generale: PointCourbe[]; matieres: Record<string, PointCourbe[]> } {
   const notes = notesDeLaPeriode(periode, d.notes, d.periodes);
-  const sortie: Record<string, number[]> = {};
+  const generale: PointCourbe[] = [];
+  const matieres: Record<string, PointCourbe[]> = {};
   for (const date of [...new Set(notes.map((n) => n.date))].sort()) {
     const touchees = new Set(notes.filter((n) => n.date === date).map((n) => n.matiereCode));
     const r = calculer(periode, notes.filter((n) => n.date <= date), d.periodes, { parametrage: d.parametrage });
-    for (const m of r.matieres) if (m.moyenne !== undefined && touchees.has(m.code)) (sortie[m.code] ??= []).push(m.moyenne);
+    if (r.generale !== undefined) generale.push({ date, moyenne: r.generale });
+    for (const m of r.matieres) if (m.moyenne !== undefined && touchees.has(m.code)) (matieres[m.code] ??= []).push({ date, moyenne: m.moyenne });
   }
-  return sortie;
+  return { generale, matieres };
+}
+
+/** Évolution de chaque matière (mini-courbes) : un point par date où la matière a reçu une note. */
+export function evolutionsMatieres(d: DonneesNotes, periode: Periode): Record<string, number[]> {
+  return Object.fromEntries(Object.entries(evolutions(d, periode).matieres).map(([code, pts]) => [code, pts.map((x) => x.moyenne)]));
+}
+
+/** Périodes du menu, regroupées : trimestres et année, relevés, examens blancs. */
+export function groupesPeriodes(periodes: Periode[]) {
+  const de = (types: Periode['type'][]) =>
+    periodes
+      .filter((p) => types.includes(p.type))
+      .map((p) => ({
+        cle: p.code,
+        libelle: p.libelle,
+        aide: `${jour(p.debut)} – ${jour(p.fin)}`,
+      }));
+  return [
+    { titre: 'Trimestres', options: de(['trimestre', 'annee']) },
+    { titre: 'Relevés', options: de(['releve']) },
+    { titre: 'Examens blancs', options: de(['examen']) },
+  ].filter((g) => g.options.length > 0);
 }
