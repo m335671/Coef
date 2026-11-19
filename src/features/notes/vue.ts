@@ -93,6 +93,19 @@ export function evolutions(d: DonneesNotes, periode: Periode): { generale: Point
   return { generale, matieres };
 }
 
+/**
+ * Évolutions de la classe, reconstituées : chaque devoir compte pour la moyenne de classe qu'ED donne à ce devoir,
+ * avec le même coefficient et le même calcul que les notes de l'élève. ED ne publie, lui, qu'une moyenne de classe
+ * par période (la valeur du jour) : c'est la seule façon de voir la classe bouger. Les devoirs sans moyenne de
+ * classe sont laissés de côté.
+ */
+export function evolutionsClasse(d: DonneesNotes, periode: Periode): ReturnType<typeof evolutions> {
+  const notes = d.notes.flatMap((n) =>
+    n.classe?.moyenne !== undefined ? [{ ...n, valeurBrute: String(n.classe.moyenne).replace('.', ','), classe: undefined }] : [],
+  );
+  return evolutions({ ...d, notes }, periode);
+}
+
 /** Évolution de chaque matière (mini-courbes) : un point par date où la matière a reçu une note. */
 export function evolutionsMatieres(d: DonneesNotes, periode: Periode): Record<string, number[]> {
   return Object.fromEntries(Object.entries(evolutions(d, periode).matieres).map(([code, pts]) => [code, pts.map((x) => x.moyenne)]));

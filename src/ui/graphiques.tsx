@@ -357,13 +357,13 @@ export function Regle({
   );
 }
 
-/** Une série du graphique de l'écran Courbes ; `classe` : la moyenne de classe publiée par ED, tracée en pointillés. */
+/** Une série du graphique de l'écran Courbes ; `classe` : l'évolution de la classe, tracée en pointillés. */
 export type Serie = {
   cle: string;
   libelle: string;
   couleur: string;
   points: { date: string; valeur: number }[];
-  classe?: number;
+  classe?: { date: string; valeur: number }[];
 };
 
 const jourMs = (iso: string) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
@@ -373,14 +373,14 @@ const MARGE_BAS = 24;
 
 /**
  * Graphique de l'écran Courbes : les dates à l'horizontale, les moyennes à la verticale. Une ligne droite par
- * série, un point par note, la moyenne de classe en pointillés de la même couleur. Le doigt posé dessus et glissé à
+ * série, un point par note, la classe en pointillés de la même couleur. Le doigt posé dessus et glissé à
  * l'horizontale promène un curseur d'une date de note à l'autre : la légende donne alors la valeur de chaque courbe
  * ce jour-là et son écart avec la précédente ; sinon la dernière valeur.
  */
 export function Graphique({ series, debut, fin, hauteur = 220, libelle }: { series: Serie[]; debut: string; fin: string; hauteur?: number; libelle: string }) {
   const c = useCouleurs();
   const [l, setL] = useState(0);
-  const { bas, haut, pas } = axeMoyennes(series.flatMap((s) => [...s.points.map((p) => p.valeur), ...(s.classe !== undefined ? [s.classe] : [])]));
+  const { bas, haut, pas } = axeMoyennes(series.flatMap((s) => [...s.points, ...(s.classe ?? [])].map((p) => p.valeur)));
   const t0 = jourMs(debut);
   const t1 = Math.max(jourMs(fin), t0 + 864e5);
   const largeur = Math.max(l - MARGE_GAUCHE - 8, 1);
@@ -433,16 +433,15 @@ export function Graphique({ series, debut, fin, hauteur = 220, libelle }: { seri
                 const [fx, fy] = xy.at(-1) ?? [0, 0];
                 return (
                   <G key={s.cle}>
-                    {s.classe !== undefined ? (
-                      <Line
-                        x1={MARGE_GAUCHE}
-                        x2={l - 8}
-                        y1={y(s.classe)}
-                        y2={y(s.classe)}
+                    {s.classe && s.classe.length > 0 ? (
+                      <Path
+                        d={s.classe.map((p, i) => `${i ? 'L' : 'M'}${x(p.date).toFixed(1)},${y(p.valeur).toFixed(1)}`).join(' ')}
+                        fill="none"
                         stroke={s.couleur}
                         strokeOpacity={0.7}
                         strokeWidth={1.5}
                         strokeDasharray="5 5"
+                        strokeLinejoin="round"
                       />
                     ) : null}
                     <Path
@@ -495,13 +494,13 @@ export function Graphique({ series, debut, fin, hauteur = 220, libelle }: { seri
             <Texte variante="petit" numberOfLines={1} style={{ flex: 1 }}>
               {s.libelle}
             </Texte>
-            {s.classe !== undefined ? (
+            {s.classe && s.classe.length > 0 ? (
               <View style={styles.ligneLegende}>
                 <Svg width={14} height={10}>
                   <Line x1={0} x2={14} y1={5} y2={5} stroke={s.couleur} strokeOpacity={0.7} strokeWidth={1.5} strokeDasharray="3 3" />
                 </Svg>
                 <Texte variante="petit" attenue style={{ fontVariant: ['tabular-nums'] }}>
-                  classe {moyenne(s.classe)}
+                  classe {moyenne(valeurAu(s.classe, curseur ?? '9999') ?? s.classe[0]!.valeur)}
                 </Texte>
               </View>
             ) : null}

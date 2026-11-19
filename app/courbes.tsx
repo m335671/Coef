@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { clesMatiere } from '@/features/notes/familles';
 import { useNotes } from '@/features/notes/store';
-import { evolutions, groupesPeriodes, periodeParDefaut, periodesAffichees } from '@/features/notes/vue';
+import { evolutions, evolutionsClasse, groupesPeriodes, periodeParDefaut, periodesAffichees } from '@/features/notes/vue';
 import { COULEURS_MATIERE, useApparence, useSombre } from '@/ui/apparence';
 import { Bouton, Coche, Deroulant, Ecran, EnTete, Entree, Panneau, Section, Segments, Texte } from '@/ui/composants';
 import { ecart, fenetre, jour, moyenne } from '@/ui/format';
@@ -39,13 +39,14 @@ export default function Courbes() {
   const [code, setCode] = useState(params.periode);
   const periode = periodes.find((p) => p.code === code) ?? (instantane ? periodeParDefaut(instantane.donnees, aujourdhui) : undefined);
   const evo = instantane && periode ? evolutions(instantane.donnees, periode) : undefined; // mémorisé par le React Compiler
+  const evoClasse = instantane && periode ? evolutionsClasse(instantane.donnees, periode) : undefined;
 
   const [generale, setGenerale] = useState(true);
   const [classe, setClasse] = useState(true);
   const [cochees, setCochees] = useState<string[]>([]);
   const [plage, setPlage] = useState(0);
 
-  if (!instantane || !periode || !evo) {
+  if (!instantane || !periode || !evo || !evoClasse) {
     return (
       <Ecran>
         <EnTete titre="Courbes" retour />
@@ -71,6 +72,18 @@ export default function Courbes() {
   const debut = plage && moinsJours(fin, plage) > periode.debut ? moinsJours(fin, plage) : periode.debut;
   const pts = (l: { date: string; moyenne: number }[]) => fenetre(l.map((p) => ({ date: p.date, valeur: p.moyenne })), debut);
   const evoGenerale = pts(evo.generale);
+  // La classe au fil des devoirs ; sans moyenne de classe par devoir, la seule valeur d'ED, à plat.
+  const classeDe = (evolution: { date: string; moyenne: number }[] | undefined, publiee?: number) =>
+    !classe
+      ? undefined
+      : evolution && evolution.length > 0
+        ? pts(evolution)
+        : publiee !== undefined
+          ? [
+              { date: debut, valeur: publiee },
+              { date: fin, valeur: publiee },
+            ]
+          : undefined;
   const series: Serie[] = [];
   if (generale && evoGenerale.length > 0) {
     series.push({
@@ -78,7 +91,7 @@ export default function Courbes() {
       libelle: 'Moyenne générale',
       couleur: c.accent,
       points: evoGenerale,
-      classe: classe ? periode.classeGenerale?.moyenne : undefined,
+      classe: classeDe(evoClasse.generale, periode.classeGenerale?.moyenne),
     });
   }
   for (const m of matieres.filter((x) => cochees.includes(x.code))) {
@@ -87,7 +100,7 @@ export default function Courbes() {
       libelle: m.libelle,
       couleur: m.couleur,
       points: pts(evo.matieres[m.code]!),
-      classe: classe ? m.classe?.moyenne : undefined,
+      classe: classeDe(evoClasse.matieres[m.code], m.classe?.moyenne),
     });
   }
 
@@ -146,7 +159,7 @@ export default function Courbes() {
         </Panneau>
       </Entree>
 
-      <Section titre="Afficher" rang={3} aide="ED ne publie qu’une moyenne de classe par période : elle est tracée en pointillés, de la couleur de sa courbe.">
+      <Section titre="Afficher" rang={3} aide="La classe en pointillés, de la couleur de sa courbe : reconstituée devoir par devoir avec la moyenne de classe qu’ED donne à chacun, et les mêmes coefficients.">
         <Coche libelle="Moyenne générale" coche={generale} onChange={setGenerale} couleur={c.accent} />
         <Coche libelle="Moyennes de la classe (pointillés)" coche={classe} onChange={setClasse} couleur={c.attenue} />
       </Section>
