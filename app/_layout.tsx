@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { AppState, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { chargerApparence, lireCouleurSysteme } from '@/features/apparence';
 import { useSimulation } from '@/features/notes/simulation';
 import { useCouleurs } from '@/ui/theme';
 
@@ -25,9 +26,11 @@ export default function RootLayout() {
   // Ouvrir l'app, même sans toucher la notification, vaut lecture : on retire les notifications de notes.
   useEffect(() => {
     void effacer();
+    void chargerApparence();
     const abonnement = AppState.addEventListener('change', (e) => {
       if (e !== 'active') return;
       void effacer();
+      lireCouleurSysteme(); // le fond d'écran a pu changer
       void useSimulation.getState().rattraper(); // notes simulées remplacées pendant la synchro d'arrière-plan
     });
     return () => abonnement.remove();

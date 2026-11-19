@@ -848,7 +848,31 @@ export function Section({ titre, aide, action, children, rang = 0 }: { titre: st
   );
 }
 
+/** Ligne d'un choix exclusif (bouton radio), à poser dans un Panneau. */
+export function Choix({ titre, aide, actif, dernier, onPress }: { titre: string; aide?: string; actif: boolean; dernier: boolean; onPress: () => void }) {
+  const c = useCouleurs();
+  return (
+    <Ligne dernier={dernier} onPress={onPress} role="radio" selectionne={actif} libelleAccessible={titre}>
+      <View style={[styles.radio, { borderColor: actif ? c.accent : c.controle }]}>
+        {actif ? <View style={[styles.pointRadio, { backgroundColor: c.accent }]} /> : null}
+      </View>
+      <View style={{ flex: 1, gap: espace.xs }}>
+        <Texte variante="liste" moyen>
+          {titre}
+        </Texte>
+        {aide ? (
+          <Texte variante="petit" attenue>
+            {aide}
+          </Texte>
+        ) : null}
+      </View>
+    </Ligne>
+  );
+}
+
 const styles = StyleSheet.create({
+  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  pointRadio: { width: 10, height: 10, borderRadius: 5 },
   // 640 px au plus : sur tablette et dans l'aperçu web, la colonne reste celle d'un téléphone.
   contenu: { paddingHorizontal: espace.l, paddingBottom: espace.xxl, gap: espace.xl, width: '100%', maxWidth: 640, alignSelf: 'center' },
   entete: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: espace.m, paddingTop: espace.s },

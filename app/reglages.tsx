@@ -1,10 +1,11 @@
 // Réglages. Sa question : « Qu'est-ce que l'app garde et montre de moi ? »
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Platform, StyleSheet, View } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { CAPTURE } from '@/api/ecoledirecte/capture';
 import { MODE_DEMO } from '@/demo';
+import { reinitialiserApparence } from '@/features/apparence';
 import { exporterCaptures, messageErreur } from '@/features/compte/essai';
 import { useCompte } from '@/features/compte/store';
 import { useSimulation } from '@/features/notes/simulation';
@@ -13,8 +14,7 @@ import { annonce } from '@/sync/annonce';
 import { depot, ecrirePreference, lirePreference } from '@/storage/base';
 import { synchroniser } from '@/sync/synchro';
 import { type BilanFond, PREF_BILAN_FOND, PREF_ECRAN_VERROUILLE } from '@/sync/tache';
-import { Bouton, Ecran, EnTete, Ligne, Panneau, Section, Texte } from '@/ui/composants';
-import { espace, useCouleurs } from '@/ui/theme';
+import { Bouton, Choix, Ecran, EnTete, Ligne, Panneau, Section, Texte } from '@/ui/composants';
 
 import { afficher, type EcranVerrouille } from '../modules/notifications-locales';
 
@@ -48,6 +48,7 @@ export default function Reglages() {
   async function effacer() {
     await toutEffacer();
     vider();
+    reinitialiserApparence();
     useSimulation.setState({ notes: {}, objectif: undefined, objectifAffiche: undefined, remplacees: undefined, active: true, modifie: false, charge: false });
     router.replace('/connexion');
   }
@@ -88,6 +89,19 @@ export default function Reglages() {
   return (
     <Ecran>
       <EnTete titre="Réglages" retour />
+
+      <Section titre="Apparence">
+        <Panneau>
+          <Ligne dernier onPress={() => router.push('/apparence')} libelleAccessible="Apparence : mode, couleur du thème, couleurs des matières">
+            <Texte variante="liste" moyen style={{ flex: 1 }}>
+              Mode, couleurs, matières
+            </Texte>
+            <Texte variante="liste" attenue>
+              ›
+            </Texte>
+          </Ligne>
+        </Panneau>
+      </Section>
 
       <Section titre="Notifications" aide="Une notification par nouvelle note, vérifiée en arrière-plan au plus une fois par heure.">
         <Texte variante="liste" moyen>
@@ -153,27 +167,3 @@ export default function Reglages() {
     </Ecran>
   );
 }
-
-function Choix({ titre, aide, actif, dernier, onPress }: { titre: string; aide: string; actif: boolean; dernier: boolean; onPress: () => void }) {
-  const c = useCouleurs();
-  return (
-    <Ligne dernier={dernier} onPress={onPress} libelleAccessible={`${titre}${actif ? ', choisi' : ''}`}>
-      <View style={[styles.radio, { borderColor: actif ? c.accent : c.controle }]}>
-        {actif ? <View style={[styles.point, { backgroundColor: c.accent }]} /> : null}
-      </View>
-      <View style={{ flex: 1, gap: espace.xs }}>
-        <Texte variante="liste" moyen>
-          {titre}
-        </Texte>
-        <Texte variante="petit" attenue>
-          {aide}
-        </Texte>
-      </View>
-    </Ligne>
-  );
-}
-
-const styles = StyleSheet.create({
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  point: { width: 10, height: 10, borderRadius: 5 },
-});
