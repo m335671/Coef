@@ -8,7 +8,7 @@ import { MODE_DEMO } from '@/demo';
 import { AUJOURDHUI_DEMO, coursDemo, devoirsDemo, MAINTENANT_DEMO, vieScolaireDemo } from '@/demo/vie';
 import type { Cours, Devoir, EvenementVieScolaire } from '@/domain/types';
 import { useEleveActif } from '@/features/compte/eleves';
-import { familleDe } from '@/features/notes/familles';
+import { useCouleurMatiere } from '@/features/notes/familles';
 import { useNotes } from '@/features/notes/store';
 import { useSimulation } from '@/features/notes/simulation';
 import { evolution, periodeParDefaut, vueNotes } from '@/features/notes/vue';
@@ -33,11 +33,11 @@ import {
 import { ajouterJours, brute, ecart, heure, iso, jour, jourCourt, jourLong, lundiDe, moyenne } from '@/ui/format';
 import { Anneau } from '@/ui/graphiques';
 import { Tuile } from '@/ui/Tuile';
-import { espace, police, useCouleurs, useFamilles } from '@/ui/theme';
+import { espace, police, useCouleurs } from '@/ui/theme';
 
 export default function Accueil() {
   const c = useCouleurs();
-  const familles = useFamilles();
+  const couleurMatiere = useCouleurMatiere();
   const [eleve] = useEleveActif();
   const id = eleve?.id ?? '';
   const horloge = useMinute();
@@ -104,7 +104,7 @@ export default function Accueil() {
   const nouvelles = new Set(vue?.nouvelles.map((n) => n.id));
   const duJour = cours.filter((x) => x.debut.startsWith(aujourdhui)).sort((a, b) => a.debut.localeCompare(b.debut));
   const aVenir = [...aFaire].sort((a, b) => a.pour.localeCompare(b.pour)).slice(0, 4);
-  const famille = prochain ? familles[familleDe(prochain.codeMatiere ?? '', prochain.matiere)] : undefined;
+  const famille = prochain ? couleurMatiere(prochain.codeMatiere ?? '', prochain.matiere) : undefined;
   const date = new Date(`${aujourdhui}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
@@ -251,7 +251,7 @@ export default function Accueil() {
             </Texte>
           ) : (
             duJour.map((x) => {
-              const f = familles[familleDe(x.codeMatiere ?? '', x.matiere)];
+              const f = couleurMatiere(x.codeMatiere ?? '', x.matiere);
               const passe = x.fin <= maintenant;
               const enCours = !x.annule && x.debut <= maintenant && maintenant < x.fin;
               return (
@@ -352,7 +352,7 @@ export default function Accueil() {
                 <Texte variante="petit" attenue style={styles.heure}>
                   {jourCourt(d.pour)} {Number(d.pour.slice(8))}
                 </Texte>
-                <View style={[styles.pastilleFamille, { backgroundColor: familles[familleDe(d.codeMatiere ?? '', d.matiere)].trait }]} />
+                <View style={[styles.pastilleFamille, { backgroundColor: couleurMatiere(d.codeMatiere ?? '', d.matiere).trait }]} />
                 <Texte variante="liste" numberOfLines={1} style={{ flex: 1 }}>
                   {d.matiere}
                 </Texte>

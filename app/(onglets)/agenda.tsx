@@ -12,12 +12,12 @@ import { MODE_DEMO } from '@/demo';
 import { AUJOURDHUI_DEMO, coursDemo, devoirsDemo, LUNDI_DEMO, MAINTENANT_DEMO } from '@/demo/vie';
 import type { Cours, Devoir } from '@/domain/types';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
-import { familleDe } from '@/features/notes/familles';
+import { useCouleurMatiere } from '@/features/notes/familles';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
 import { Bouton, Ecran, EnTete, Entree, Feuille, Ligne, ListeSquelette, Pastille, Presse, Segments, Texte, useMinute } from '@/ui/composants';
 import { ajouterJours, heure, iso, jour, jourCourt, jourLong, lundiDe } from '@/ui/format';
 import { Hachures } from '@/ui/graphiques';
-import { espace, police, rayon, useCouleurs, useFamilles } from '@/ui/theme';
+import { espace, police, rayon, useCouleurs } from '@/ui/theme';
 
 export default function Agenda() {
   const c = useCouleurs();
@@ -201,7 +201,7 @@ function Frise({
   onCours: (x: Cours) => void;
 }) {
   const c = useCouleurs();
-  const familles = useFamilles();
+  const couleurMatiere = useCouleurMatiere();
   const tries = [...cours].sort((a, b) => a.debut.localeCompare(b.debut));
   const debut = Math.floor(Math.min(DEBUT, ...tries.map((x) => minutes(x.debut))) / 60) * 60;
   const fin = Math.ceil(Math.max(FIN, ...tries.map((x) => minutes(x.fin))) / 60) * 60;
@@ -231,7 +231,7 @@ function Frise({
         <View style={styles.colonnes}>
           <View style={styles.calque}>
             {places.map(({ x, col }) => {
-              const f = familles[familleDe(x.codeMatiere ?? '', x.matiere)];
+              const f = couleurMatiere(x.codeMatiere ?? '', x.matiere);
               const lies = devoirs.filter((d) => d.codeMatiere && d.codeMatiere === x.codeMatiere);
               const enCours = m !== undefined && minutes(x.debut) <= m && m < minutes(x.fin);
               const hauteur = (minutes(x.fin) - minutes(x.debut)) * PX - 3;
@@ -312,9 +312,9 @@ function Frise({
 /** Le détail d'un cours : horaires, salle, professeur, état, devoirs pour ce jour (les toucher ouvre le devoir). */
 function FicheCours({ cours: x, devoirs, eleve, onFermer }: { cours?: Cours; devoirs: Devoir[]; eleve: string; onFermer: () => void }) {
   const c = useCouleurs();
-  const familles = useFamilles();
+  const couleurMatiere = useCouleurMatiere();
   if (!x) return null;
-  const f = familles[familleDe(x.codeMatiere ?? '', x.matiere)];
+  const f = couleurMatiere(x.codeMatiere ?? '', x.matiere);
   const lies = devoirs.filter((d) => d.pour === x.debut.slice(0, 10) && d.codeMatiere && d.codeMatiere === x.codeMatiere);
   const infos: [string, string | undefined][] = [
     ['Horaires', `${jourLong(x.debut.slice(0, 10)).replace(/^./, (l) => l.toUpperCase())}, de ${heure(x.debut)} à ${heure(x.fin)}`],

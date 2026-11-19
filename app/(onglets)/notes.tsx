@@ -10,7 +10,7 @@ import { avecHypotheses, type NoteHypothetique } from '@/domain/moyennes/simulat
 import type { Note, Periode } from '@/domain/types';
 import type { Famille } from '@/ui/theme';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
-import { familleDe, NOM_FAMILLE, ORDRE_FAMILLES } from '@/features/notes/familles';
+import { familleDe, NOM_FAMILLE, ORDRE_FAMILLES, useCouleurMatiere } from '@/features/notes/familles';
 import { ordonner, TRIS, type Tri, trierNotes } from '@/features/notes/ordre';
 import { cleSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
@@ -505,7 +505,7 @@ function LigneMatiereListe({
   poignee?: ReactNode;
 }) {
   const c = useCouleurs();
-  const famille = useFamilles()[familleDe(l.matiere.code, l.matiere.libelle)];
+  const famille = useCouleurMatiere()(l.matiere.code, l.matiere.libelle);
   const m = l.matiere;
   const simulee = reelle !== undefined && reelle.valeur !== m.moyenne;
   const etat = m.moyenne === undefined ? 'pas de note' : `moyenne ${simulee ? 'simulée' : 'prévue'} ${moyenne(m.moyenne)}`;
@@ -577,6 +577,7 @@ function ParFamille({
 }) {
   const c = useCouleurs();
   const familles = useFamilles();
+  const couleurMatiere = useCouleurMatiere();
   const nouvelles = new Set(vue.nouvelles.map((n) => n.matiereCode));
   const groupes = ordre
     .map((f) => ({
@@ -622,11 +623,11 @@ function ParFamille({
               onPress={() => onPress(m.code)}
               libelleAccessible={`${m.libelle}, ${m.moyenne === undefined ? 'pas de note' : `moyenne prévue ${moyenne(m.moyenne)}`}`}
               style={[styles.tuile, { backgroundColor: `${c.fond}b8` }]}>
-              <Texte variante="liste" numberOfLines={2} style={{ flex: 1, color: familles[f].encre }}>
+              <Texte variante="liste" numberOfLines={2} style={{ flex: 1, color: couleurMatiere(m.code, m.libelle).encre }}>
                 {m.libelle}
               </Texte>
-              {nouvelles.has(m.code) ? <Pastille texte="nouvelle note" fond={c.fond} encre={familles[f].encre} /> : null}
-              <Chiffre valeur={m.moyenne} taillePx={16} couleur={familles[f].encre} />
+              {nouvelles.has(m.code) ? <Pastille texte="nouvelle note" fond={c.fond} encre={couleurMatiere(m.code, m.libelle).encre} /> : null}
+              <Chiffre valeur={m.moyenne} taillePx={16} couleur={couleurMatiere(m.code, m.libelle).encre} />
             </Presse>
           ))}
         </View>
@@ -650,7 +651,7 @@ function NotesTriees({
   onNote: (id: string) => void;
 }) {
   const c = useCouleurs();
-  const familles = useFamilles();
+  const couleurMatiere = useCouleurMatiere();
   const ids = new Set(matieres.flatMap(({ matiere: m }) => [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)]).map((d) => d.id));
   const exclues = new Set(
     matieres
@@ -681,7 +682,7 @@ function NotesTriees({
               onPress={simulee ? undefined : () => onNote(n.id)}
               libelleAccessible={`${nom}, ${n.devoir || 'devoir'}, ${brute(n.valeurBrute)} sur ${n.noteSur}`}
               style={[styles.ligneNote, { borderBottomColor: c.filet, borderBottomWidth: j === liste.length - 1 ? 0 : StyleSheet.hairlineWidth }]}>
-              <View style={[styles.bande, { backgroundColor: familles[familleDe(n.matiereCode, nom)].trait }]} />
+              <View style={[styles.bande, { backgroundColor: couleurMatiere(n.matiereCode, nom).trait }]} />
               <View style={{ flex: 1 }}>
                 <Texte variante="liste" numberOfLines={1} style={simulee ? { color: c.negatif } : undefined}>
                   {simulee ? 'Note simulée' : n.devoir || 'Devoir'}

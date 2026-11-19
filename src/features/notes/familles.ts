@@ -1,6 +1,8 @@
 // Familles de matières pour l'affichage « par famille ». Heuristique sur le code et le libellé ED (pas de champ
 // ED pour ça) : ce qui n'est pas reconnu va dans « Autres matières », jamais dans une mauvaise famille.
-import type { Famille } from '@/ui/theme';
+import { useApparence, useSombre } from '@/ui/apparence';
+import { type CouleursMatiere, matiereDepuis } from '@/ui/palette';
+import { type Famille, useFamilles } from '@/ui/theme';
 
 export const NOM_FAMILLE: Record<Famille, string> = {
   sciences: 'Sciences et techno',
@@ -25,4 +27,22 @@ const normaliser = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toUp
 export function familleDe(code: string, libelle: string): Famille {
   const texte = `${normaliser(code)} ${normaliser(libelle)}`;
   return REGLES.find(([, re]) => re.test(texte))?.[0] ?? 'autres';
+}
+
+/** Clés d'une matière dans les couleurs choisies : son code, et son nom pour les écrans où ED ne donne pas le code (agenda). */
+export function clesMatiere(code: string, libelle: string): string[] {
+  return [code, `nom:${normaliser(libelle).trim()}`].filter((c) => c && c !== 'nom:');
+}
+
+/** Couleurs d'une matière : celle choisie dans Réglages, sinon celle de sa famille. */
+export function useCouleurMatiere(): (code: string, libelle: string) => CouleursMatiere {
+  const familles = useFamilles();
+  const sombre = useSombre();
+  const choix = useApparence((s) => s.matieres);
+  return (code, libelle) => {
+    const graine = clesMatiere(code, libelle)
+      .map((k) => choix[k])
+      .find(Boolean);
+    return graine ? matiereDepuis(graine, sombre) : familles[familleDe(code, libelle)];
+  };
 }
