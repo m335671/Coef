@@ -1,10 +1,10 @@
 // Réglages d'apparence posés directement dans Réglages : mode et couleur du thème. Le nuancier sert aussi à
 // l'écran des couleurs des matières.
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Switch, View } from 'react-native';
 
 import { changerApparence } from '@/features/apparence';
 import { COULEURS_THEME, type ModeAffichage, useApparence } from '@/ui/apparence';
-import { Choix, Panneau, Presse, Section } from '@/ui/composants';
+import { Choix, Ligne, Panneau, Presse, Section, Texte } from '@/ui/composants';
 import { CIBLE, espace, useCouleurs } from '@/ui/theme';
 
 const MODES: { cle: ModeAffichage; titre: string }[] = [
@@ -17,12 +17,12 @@ const MODES: { cle: ModeAffichage; titre: string }[] = [
 const COEF = '#0f766e';
 
 export function SectionsApparence() {
+  const c = useCouleurs();
   const { mode, couleur, accentSysteme } = useApparence();
-  const themes = [
-    { cle: 'coef', nom: 'Coef', teinte: COEF },
-    ...(accentSysteme ? [{ cle: 'systeme', nom: 'Material You (fond d’écran)', teinte: accentSysteme }] : []),
-    ...COULEURS_THEME.map((t) => ({ cle: t.couleur, nom: t.nom, teinte: t.couleur })),
-  ];
+  // Material You n'est pas une pastille parmi d'autres (on ne la reconnaissait pas) : c'est un choix nommé, au-dessus.
+  const themes = [{ cle: 'coef', nom: 'Coef', teinte: COEF }, ...COULEURS_THEME.map((t) => ({ cle: t.couleur, nom: t.nom, teinte: t.couleur }))];
+  const materialYou = couleur === 'systeme' && !!accentSysteme;
+  const nomTheme = materialYou ? 'Material You' : (themes.find((t) => t.cle === couleur)?.nom ?? 'Coef');
   return (
     <>
       <Section titre="Mode">
@@ -32,10 +32,39 @@ export function SectionsApparence() {
           ))}
         </Panneau>
       </Section>
-      <Section
-        titre="Couleur du thème"
-        aide={accentSysteme ? 'Material You suit les couleurs de ton fond d’écran.' : 'Material You : Android 12 ou plus récent.'}>
-        <Nuancier choix={themes} actif={couleur} onChoisir={(cle) => changerApparence({ couleur: cle })} />
+      <Section titre="Couleur du thème" aide={`Thème actuel : ${nomTheme}.`}>
+        {accentSysteme ? (
+          <Panneau>
+            <Ligne
+              dernier
+              onPress={() => changerApparence({ couleur: materialYou ? 'coef' : 'systeme' })}
+              libelleAccessible={`Couleurs du fond d’écran, Material You, ${materialYou ? 'activé' : 'désactivé'}`}>
+              <View style={[styles.echantillon, { backgroundColor: accentSysteme }]} />
+              <View style={{ flex: 1 }}>
+                <Texte variante="liste" moyen>
+                  Couleurs du fond d’écran
+                </Texte>
+                <Texte variante="petit" attenue>
+                  Material You : Coef prend la couleur de ton téléphone
+                </Texte>
+              </View>
+              <Switch
+                accessibilityLabel="Material You"
+                value={materialYou}
+                onValueChange={(v) => changerApparence({ couleur: v ? 'systeme' : 'coef' })}
+                trackColor={{ true: c.accent, false: c.controle }}
+                thumbColor={c.surface}
+              />
+            </Ligne>
+          </Panneau>
+        ) : (
+          <Texte variante="petit" attenue>
+            Material You (couleurs du fond d’écran) : Android 12 ou plus récent.
+          </Texte>
+        )}
+        <View style={{ opacity: materialYou ? 0.45 : 1 }}>
+          <Nuancier choix={themes} actif={materialYou ? '' : couleur} onChoisir={(cle) => changerApparence({ couleur: cle })} />
+        </View>
       </Section>
     </>
   );
@@ -68,4 +97,5 @@ const styles = StyleSheet.create({
   anneau: { width: CIBLE + 4, height: CIBLE + 4, borderRadius: (CIBLE + 4) / 2, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   pastille: { width: CIBLE - 8, height: CIBLE - 8, borderRadius: (CIBLE - 8) / 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   barre: { width: 2, height: CIBLE, transform: [{ rotate: '45deg' }] },
+  echantillon: { width: 28, height: 28, borderRadius: 14 },
 });
