@@ -43,6 +43,8 @@ On ne choisit pas quand une vraie note arrive : un faux serveur local (fixtures 
 | Réponse inattendue | Le schéma Zod la refuse avec une erreur claire : comparer à une capture (Réglages > Essai), corriger `schemas.ts` et `mapping.ts`. |
 
 ## Points ouverts
+- **Documents des années précédentes** : non implémentés, format incertain (`archive=AAAA-AAAA` ou `AAAA`) ; ce que disent les sources et comment trancher : `docs/API-ED.md`, section « Messagerie et documents ».
+- **Session du 19/11/2026, branche `recipe`** (non poussée sans accord, un push lance la CI) : correction du bandeau de simulation, écran Apparence (mode, couleurs, Material You, couleurs des matières), écran Courbes, plage de la classe écrite sous la barre. À essayer sur Android : le module `modules/couleurs-systeme` n'a jamais été compilé, et Actualiser est passé au geste « tirer vers le bas » sur Notes.
 - Raccourcis assumés dans le code : `grep -rn "ponytail:\|shortcut:" src app`.
 - Synchro en arrière-plan : le moment dépend d'Android (Doze), à surveiller.
 - Design : plugin taste-skill, déclaré dans `.claude/settings.json`.
