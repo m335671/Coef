@@ -51,3 +51,11 @@ test('vie scolaire : types reconnus, plus récents d’abord, champs vides absen
   expect(versVieScolaire({ absencesRetards: [{ id: 1, typeElement: 'Incident', date: '2026-01-01' }] })[0]!.type).toBe('autre');
   expect(versVieScolaire({})).toEqual([]);
 });
+
+test('HTML des messages : apostrophe Windows-1252, entités hexadécimales et majuscules, liens écrits en clair', () => {
+  expect(htmlEnTexte('l\u0092élève &#146;ok&#146; &#x2019; &Eacute;t&eacute; &hellip;')).toBe('l’élève ’ok’ ’ Été …');
+  expect(htmlEnTexte('<p>Le <a href="https://exemple.fr/doc">formulaire</a> et <a href="https://exemple.fr">https://exemple.fr</a></p>')).toBe(
+    'Le formulaire (https://exemple.fr/doc) et https://exemple.fr',
+  );
+  expect(htmlEnTexte('<a href="mailto:cpe@lycee.fr">la CPE</a> · <a href="javascript:x()">ici</a>')).toBe('la CPE (cpe@lycee.fr) · ici');
+});
