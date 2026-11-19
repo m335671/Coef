@@ -1,7 +1,8 @@
 // Design system maison, v2. Base : taste-skill « accent ladder » (une couleur franche sur les petites marques,
 // ses teintes pâles sur les surfaces) ; affichage par famille de matières repris de « pastel consumer » ;
 // courbe d'évolution reprise de la v1 enrichie. La v1 est gardée : docs/INTERFACE-V1.md, tag interface-v1.
-import { useColorScheme } from 'react-native';
+import { useApparence, useSombre } from './apparence';
+import { couleursDepuis } from './palette';
 
 const clair = {
   fond: '#ffffff',
@@ -80,9 +81,19 @@ export const duree = { pression: 120, entree: 450, barre: 900, compteur: 700, pa
 export const CIBLE = 44;
 
 export function useCouleurs(): Couleurs {
-  return useColorScheme() === 'dark' ? sombre : clair;
+  const sombreActif = useSombre();
+  const graine = useGraine();
+  const base = sombreActif ? sombre : clair;
+  return graine ? couleursDepuis(graine, sombreActif, base) : base;
+}
+
+/** Couleur de départ du thème : undefined pour le thème Coef d'origine (réglé à la main, pas généré). */
+function useGraine(): string | undefined {
+  const couleur = useApparence((s) => s.couleur);
+  const systeme = useApparence((s) => s.accentSysteme);
+  return couleur === 'coef' ? undefined : couleur === 'systeme' ? systeme : couleur;
 }
 
 export function useFamilles() {
-  return useColorScheme() === 'dark' ? FAMILLES_SOMBRE : FAMILLES_CLAIR;
+  return useSombre() ? FAMILLES_SOMBRE : FAMILLES_CLAIR;
 }

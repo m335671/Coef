@@ -5,6 +5,7 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/geist": "^0.4.2",
+    "@material/material-color-utilities": "^0.4.0",
     "@shopify/flash-list": "2.3.2",
     "expo": "~58.0.25",
     "expo-background-task": "~58.0.13",
@@ -57,6 +58,11 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/dist/"
+    ],
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@material/material-color-utilities))",
+      "/node_modules/react-native-reanimated/plugin/",
+      "/node_modules/@react-native/babel-preset/"
     ]
   }
 }
