@@ -25,6 +25,7 @@ Références : Papillon (parcours ED, pièges de l'API ; ne pas reprendre son ar
 
 ## Stack
 Expo SDK 58 (nouvelle architecture), TypeScript, expo-router (routes dans `app/`). Reanimated, Gesture Handler, FlashList. expo-sqlite (SQLCipher), expo-secure-store, expo-local-authentication, expo-notifications (locales), expo-background-task. Zustand au-dessus de la base (source de vérité). Jest (jest-expo) + fast-check.
+- Branche de travail : `recipe`. Push sur `recipe` autorisé sans redemander. Publier une version : PR `recipe` → `main`, fusion en squash, puis workflow `release` lancé à la main sur `main` avec la version X.Y.Z (il crée le tag ; pousser un tag depuis le conteneur cloud échoue), puis réaligner `recipe` sur `main`.
 - Builds natifs : APK local (recette dans `docs/REPRISE.md`) pour les essais ; APK publiés par le workflow `release` (tag `vX.Y.Z`, signés avec la clé de Coef, suivis par Obtainium). Pas d'EAS.
 - Web (`npx expo start --web`) : aperçu visuel en mode démo seulement (l'API ED refuse le navigateur, CORS). Le web est toujours en démo (`src/demo`). Sur mobile : `EXPO_PUBLIC_DEMO=1`.
 - Toujours `npx expo install <paquet>` pour les modules Expo/RN. Ne jamais créer `ios/` ni `android/` à la main (CNG) : passer par `app.json` et des config plugins.
