@@ -15,8 +15,6 @@ import { useCouleurs } from '@/ui/theme';
 
 import { effacer } from '../modules/notifications-locales';
 
-// Définit la tâche de synchro en arrière-plan avant tout réveil par le système.
-import '@/sync/tache';
 
 export default function RootLayout() {
   const c = useCouleurs();
