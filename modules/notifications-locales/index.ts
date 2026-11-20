@@ -5,6 +5,8 @@ import { PermissionsAndroid, Platform } from 'react-native';
 type Natif = {
   demanderAutorisation?(): Promise<boolean>;
   autorisees(): Promise<boolean>;
+  batterieOptimisee?(): boolean;
+  exempterBatterie?(): void;
   effacer(): Promise<void>;
   afficher(id: number, titre: string, texte: string, ecranVerrouille: EcranVerrouille): Promise<boolean>;
 };
@@ -37,3 +39,14 @@ export async function effacer(): Promise<void> {
 export async function afficher(id: number, titre: string, texte: string, ecranVerrouille: EcranVerrouille = 'rien'): Promise<boolean> {
   return natif ? natif.afficher(id, titre, texte, ecranVerrouille) : false;
 }
+
+/** Vrai si Android optimise la batterie de Coef (synchro de fond retardée) ; undefined hors Android. */
+export function batterieOptimisee(): boolean | undefined {
+  return natif?.batterieOptimisee?.();
+}
+
+/** Ouvre la fenêtre système qui exempte Coef de l'optimisation de la batterie. */
+export function exempterBatterie(): void {
+  natif?.exempterBatterie?.();
+}
+

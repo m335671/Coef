@@ -1,7 +1,7 @@
 // Réglages. Sa question : « Qu'est-ce que l'app garde et montre de moi ? »
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert, AppState, Platform } from 'react-native';
 
 import { CAPTURE } from '@/api/ecoledirecte/capture';
 import { MODE_DEMO } from '@/demo';
@@ -17,7 +17,7 @@ import { synchroniser } from '@/sync/synchro';
 import { type BilanFond, PREF_BILAN_FOND, PREF_ECRAN_VERROUILLE } from '@/sync/tache';
 import { Bouton, Choix, Ecran, EnTete, Ligne, Panneau, Section, Texte } from '@/ui/composants';
 
-import { afficher, type EcranVerrouille } from '../modules/notifications-locales';
+import { afficher, batterieOptimisee, type EcranVerrouille, exempterBatterie } from '../modules/notifications-locales';
 
 const CHOIX: { cle: EcranVerrouille; titre: string; aide: string }[] = [
   { cle: 'rien', titre: 'Rien', aide: "La notification n'apparaît qu'une fois le téléphone déverrouillé." },
@@ -35,6 +35,12 @@ export default function Reglages() {
   const [info, setInfo] = useState('');
 
   const [bilanFond, setBilanFond] = useState<BilanFond>();
+  // Relu au retour dans l'app : l'élève vient peut-être de répondre à la fenêtre système.
+  const [optimisee, setOptimisee] = useState(batterieOptimisee);
+  useEffect(() => {
+    const abonnement = AppState.addEventListener('change', (e) => e === 'active' && setOptimisee(batterieOptimisee()));
+    return () => abonnement.remove();
+  }, []);
   useEffect(() => {
     if (MODE_DEMO) return;
     void lirePreference<EcranVerrouille>(PREF_ECRAN_VERROUILLE, 'rien').then(setEcran, () => undefined);
@@ -127,6 +133,19 @@ export default function Reglages() {
                     : `échec (${bilanFond.erreur})`
               }.`}
         </Texte>
+        {optimisee ? (
+          <>
+            <Texte variante="petit" attenue>
+              Android économise la batterie de Coef : la vérification peut être retardée de plusieurs heures, voire bloquée. Si les notifications arrivent
+              tard ou jamais, retire Coef de l’optimisation.
+            </Texte>
+            <Bouton variante="secondaire" titre="Ne plus optimiser la batterie pour Coef" onPress={exempterBatterie} />
+          </>
+        ) : optimisee === false ? (
+          <Texte variante="petit" attenue>
+            Batterie : Coef n’est pas optimisé, la vérification en arrière-plan n’est pas freinée.
+          </Texte>
+        ) : null}
       </Section>
 
       {!MODE_DEMO ? (

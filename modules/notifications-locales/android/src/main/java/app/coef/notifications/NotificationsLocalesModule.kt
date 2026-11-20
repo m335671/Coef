@@ -4,8 +4,13 @@ import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import expo.modules.kotlin.modules.Module
@@ -23,6 +28,23 @@ class NotificationsLocalesModule : Module() {
     AsyncFunction("effacer") { NotificationManagerCompat.from(context).cancelAll() }
 
     AsyncFunction("autorisees") { NotificationManagerCompat.from(context).areNotificationsEnabled() }
+
+    // L'optimisation de la batterie peut retarder ou bloquer la synchro de fond (WorkManager).
+    Function("batterieOptimisee") {
+      !context.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(context.packageName)
+    }
+
+    // Fenêtre système « Autoriser l'app à toujours fonctionner en arrière-plan » ; à défaut (certains
+    // fabricants la retirent), la liste des optimisations de batterie.
+    Function("exempterBatterie") {
+      val demande = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${context.packageName}"))
+      try {
+        context.startActivity(demande.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+      } catch (e: ActivityNotFoundException) {
+        context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+      }
+      Unit
+    }
 
     AsyncFunction("afficher") { id: Int, titre: String, texte: String, ecranVerrouille: String ->
       afficher(id, titre, texte, ecranVerrouille)

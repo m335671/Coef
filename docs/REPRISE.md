@@ -32,8 +32,9 @@ On ne choisit pas quand une vraie note arrive : un faux serveur local (fixtures 
 2. APK d'essai x86_64 pointé dessus : dans `C:/edw`, `EXPO_PUBLIC_FAUX_ED=http://10.0.2.2:8787/v3` exporté **pendant le prebuild et le build** (le plugin `plugins/faux-ed.js` autorise alors le HTTP en clair), `-PreactNativeArchitectures=x86_64`. Refaire un prebuild sans la variable avant tout autre APK.
 3. Émulateur (`emulator -avd Medium_Phone_API_36.0 -no-window`), `adb install`, `adb shell pm grant app.coef android.permission.POST_NOTIFICATIONS`, se connecter avec n'importe quel identifiant (le faux serveur accepte tout).
 4. Attendre 5 min après la dernière synchro (anti-rafale), écran d'accueil Android (`adb shell input keyevent 3`), `curl localhost:8787/ajouter-note`.
+   **Puis tuer le processus** : `adb shell am kill app.coef` (pas `force-stop`, qui annule aussi les tâches planifiées). C'est le cas réel : au bout d'une heure, Android a presque toujours tué l'app, et la réveille sans écran. Sans cette étape, l'essai passe même si la tâche n'est pas définie au démarrage sans écran (bug corrigé le 20/11/2026 : elle était définie dans `app/_layout`, que expo-router ne charge pas sans écran ; elle l'est maintenant dans `index.ts`).
 5. Forcer la tâche : `adb shell dumpsys jobscheduler | grep app.coef` donne l'id du job WorkManager, puis `adb shell cmd jobscheduler run -f -n androidx.work.systemjobscheduler app.coef <id>`.
-6. La notification apparaît ; Réglages montre le bilan de la dernière vérification en arrière-plan. Vérifié le 18/11/2026.
+6. La notification apparaît ; Réglages montre le bilan de la dernière vérification en arrière-plan. Vérifié le 18/11/2026, app encore vivante seulement ; à refaire avec le processus tué.
 
 ## En cas d'échec avec EcoleDirecte
 | Symptôme | Piste |
