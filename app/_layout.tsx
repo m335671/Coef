@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { chargerApparence, lireCouleurSysteme } from '@/features/apparence';
 import { useSimulation } from '@/features/notes/simulation';
+import { useNotes } from '@/features/notes/store';
 import { useCouleurs } from '@/ui/theme';
 
 import { effacer } from '../modules/notifications-locales';
@@ -30,6 +31,10 @@ export default function RootLayout() {
       void effacer();
       lireCouleurSysteme(); // le fond d'écran a pu changer
       void useSimulation.getState().rattraper(); // notes simulées remplacées pendant la synchro d'arrière-plan
+      // Retour dans l'app, notification touchée comprise : relit la base, où la synchro de fond a pu écrire une note
+      // que l'écran n'a pas encore, puis interroge ED si la dernière synchro date de plus de 5 min (anti-rafale).
+      const notes = useNotes.getState();
+      for (const eleveId of Object.keys(notes.eleves)) void notes.charger(eleveId);
     });
     return () => abonnement.remove();
   }, []);
