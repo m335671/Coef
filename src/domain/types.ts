@@ -148,7 +148,14 @@ export type Message = {
   lu: boolean;
   pieces: Fichier[];
   contenu?: string;
+  /** Le même contenu avec sa mise en forme (gras, surlignage, liens, images intégrées), pour l'affichage. */
+  riche?: Fragment[];
 };
+
+/** Un morceau de texte mis en forme d'un message, ou une image intégrée au message (URI `data:`). */
+export type Fragment =
+  | { texte: string; gras?: boolean; italique?: boolean; souligne?: boolean; /** Couleur de fond « #rrggbb ». */ surligne?: string; lien?: string }
+  | { image: string };
 
 /** Un document de l'élève (bulletin, certificat…), rangé par catégorie d'ED. */
 export type DocumentEleve = Fichier & { categorie: string };

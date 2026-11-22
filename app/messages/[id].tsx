@@ -7,6 +7,7 @@ import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { messageDemo } from '@/demo/vie';
 import type { Message } from '@/domain/types';
 import { decouperLiens } from '@/features/vie/liens';
+import { ContenuMessage } from '@/features/vie/ContenuMessage';
 import { LigneFichier } from '@/features/vie/LigneFichier';
 import { marquerLu, useDonnee, useDonneesED } from '@/features/vie/store';
 import { Bouton, Ecran, EnTete, Entree, Panneau, Pastille, Section, Texte } from '@/ui/composants';
@@ -57,27 +58,31 @@ export default function DetailMessage() {
       ) : null}
       <Entree rang={2}>
         <Panneau style={{ paddingVertical: espace.l }}>
-          <Texte selectable variante="liste" attenue={!etat?.valeur?.contenu}>
-            {etat?.valeur
-              ? etat.valeur.contenu
-                ? // Les adresses s'ouvrent dans le navigateur ou l'appli de mail du téléphone, pas dans Coef.
-                  decouperLiens(etat.valeur.contenu).map((x, i) =>
-                    x.url ? (
-                      <Texte
-                        key={i}
-                        variante="liste"
-                        accessibilityRole="link"
-                        onPress={() => void Linking.openURL(x.url!).catch(() => undefined)}
-                        style={{ color: c.accent, textDecorationLine: 'underline' }}>
-                        {x.texte}
-                      </Texte>
-                    ) : (
-                      x.texte
-                    ),
-                  )
-                : 'Message vide.'
-              : 'Chargement du message…'}
-          </Texte>
+          {etat?.valeur?.riche ? (
+            <ContenuMessage fragments={etat.valeur.riche} />
+          ) : (
+            <Texte selectable variante="liste" attenue={!etat?.valeur?.contenu}>
+              {etat?.valeur
+                ? etat.valeur.contenu
+                  ? // Les adresses s'ouvrent dans le navigateur ou l'appli de mail du téléphone, pas dans Coef.
+                    decouperLiens(etat.valeur.contenu).map((x, i) =>
+                      x.url ? (
+                        <Texte
+                          key={i}
+                          variante="liste"
+                          accessibilityRole="link"
+                          onPress={() => void Linking.openURL(x.url!).catch(() => undefined)}
+                          style={{ color: c.accent, textDecorationLine: 'underline' }}>
+                          {x.texte}
+                        </Texte>
+                      ) : (
+                        x.texte
+                      ),
+                    )
+                  : 'Message vide.'
+                : 'Chargement du message…'}
+            </Texte>
+          )}
         </Panneau>
       </Entree>
       {m && m.pieces.length > 0 ? (
