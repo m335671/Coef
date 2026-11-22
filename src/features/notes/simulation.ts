@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 
 import { MODE_DEMO } from '@/demo';
-import type { NoteHypothetique } from '@/domain/moyennes/simulateur';
+import type { NoteHypothetique, Retouche } from '@/domain/moyennes/simulateur';
 import type { DonneesNotes, Note } from '@/domain/types';
 import { ecrirePreference, lirePreference } from '@/storage/base';
 
@@ -14,6 +14,8 @@ const PREF = 'simulation';
 type Enregistre = {
   active: boolean;
   notes: Record<string, NoteHypothetique[]>;
+  /** Vraies notes modifiées ou retirées du calcul (onglet « Mes notes »), par élève et période. */
+  retouches?: Record<string, Retouche[]>;
   /** Moyenne générale visée (onglet Objectif), repère sur l'anneau de l'écran Notes. */
   objectif?: number;
   /** L'objectif est dessiné sur l'écran Notes (indépendant de l'affichage des notes simulées). */
@@ -30,6 +32,7 @@ type EtatSimulation = Enregistre & {
   charge: boolean;
   charger: () => Promise<void>;
   definir: (cle: string, notes: NoteHypothetique[]) => void;
+  retoucher: (cle: string, retouches: Retouche[]) => void;
   activer: (active: boolean) => void;
   viser: (objectif: number) => void;
   afficherObjectif: (v: boolean) => void;
@@ -67,16 +70,17 @@ export const useSimulation = create<EtatSimulation>((set, get) => ({
     set({ charge: true });
     const e = await lire();
     // Ce qui a été saisi avant la fin de la lecture l'emporte.
-    if (e && Object.keys(get().notes).length === 0 && get().objectif === undefined) set({ ...e });
+    if (e && Object.keys(get().notes).length === 0 && Object.keys(get().retouches ?? {}).length === 0 && get().objectif === undefined) set({ ...e });
   },
   definir: (cle, notes) => set((s) => ({ notes: { ...s.notes, [cle]: notes }, modifie: true })),
+  retoucher: (cle, retouches) => set((s) => ({ retouches: { ...s.retouches, [cle]: retouches }, modifie: true })),
   activer: (active) => set({ active, modifie: true }),
   viser: (objectif) => set({ objectif, modifie: true }),
   afficherObjectif: (objectifAffiche) => set({ objectifAffiche, modifie: true }),
   afficherExtremes: (extremesAffiches) => set({ extremesAffiches, modifie: true }),
   async enregistrer() {
-    const { active, notes, objectif, objectifAffiche, extremesAffiches, remplacees } = get();
-    if (!MODE_DEMO) await ecrirePreference(PREF, { active, notes, objectif, objectifAffiche, extremesAffiches, remplacees } satisfies Enregistre);
+    const { active, notes, retouches, objectif, objectifAffiche, extremesAffiches, remplacees } = get();
+    if (!MODE_DEMO) await ecrirePreference(PREF, { active, notes, retouches, objectif, objectifAffiche, extremesAffiches, remplacees } satisfies Enregistre);
     set({ modifie: false });
   },
   async integrer(eleveId, nouvelles, d) {

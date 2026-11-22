@@ -22,3 +22,12 @@ test('trierNotes : ramené sur 20, absences à la fin', () => {
   expect(trierNotes(n, 'moins-bonnes').map((x) => x.id)).toEqual(['b', 'a', 'd', 'c']);
   expect(trierNotes(n, 'recentes').map((x) => x.id)).toEqual(['c', 'b', 'd', 'a']);
 });
+
+test('trierNotes récentes : par date de saisie d’abord (un vieux devoir saisi hier passe devant)', () => {
+  const n = [
+    { ...note('vieux-devoir', '17,5', 20, '2026-10-07'), dateSaisie: '2026-11-21' },
+    { ...note('recent', '12', 20, '2026-11-18'), dateSaisie: '2026-11-19' },
+    note('sans-saisie', '10', 20, '2026-11-20'),
+  ];
+  expect(trierNotes(n, 'recentes').map((x) => x.id)).toEqual(['vieux-devoir', 'sans-saisie', 'recent']);
+});

@@ -56,7 +56,16 @@ export default function Reglages() {
     await toutEffacer();
     vider();
     reinitialiserApparence();
-    useSimulation.setState({ notes: {}, objectif: undefined, objectifAffiche: undefined, remplacees: undefined, active: true, modifie: false, charge: false });
+    useSimulation.setState({
+      notes: {},
+      retouches: undefined,
+      objectif: undefined,
+      objectifAffiche: undefined,
+      remplacees: undefined,
+      active: true,
+      modifie: false,
+      charge: false,
+    });
     router.replace('/connexion');
   }
 
@@ -136,8 +145,8 @@ export default function Reglages() {
         {optimisee ? (
           <>
             <Texte variante="petit" attenue>
-              Android économise la batterie de Coef : la vérification peut être retardée de plusieurs heures, voire bloquée. Si les notifications arrivent
-              tard ou jamais, retire Coef de l’optimisation.
+              Android économise la batterie de Coef : la vérification peut être retardée de plusieurs heures, voire bloquée. Si les notifications arrivent tard
+              ou jamais, retire Coef de l’optimisation.
             </Texte>
             <Bouton variante="secondaire" titre="Ne plus optimiser la batterie pour Coef" onPress={exempterBatterie} />
           </>
