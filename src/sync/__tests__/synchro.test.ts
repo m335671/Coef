@@ -1,7 +1,7 @@
 import type { DonneesNotes, Note } from '@/domain/types';
 import type { Instantane } from '@/storage/base';
 
-import { annonce } from '../annonce';
+import { annonce, annonceMessages, nouveauxMessages } from '../annonce';
 import { comparer, DELAI_MIN_MS, synchroniser } from '../synchro';
 
 const note = (id: string, matiereCode: string, valeurBrute: string, extra: Partial<Note> = {}): Note => ({
@@ -41,7 +41,7 @@ const v1 = donnees([note('1', 'MATHS', '10'), note('2', 'PHILO', '13')]);
 
 describe('comparer', () => {
   test('première synchro : rien de nouveau', () => {
-    expect(comparer(undefined, v1)).toEqual({ nouvelles: [], modifiees: [], ecarts: [] });
+    expect(comparer(undefined, v1)).toEqual({ nouvelles: [], modifiees: [], precedentes: {}, ecarts: [] });
   });
 
   test('nouvelle note, note modifiée, écart de moyenne générale prévue', () => {
@@ -54,7 +54,7 @@ describe('comparer', () => {
   });
 
   test('rien de changé : aucun écart', () => {
-    expect(comparer(v1, donnees([...v1.notes]))).toEqual({ nouvelles: [], modifiees: [], ecarts: [] });
+    expect(comparer(v1, donnees([...v1.notes]))).toEqual({ nouvelles: [], modifiees: [], precedentes: {}, ecarts: [] });
   });
 
   test('période apparue : écart depuis « rien »', () => {
@@ -136,5 +136,40 @@ describe('annonce', () => {
     expect(annonce(comparer(donnees([]), v2), v2)).toEqual({ titre: 'nouvelle note en Mathématiques', texte: 'Abs/20' });
     const v3 = { ...v2, notes: [...v2.notes, note('10', 'MATHS', '12')] };
     expect(annonce(comparer({ ...v2, periodes: [] }, v3), v3)!.texte).toBe('12/20 · moyenne prévue 12,00');
+  });
+
+  test('une note modifiée : ancienne et nouvelle valeur', () => {
+    const v2 = donnees([note('1', 'MATHS', '14'), note('2', 'PHILO', '13')]);
+    expect(annonce(comparer(v1, v2), v2)).toEqual({ titre: 'note modifiée en Mathématiques', texte: '10/20 → 14/20 · moyenne prévue 13,67 (+2,67)' });
+  });
+
+  test('coefficient et prise en compte modifiés', () => {
+    const v2 = donnees([note('1', 'MATHS', '10', { coef: 2, nonSignificative: true }), note('2', 'PHILO', '13')]);
+    expect(annonce(comparer(v1, v2), v2)!.texte).toMatch(/^coef 1 → 2, ne compte plus/);
+  });
+
+  test('nouvelles et modifiées ensemble', () => {
+    const v2 = donnees([note('1', 'MATHS', '12'), note('2', 'PHILO', '13'), note('3', 'PHILO', '15'), note('4', 'MATHS', '9')]);
+    expect(annonce(comparer(v1, v2), v2)!.titre).toBe('2 nouvelles notes, 1 note modifiée');
+  });
+
+  test('un espace ajouté par ED n’est pas une modification', () => {
+    const v2 = donnees([note('1', 'MATHS', '10 '), note('2', 'PHILO', '13')]);
+    expect(comparer(v1, v2).modifiees).toEqual([]);
+  });
+});
+
+describe('messages', () => {
+  const m = (id: string, de: string, lu = false) => ({ id, sujet: `Sujet ${id}`, de, date: '2026-11-22 14:49', lu, pieces: [] });
+
+  test('nouveaux : absents de la liste précédente et non lus ; rien la première fois', () => {
+    expect(nouveauxMessages(undefined, [m('1', 'A')])).toEqual([]);
+    expect(nouveauxMessages([m('1', 'A')], [m('1', 'A'), m('2', 'B'), m('3', 'C', true)]).map((x) => x.id)).toEqual(['2']);
+  });
+
+  test('annonce : expéditeur et sujet, jamais de contenu', () => {
+    expect(annonceMessages([])).toBeUndefined();
+    expect(annonceMessages([m('2', 'M. Prof')], 'Alex')).toEqual({ titre: 'Alex : nouveau message de M. Prof', texte: 'Sujet 2' });
+    expect(annonceMessages([m('2', 'A'), m('3', 'B'), m('4', 'A')])).toEqual({ titre: '3 nouveaux messages', texte: 'de A, B' });
   });
 });

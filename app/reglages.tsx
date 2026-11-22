@@ -59,6 +59,7 @@ export default function Reglages() {
     useSimulation.setState({
       notes: {},
       retouches: undefined,
+      matieresIgnorees: undefined,
       objectif: undefined,
       objectifAffiche: undefined,
       remplacees: undefined,
@@ -120,7 +121,7 @@ export default function Reglages() {
         </Panneau>
       </Section>
 
-      <Section titre="Notifications" aide="Une notification par nouvelle note, vérifiée en arrière-plan au plus une fois par heure.">
+      <Section titre="Notifications" aide="Une notification par nouvelle note, note modifiée ou nouveau message, vérifiés en arrière-plan au plus une fois par heure.">
         <Texte variante="liste" moyen>
           Sur l’écran verrouillé
         </Texte>

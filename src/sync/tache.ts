@@ -6,15 +6,16 @@ import { AppState } from 'react-native';
 
 import { ClientED, reconnexion } from '@/api/ecoledirecte/client';
 import { versProfil } from '@/api/ecoledirecte/mapping';
-import { depot, ecrirePreference, lirePreference } from '@/storage/base';
+import type { Message } from '@/domain/types';
+import { depot, ecrireCache, ecrirePreference, lireCache, lirePreference } from '@/storage/base';
 import { comptesEnregistres, lireAcces, sauverAcces } from '@/storage/secrets';
 
 import { afficher, type EcranVerrouille } from '../../modules/notifications-locales';
 import { remplacerEnBase } from '@/features/notes/simulation';
 import { annonceRemplacement } from '@/features/notes/remplacement';
 
-import { annonce, libelleMatiere } from './annonce';
-import { synchroniser } from './synchro';
+import { annonce, annonceMessages, libelleMatiere, nouveauxMessages } from './annonce';
+import { DELAI_MIN_MS, synchroniser } from './synchro';
 
 export const TACHE = 'coef.synchro-notes';
 export const PREF_ECRAN_VERROUILLE = 'notifications.ecran-verrouille';
@@ -27,6 +28,8 @@ const bilan = (b: Omit<BilanFond, 'date'>) =>
 const INTERVALLE = 60;
 
 const idNotification = (eleveId: string) => Number(eleveId) % 2_147_483_647 || 1;
+// Une notification de messages ne remplace pas celle des notes du même élève.
+const idNotificationMessages = (eleveId: string) => 1_000_000_000 + (Number(eleveId) % 1_000_000_000 || 1);
 
 /** Synchronise chaque élève de chaque compte enregistré et notifie ses nouvelles notes. */
 export async function synchroniserComptes(): Promise<number> {
@@ -40,10 +43,11 @@ export async function synchroniserComptes(): Promise<number> {
     const client = new ClientED(session, (a) => sauverAcces(id, a));
     const eleves = session.comptes.map(versProfil).flatMap((p) => p.eleves);
     for (const e of eleves) {
+      const prenom = eleves.length > 1 ? e.prenom : undefined;
+      notifiees += await verifierMessages(client, e.id, prenom, ecranVerrouille);
       const r = await synchroniser(e.id, () => client.notes(e.id), depot);
       if (r.premiere || r.depuisCache) continue;
       const d = r.instantane.donnees;
-      const prenom = eleves.length > 1 ? e.prenom : undefined;
       const remplacees = await remplacerEnBase(e.id, r.nouvelles, d);
       // Une note simulée est arrivée : notification dédiée (elle prime sur « nouvelle note »).
       const a = annonceRemplacement(remplacees, d, (n) => libelleMatiere(d, n), prenom) ?? annonce(r, d, prenom);
@@ -51,6 +55,20 @@ export async function synchroniserComptes(): Promise<number> {
     }
   }
   return notifiees;
+}
+
+/**
+ * Messages reçus : la liste seulement (expéditeur, sujet, date), jamais le contenu, qu'ED marquerait comme lu.
+ * Comparée à la liste en cache (celle de l'écran Messages), qu'elle remplace : l'app les montre ensuite sans attendre.
+ */
+async function verifierMessages(client: ClientED, eleveId: string, prenom: string | undefined, ecranVerrouille: EcranVerrouille): Promise<number> {
+  const cle = `messages:${eleveId}`;
+  const avant = await lireCache<Message[]>(cle);
+  if (avant && Date.now() - Date.parse(avant.maj) < DELAI_MIN_MS) return 0; // l'app vient de les relire
+  const apres = await client.messages(eleveId);
+  await ecrireCache(cle, apres, new Date().toISOString());
+  const a = annonceMessages(nouveauxMessages(avant?.valeur, apres), prenom);
+  return a && (await afficher(idNotificationMessages(eleveId), a.titre, a.texte, ecranVerrouille)) ? 1 : 0;
 }
 
 TaskManager.defineTask(TACHE, async () => {

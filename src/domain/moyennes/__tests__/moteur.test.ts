@@ -320,3 +320,12 @@ describe('retouches de vraies notes dans la simulation', () => {
     expect(a.valeurBrute).toBe('10');
   });
 });
+
+test('matière ignorée dans la simulation : elle sort de la générale, les autres ne bougent pas', () => {
+  const p = periode([MATHS, PHILO]);
+  const notes = [note('MATHS', '8'), note('PHILO', '16')];
+  expect(calculer(p, notes, []).generale).toBeCloseTo((8 * 2 + 16) / 3, 10);
+  const r = calculer(p, avecHypotheses(p, notes, [{ matiereCode: 'MATHS', valeur: 20, noteSur: 20, coef: 1 }], [], ['MATHS']), []);
+  expect(r.generale).toBe(16);
+  expect(r.matieres.find((m) => m.code === 'MATHS')!.moyenne).toBeUndefined();
+});

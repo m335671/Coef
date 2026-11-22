@@ -5,6 +5,7 @@ import { lireNote } from '@/domain/moyennes/moteur';
 export const TRIS = {
   matiere: 'Par matière',
   recentes: 'Les plus récentes',
+  ajoutees: 'Les dernières ajoutées',
   meilleures: 'Les meilleures d’abord',
   'moins-bonnes': 'Les moins bonnes d’abord',
 } as const;
@@ -34,16 +35,17 @@ const sur20 = (n: Note) => {
   return v === undefined || n.noteSur <= 0 ? undefined : (v * 20) / n.noteSur;
 };
 
-/**
- * Plus récente d'abord = ajoutée le plus récemment (date de saisie), comme « Nouvelles notes » et l'accueil : une
- * note d'un devoir d'octobre saisie hier passe devant ; à saisie égale, la date du devoir départage.
- */
-export const parRecence = (a: Note, b: Note) => (b.dateSaisie ?? b.date).localeCompare(a.dateSaisie ?? a.date) || b.date.localeCompare(a.date);
+/** Plus récentes : par date du devoir ; à date égale, la plus récemment saisie d'abord. */
+export const parDevoir = (a: Note, b: Note) => b.date.localeCompare(a.date) || (b.dateSaisie ?? b.date).localeCompare(a.dateSaisie ?? a.date);
 
-/** Tri à plat (récentes, meilleures, moins bonnes) ; les notes sans valeur (Abs, Disp…) toujours à la fin. */
+/** Dernières ajoutées : par date de saisie (une note d'un devoir d'octobre saisie hier passe devant), puis du devoir. */
+export const parSaisie = (a: Note, b: Note) => (b.dateSaisie ?? b.date).localeCompare(a.dateSaisie ?? a.date) || b.date.localeCompare(a.date);
+
+/** Tri à plat (récentes, ajoutées, meilleures, moins bonnes) ; les notes sans valeur (Abs, Disp…) toujours à la fin. */
 export function trierNotes(notes: readonly Note[], tri: Exclude<Tri, 'matiere'>): Note[] {
-  const recentes = parRecence;
+  const recentes = parDevoir;
   if (tri === 'recentes') return [...notes].sort(recentes);
+  if (tri === 'ajoutees') return [...notes].sort(parSaisie);
   const sens = tri === 'meilleures' ? -1 : 1;
   return [...notes].sort((a, b) => {
     const va = sur20(a);

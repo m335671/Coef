@@ -11,16 +11,22 @@ export type Depot = {
 
 export type EcartPeriode = { periode: Periode; avant?: number; apres?: number };
 
-export type Comparaison = { nouvelles: Note[]; modifiees: Note[]; ecarts: EcartPeriode[] };
+export type Comparaison = {
+  nouvelles: Note[];
+  modifiees: Note[];
+  /** Version d'avant de chaque note modifiée (par id), pour annoncer « 12 → 14 ». */
+  precedentes: Record<string, Note>;
+  ecarts: EcartPeriode[];
+};
 
-const empreinte = (n: Note) => `${n.valeurBrute}|${n.noteSur}|${n.coef}|${n.nonSignificative}`;
+// Valeur nettoyée : un espace ajouté par ED n'est pas une modification à annoncer.
+const empreinte = (n: Note) => `${n.valeurBrute.trim()}|${n.noteSur}|${n.coef}|${n.nonSignificative}`;
 
-const generale = (d: DonneesNotes, p: Periode) =>
-  calculer(p, d.notes, d.periodes, { parametrage: d.parametrage }).generale;
+const generale = (d: DonneesNotes, p: Periode) => calculer(p, d.notes, d.periodes, { parametrage: d.parametrage }).generale;
 
 /** Différences entre deux états. Sans état précédent (première synchro), rien n'est « nouveau ». */
 export function comparer(avant: DonneesNotes | undefined, apres: DonneesNotes): Comparaison {
-  if (!avant) return { nouvelles: [], modifiees: [], ecarts: [] };
+  if (!avant) return { nouvelles: [], modifiees: [], precedentes: {}, ecarts: [] };
   const anciennes = new Map(avant.notes.map((n) => [n.id, n]));
   const nouvelles = apres.notes.filter((n) => !anciennes.has(n.id));
   const modifiees = apres.notes.filter((n) => anciennes.has(n.id) && empreinte(anciennes.get(n.id)!) !== empreinte(n));
@@ -31,7 +37,7 @@ export function comparer(avant: DonneesNotes | undefined, apres: DonneesNotes): 
       return { periode: p, avant: ancienne && generale(avant, ancienne), apres: generale(apres, p) };
     })
     .filter((e) => e.avant !== e.apres);
-  return { nouvelles, modifiees, ecarts };
+  return { nouvelles, modifiees, precedentes: Object.fromEntries(modifiees.map((n) => [n.id, anciennes.get(n.id)!])), ecarts };
 }
 
 export type ResultatSynchro = Comparaison & { instantane: Instantane; premiere: boolean; depuisCache: boolean };
@@ -48,7 +54,7 @@ export async function synchroniser(
   const maintenant = options.maintenant ?? new Date();
   const avant = await depot.lire(eleveId);
   if (avant && !options.forcer && maintenant.getTime() - Date.parse(avant.synchro) < DELAI_MIN_MS) {
-    return { instantane: avant, nouvelles: [], modifiees: [], ecarts: [], premiere: false, depuisCache: true };
+    return { instantane: avant, nouvelles: [], modifiees: [], precedentes: {}, ecarts: [], premiere: false, depuisCache: true };
   }
   const donnees = await recuperer();
   const c = comparer(avant?.donnees, donnees);

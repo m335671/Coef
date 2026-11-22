@@ -7,6 +7,7 @@ import type {
   DonneesNotes,
   EvenementVieScolaire,
   Fichier,
+  Fragment,
   Message,
   Periode,
   Profil,
@@ -170,6 +171,144 @@ function lien(href: string, contenu: string): string {
   return !texte || adresse.includes(texte) || texte.includes(adresse) ? adresse : `${texte} (${adresse})`;
 }
 
+/** Entités HTML, caractères Windows-1252 passés tels quels, espaces invisibles. */
+function decoderTexte(t: string): string {
+  return t
+    .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&([a-z]+);/gi, (m, nom: string) => ENTITES[nom] ?? ENTITES[nom.toLowerCase()] ?? m)
+    .replace(/[\u0080-\u009f]/g, depuis1252)
+    .replace(/[​﻿]/g, '');
+}
+
+const attribut = (attrs: string, nom: string) =>
+  new RegExp(`\\b${nom}\\s*=\\s*("([^"]*)"|'([^']*)')`, 'i')
+    .exec(attrs)
+    ?.slice(2)
+    .find((x) => x !== undefined);
+
+/** « #abc », « #aabbcc », « rgb(1, 2, 3) » → « #aabbcc » ; le reste (noms de couleur, transparent) → undefined. */
+function couleur(css: string): string | undefined {
+  const v = css.trim().toLowerCase();
+  const court = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/.exec(v);
+  if (court) return `#${court[1]}${court[1]}${court[2]}${court[2]}${court[3]}${court[3]}`;
+  if (/^#[0-9a-f]{6}$/.test(v)) return v;
+  const rgb = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(v);
+  return rgb
+    ? `#${rgb
+        .slice(1, 4)
+        .map((x) => Math.min(255, Number(x)).toString(16).padStart(2, '0'))
+        .join('')}`
+    : undefined;
+}
+
+// Fonds presque blancs (paragraphes grisés du site officiel) : sans intérêt dans Coef, et gênants en mode sombre.
+const presqueBlanc = (hex: string) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return 0.299 * r! + 0.587 * g! + 0.114 * b! > 225;
+};
+
+type Style = Omit<Extract<Fragment, { texte: string }>, 'texte'>;
+
+function styleDe(balise: string, attrs: string): Style {
+  const s: Style = {};
+  if (balise === 'b' || balise === 'strong') s.gras = true;
+  if (balise === 'i' || balise === 'em') s.italique = true;
+  if (balise === 'u') s.souligne = true;
+  if (balise === 'mark') s.surligne = '#fde047';
+  if (balise === 'a') {
+    const href = attribut(attrs, 'href')?.trim() ?? '';
+    if (/^(https?:\/\/|mailto:)/i.test(href)) s.lien = href;
+  }
+  for (const regle of (attribut(attrs, 'style') ?? '').split(';')) {
+    const [prop, ...reste] = regle.split(':');
+    const nom = prop?.trim().toLowerCase();
+    const val = reste.join(':').trim().toLowerCase();
+    if (nom === 'font-weight' && /bold|[6-9]00/.test(val)) s.gras = true;
+    if (nom === 'font-style' && val.includes('italic')) s.italique = true;
+    if (nom === 'text-decoration' && val.includes('underline')) s.souligne = true;
+    if (nom === 'background' || nom === 'background-color') {
+      const c = couleur(val.split(/\s+(?![^(]*\))/)[0] ?? '');
+      if (c && !presqueBlanc(c)) s.surligne = c;
+    }
+  }
+  return s;
+}
+
+const BLOC = /^(p|div|li|h[1-6]|tr|blockquote|ul|ol|table)$/;
+const INVISIBLE = /^(style|script|head|title)$/;
+const memeStyle = (a: Style, b: Style) =>
+  a.gras === b.gras && a.italique === b.italique && a.souligne === b.souligne && a.surligne === b.surligne && a.lien === b.lien;
+
+/**
+ * HTML d'un message → fragments mis en forme : gras, italique, souligné, surligné, liens ; images intégrées (`data:`)
+ * seulement. Une image hébergée ailleurs n'est pas chargée (ce serait une requête hors d'EcoleDirecte). La couleur du
+ * texte est ignorée : choisie pour un fond blanc, elle serait illisible en mode sombre.
+ */
+export function htmlEnFragments(html: string): Fragment[] {
+  const pile: { balise: string; style: Style }[] = [];
+  const sortie: Fragment[] = [];
+  let invisible = 0;
+  const ajouter = (t: string) => {
+    if (!t || invisible) return;
+    const style: Style = Object.assign({}, ...pile.map((p) => p.style));
+    const prec = sortie.at(-1);
+    if (prec && 'texte' in prec && memeStyle(prec, style)) prec.texte += t;
+    else sortie.push({ texte: t, ...style });
+  };
+  for (const m of html.matchAll(/<!--[^]*?-->|<(\/?)([a-z][a-z0-9]*)\b([^>]*)>|([^<]+)|</gi)) {
+    if (m[4] !== undefined) {
+      ajouter(decoderTexte(m[4].replace(/\s+/g, ' ')));
+      continue;
+    }
+    const balise = m[2]?.toLowerCase();
+    if (!balise) continue;
+    const ferme = m[1] === '/';
+    const attrs = m[3] ?? '';
+    if (INVISIBLE.test(balise)) invisible = Math.max(0, invisible + (ferme ? -1 : 1));
+    else if (balise === 'br') ajouter('\n');
+    else if (balise === 'img') {
+      const src = attribut(attrs, 'src') ?? '';
+      if (/^data:image\/(png|jpe?g|gif|webp);base64,/i.test(src) && !invisible) sortie.push({ image: src });
+      else ajouter('[image non affichée]');
+    } else if (ferme) {
+      const i = pile.map((p) => p.balise).lastIndexOf(balise);
+      if (i >= 0) pile.splice(i);
+      if (BLOC.test(balise)) ajouter('\n');
+    } else {
+      if (balise === 'li') ajouter('• ');
+      if (!/\/\s*$/.test(attrs)) pile.push({ balise, style: styleDe(balise, attrs) });
+    }
+  }
+  // Pas d'espace autour des sauts de ligne, une ligne vide au plus, rien au début ni à la fin.
+  const propres: Fragment[] = [];
+  let fin = '\n\n';
+  for (const f of sortie) {
+    if (!('texte' in f)) {
+      propres.push(f);
+      fin = '\n\n';
+      continue;
+    }
+    let t = f.texte.replace(/[ \t]*\n[ \t]*/g, '\n').replace(/\n{3,}/g, '\n\n');
+    if (fin.endsWith('\n')) t = t.replace(/^ +/, '');
+    t = fin === '\n\n' ? t.replace(/^\n+/, '') : fin.endsWith('\n') ? t.replace(/^\n+/, '\n') : t;
+    if (!t) continue;
+    propres.push({ ...f, texte: t });
+    fin = (fin + t).slice(-2);
+  }
+  while (propres.length) {
+    const d = propres.at(-1)!;
+    if (!('texte' in d)) break;
+    const t = d.texte.replace(/\s+$/, '');
+    if (t) {
+      propres[propres.length - 1] = { ...d, texte: t };
+      break;
+    }
+    propres.pop();
+  }
+  return propres;
+}
+
 /** HTML d'ED (consigne, message) → texte : sauts de ligne gardés, liens écrits en clair, balises retirées, entités décodées. */
 export function htmlEnTexte(html: string): string {
   return html
@@ -178,11 +317,7 @@ export function htmlEnTexte(html: string): string {
     .replace(/<\/(p|div|li|h\d)>/gi, '\n')
     .replace(/<li[^>]*>/gi, '• ')
     .replace(/<[^>]+>/g, '')
-    .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCodePoint(parseInt(n, 16)))
-    .replace(/&([a-z]+);/gi, (m, nom: string) => ENTITES[nom] ?? ENTITES[nom.toLowerCase()] ?? m)
-    .replace(/[\u0080-\u009f]/g, depuis1252)
-    .replace(/[\u200b\ufeff]/g, '')
+    .replace(/[^]*/, decoderTexte)
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
@@ -193,6 +328,17 @@ function contenuED(b64?: string | null): string | undefined {
   if (!b64) return undefined;
   try {
     return htmlEnTexte(decoderBase64(b64)) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Contenu ED en base64 → fragments mis en forme ; invalide ou vide → undefined (l'écran garde le texte simple). */
+function richeED(b64?: string | null): Fragment[] | undefined {
+  if (!b64) return undefined;
+  try {
+    const f = htmlEnFragments(decoderBase64(b64));
+    return f.length ? f : undefined;
   } catch {
     return undefined;
   }
@@ -295,6 +441,7 @@ export function versMessage(m: z.infer<typeof messageED>, annee: string): Messag
       annee,
     })),
     contenu: contenuED(m.content),
+    riche: richeED(m.content),
   };
 }
 

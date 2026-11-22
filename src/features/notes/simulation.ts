@@ -16,6 +16,8 @@ type Enregistre = {
   notes: Record<string, NoteHypothetique[]>;
   /** Vraies notes modifiées ou retirées du calcul (onglet « Mes notes »), par élève et période. */
   retouches?: Record<string, Retouche[]>;
+  /** Matières retirées du calcul (codes), par élève et période. */
+  matieresIgnorees?: Record<string, string[]>;
   /** Moyenne générale visée (onglet Objectif), repère sur l'anneau de l'écran Notes. */
   objectif?: number;
   /** L'objectif est dessiné sur l'écran Notes (indépendant de l'affichage des notes simulées). */
@@ -33,6 +35,7 @@ type EtatSimulation = Enregistre & {
   charger: () => Promise<void>;
   definir: (cle: string, notes: NoteHypothetique[]) => void;
   retoucher: (cle: string, retouches: Retouche[]) => void;
+  ignorerMatieres: (cle: string, codes: string[]) => void;
   activer: (active: boolean) => void;
   viser: (objectif: number) => void;
   afficherObjectif: (v: boolean) => void;
@@ -70,17 +73,35 @@ export const useSimulation = create<EtatSimulation>((set, get) => ({
     set({ charge: true });
     const e = await lire();
     // Ce qui a été saisi avant la fin de la lecture l'emporte.
-    if (e && Object.keys(get().notes).length === 0 && Object.keys(get().retouches ?? {}).length === 0 && get().objectif === undefined) set({ ...e });
+    if (
+      e &&
+      Object.keys(get().notes).length === 0 &&
+      Object.keys(get().retouches ?? {}).length === 0 &&
+      Object.keys(get().matieresIgnorees ?? {}).length === 0 &&
+      get().objectif === undefined
+    )
+      set({ ...e });
   },
   definir: (cle, notes) => set((s) => ({ notes: { ...s.notes, [cle]: notes }, modifie: true })),
   retoucher: (cle, retouches) => set((s) => ({ retouches: { ...s.retouches, [cle]: retouches }, modifie: true })),
+  ignorerMatieres: (cle, codes) => set((s) => ({ matieresIgnorees: { ...s.matieresIgnorees, [cle]: codes }, modifie: true })),
   activer: (active) => set({ active, modifie: true }),
   viser: (objectif) => set({ objectif, modifie: true }),
   afficherObjectif: (objectifAffiche) => set({ objectifAffiche, modifie: true }),
   afficherExtremes: (extremesAffiches) => set({ extremesAffiches, modifie: true }),
   async enregistrer() {
-    const { active, notes, retouches, objectif, objectifAffiche, extremesAffiches, remplacees } = get();
-    if (!MODE_DEMO) await ecrirePreference(PREF, { active, notes, retouches, objectif, objectifAffiche, extremesAffiches, remplacees } satisfies Enregistre);
+    const { active, notes, retouches, matieresIgnorees, objectif, objectifAffiche, extremesAffiches, remplacees } = get();
+    if (!MODE_DEMO)
+      await ecrirePreference(PREF, {
+        active,
+        notes,
+        retouches,
+        matieresIgnorees,
+        objectif,
+        objectifAffiche,
+        extremesAffiches,
+        remplacees,
+      } satisfies Enregistre);
     set({ modifie: false });
   },
   async integrer(eleveId, nouvelles, d) {
@@ -105,3 +126,14 @@ export const useSimulation = create<EtatSimulation>((set, get) => ({
     set({ notes, remplacees: [...manquants, ...connus] });
   },
 }));
+
+/** « 2 notes simulées », « 1 note simulée, 1 retouchée », « 1 matière retirée »… ; rien → chaîne vide. */
+export function resumeSimulation(ajoutees: number, retouchees: number, matieres: number): string {
+  const s = (n: number) => (n > 1 ? 's' : '');
+  const parts = [
+    ajoutees ? `${ajoutees} note${s(ajoutees)} simulée${s(ajoutees)}` : '',
+    retouchees ? `${retouchees}${ajoutees ? '' : ` note${s(retouchees)}`} retouchée${s(retouchees)}` : '',
+    matieres ? `${matieres} matière${s(matieres)} retirée${s(matieres)}` : '',
+  ];
+  return parts.filter(Boolean).join(', ');
+}
