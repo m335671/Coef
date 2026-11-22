@@ -8,7 +8,7 @@ import { leviers } from '@/domain/moyennes/impact';
 import { calculer, lireNote, notesDeLaPeriode } from '@/domain/moyennes/moteur';
 import { avecHypotheses, noteNecessaire, type NoteHypothetique, type Retouche } from '@/domain/moyennes/simulateur';
 import type { Note, Periode } from '@/domain/types';
-import { cleSimulation, useSimulation } from '@/features/notes/simulation';
+import { cleSimulation, resumeSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
 import {
   Bouton,
@@ -37,6 +37,7 @@ import Svg, { Path } from 'react-native-svg';
 const POIDS = [0.5, 1, 2, 3, 4];
 const AUCUNE: NoteHypothetique[] = [];
 const AUCUNE_RETOUCHE: Retouche[] = [];
+const AUCUN_CODE: string[] = [];
 type Onglet = 'ajouter' | 'notes' | 'calcul' | 'objectif';
 type Saisie = { code: string; valeur: number; sur: number; poids: number };
 
@@ -56,6 +57,8 @@ export default function Simulation() {
   const hypotheses = useSimulation((s) => s.notes[cle]) ?? AUCUNE;
   const retouches = useSimulation((s) => s.retouches?.[cle]) ?? AUCUNE_RETOUCHE;
   const retoucher = useSimulation((s) => s.retoucher);
+  const ignorees = useSimulation((s) => s.matieresIgnorees?.[cle]) ?? AUCUN_CODE;
+  const ignorerMatieres = useSimulation((s) => s.ignorerMatieres);
   const { active, modifie, definir, activer, enregistrer, charger, viser, afficherObjectif, afficherExtremes } = useSimulation();
   const extremesAffiches = useSimulation((s) => s.extremesAffiches ?? false);
   const objectif = useSimulation((s) => s.objectif) ?? 14;
@@ -117,7 +120,7 @@ export default function Simulation() {
 
   const options = { parametrage: d.parametrage };
   const avant = calculer(p, d.notes, d.periodes, options);
-  const notesSimulees = avecHypotheses(p, d.notes, hypotheses, retouches);
+  const notesSimulees = avecHypotheses(p, d.notes, hypotheses, retouches, ignorees);
   const apres = calculer(p, notesSimulees, d.periodes, options);
   const libelle = (code: string) => p.matieres.find((m) => m.code === code && !m.sousCode)?.libelle ?? code;
   const ajouter = (s: Saisie) =>
@@ -150,28 +153,20 @@ export default function Simulation() {
               <View style={{ flex: 1 }}>
                 <Ecart
                   valeur={apres.generale - avant.generale}
-                  suffixe={`avec ${[
-                    hypotheses.length || !retouches.length
-                      ? `${hypotheses.length} note${hypotheses.length > 1 ? 's' : ''} ajoutée${hypotheses.length > 1 ? 's' : ''}`
-                      : '',
-                    retouches.length
-                      ? `${retouches.length}${hypotheses.length ? '' : ` note${retouches.length > 1 ? 's' : ''}`} retouchée${retouches.length > 1 ? 's' : ''}`
-                      : '',
-                  ]
-                    .filter(Boolean)
-                    .join(', ')}`}
+                  suffixe={`avec ${resumeSimulation(hypotheses.length, retouches.length, ignorees.length) || 'aucun changement'}`}
                 />
               </View>
             ) : (
               <View style={{ flex: 1 }} />
             )}
-            {hypotheses.length + retouches.length > 0 ? (
+            {hypotheses.length + retouches.length + ignorees.length > 0 ? (
               <Bouton
                 variante="texte"
                 titre="Tout retirer"
                 onPress={() => {
                   setHypotheses([]);
                   retoucher(cle, []);
+                  ignorerMatieres(cle, []);
                 }}
               />
             ) : null}
@@ -259,7 +254,14 @@ export default function Simulation() {
           </View>
         </Section>
       ) : onglet === 'notes' ? (
-        <MesNotes notes={notesDeLaPeriode(p, d.notes, d.periodes)} libelle={libelle} retouches={retouches} onChange={(r) => retoucher(cle, r)} />
+        <MesNotes
+          notes={notesDeLaPeriode(p, d.notes, d.periodes)}
+          libelle={libelle}
+          retouches={retouches}
+          onChange={(r) => retoucher(cle, r)}
+          ignorees={ignorees}
+          onIgnorer={(codes) => ignorerMatieres(cle, codes)}
+        />
       ) : onglet === 'calcul' ? (
         <Calculateur
           p={p}
@@ -633,11 +635,16 @@ function MesNotes({
   libelle,
   retouches,
   onChange,
+  ignorees,
+  onIgnorer,
 }: {
   notes: Note[];
   libelle: (code: string) => string;
   retouches: Retouche[];
   onChange: (r: Retouche[]) => void;
+  /** Matières retirées du calcul : leurs notes restent listées, la matière ne compte plus dans la générale. */
+  ignorees: string[];
+  onIgnorer: (codes: string[]) => void;
 }) {
   const c = useCouleurs();
   const [ouverte, setOuverte] = useState<string>();
@@ -673,6 +680,11 @@ function MesNotes({
             <Texte variante="liste" moyen>
               {libelle(code)}
             </Texte>
+            <Coche
+              libelle="Compte dans la moyenne générale"
+              coche={!ignorees.includes(code)}
+              onChange={(v) => onIgnorer(v ? ignorees.filter((x) => x !== code) : [...ignorees, code])}
+            />
             <Panneau>
               {notes
                 .filter((n) => n.matiereCode === code)

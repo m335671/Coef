@@ -11,8 +11,8 @@ import type { Note } from '@/domain/types';
 import type { Famille } from '@/ui/theme';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { familleDe, NOM_FAMILLE, ORDRE_FAMILLES, useCouleurMatiere } from '@/features/notes/familles';
-import { ordonner, parRecence, TRIS, type Tri, trierNotes } from '@/features/notes/ordre';
-import { cleSimulation, useSimulation } from '@/features/notes/simulation';
+import { ordonner, parDevoir, TRIS, type Tri, trierNotes } from '@/features/notes/ordre';
+import { cleSimulation, resumeSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
 import {
   evolution,
@@ -64,6 +64,7 @@ const PREF_TRI = 'notes.tri';
 const AUCUNE: NoteHypothetique[] = [];
 const AUCUNE_RETOUCHE: Retouche[] = [];
 const AUCUN_ID = new Set<string>();
+const AUCUN_CODE: string[] = [];
 
 export default function Notes() {
   const c = useCouleurs();
@@ -114,7 +115,8 @@ export default function Notes() {
   useEffect(() => void simulation.charger(), [simulation.charger]); // eslint-disable-line react-hooks/exhaustive-deps
   const simulees = (periode && simulation.notes[cleSimulation(eleveId, periode)]) || AUCUNE;
   const retouchees = (periode && simulation.retouches?.[cleSimulation(eleveId, periode)]) || AUCUNE_RETOUCHE;
-  const changements = simulees.length + retouchees.length;
+  const ignorees = (periode && simulation.matieresIgnorees?.[cleSimulation(eleveId, periode)]) || AUCUN_CODE;
+  const changements = simulees.length + retouchees.length + ignorees.length;
   /** Notes réelles arrivées à la place d'une note simulée : id → note simulée. */
   const etaitSimulee = new Map(
     (simulation.remplacees ?? []).filter((r) => periode && r.cle === cleSimulation(eleveId, periode)).map((r) => [r.noteId, r.hypothese]),
@@ -129,11 +131,11 @@ export default function Notes() {
             ...instantane,
             donnees: {
               ...instantane.donnees,
-              notes: avecHypotheses(reelle.periode, instantane.donnees.notes, simulees, retouchees),
+              notes: avecHypotheses(reelle.periode, instantane.donnees.notes, simulees, retouchees, ignorees),
             },
           }
         : instantane,
-    [instantane, reelle, simule, simulees, retouchees],
+    [instantane, reelle, simule, simulees, retouchees, ignorees],
   );
   const vue = useMemo(() => {
     if (!reelle || !simule || !instantaneVu) return reelle;
@@ -219,7 +221,7 @@ export default function Notes() {
       {changements > 0 ? (
         <Entree rang={2}>
           <BandeauSimulation
-            texte={resumeSimulation(simulees.length, retouchees.length)}
+            texte={resumeSimulation(simulees.length, retouchees.length, ignorees.length)}
             active={simulation.active}
             onActiver={simulation.activer}
             onModifier={ouvrirSimulation}
@@ -420,7 +422,7 @@ function ParNote({
   const groupes = matieres
     .map(({ matiere: m }) => ({
       m,
-      lignes: [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)].map((d) => ({ d, n: parId.get(d.id)! })).sort((a, b) => parRecence(a.n, b.n)),
+      lignes: [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)].map((d) => ({ d, n: parId.get(d.id)! })).sort((a, b) => parDevoir(a.n, b.n)),
     }))
     .filter((g) => g.lignes.length > 0);
   if (groupes.length === 0) {
@@ -759,16 +761,6 @@ function IconeTri() {
 }
 
 /** Rappel d'une simulation en cours : l'afficher ou non, la modifier. */
-/** « 2 notes simulées », « 1 note simulée, 1 retouchée », « 1 note retouchée ». */
-function resumeSimulation(ajoutees: number, retouchees: number): string {
-  const s = (n: number) => (n > 1 ? 's' : '');
-  const parts = [
-    ajoutees ? `${ajoutees} note${s(ajoutees)} simulée${s(ajoutees)}` : '',
-    retouchees ? `${retouchees}${ajoutees ? '' : ` note${s(retouchees)}`} retouchée${s(retouchees)}` : '',
-  ];
-  return parts.filter(Boolean).join(', ');
-}
-
 function BandeauSimulation({
   texte,
   active,

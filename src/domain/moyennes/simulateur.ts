@@ -25,8 +25,17 @@ function versNote(p: Periode, h: NoteHypothetique, i: number): Note {
  */
 export type Retouche = { noteId: string; valeur?: number; compte?: boolean };
 
-/** Les notes réelles (retouchées) plus les notes hypothétiques, prêtes pour le moteur. */
-export function avecHypotheses(p: Periode, notes: Note[], hypotheses: NoteHypothetique[], retouches: Retouche[] = []): Note[] {
+/**
+ * Les notes réelles (retouchées) plus les notes hypothétiques, prêtes pour le moteur. Une matière de
+ * `matieresIgnorees` voit toutes ses notes passer à coefficient 0 : sans moyenne, elle sort de la générale.
+ */
+export function avecHypotheses(
+  p: Periode,
+  notes: Note[],
+  hypotheses: NoteHypothetique[],
+  retouches: Retouche[] = [],
+  matieresIgnorees: readonly string[] = [],
+): Note[] {
   const parNote = new Map(retouches.map((r) => [r.noteId, r]));
   const reelles = notes.flatMap((n) => {
     const r = parNote.get(n.id);
@@ -40,7 +49,10 @@ export function avecHypotheses(p: Periode, notes: Note[], hypotheses: NoteHypoth
       },
     ];
   });
-  return [...reelles, ...hypotheses.map((h, i) => versNote(p, h, i))];
+  const toutes = [...reelles, ...hypotheses.map((h, i) => versNote(p, h, i))];
+  if (matieresIgnorees.length === 0) return toutes;
+  const ignorees = new Set(matieresIgnorees);
+  return toutes.map((n) => (ignorees.has(n.matiereCode) ? { ...n, coef: 0 } : n));
 }
 
 /** Moyennes de la période si l'on ajoute ces notes. */
