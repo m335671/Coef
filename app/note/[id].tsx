@@ -48,6 +48,11 @@ export default function DetailNote() {
   return (
     <Ecran>
       <EnTete titre={n.devoir || 'Note'} retour />
+      {n.dateSaisie ? (
+        <Texte variante="petit" attenue style={{ marginTop: -espace.s }}>
+          Ajoutée le {jour(n.dateSaisie)}
+        </Texte>
+      ) : null}
       <Entree rang={1}>
         <Panneau teinte style={{ paddingVertical: espace.xl, gap: espace.m }}>
           <View style={styles.rangee}>
@@ -80,7 +85,7 @@ export default function DetailNote() {
             />
           ) : null}
           <Texte variante="petit" style={{ color: c.accentEncre }}>
-            {[jour(n.date), n.typeDevoir, valeur !== undefined && n.noteSur !== 20 ? `soit ${moyenne((valeur * 20) / n.noteSur)}/20` : undefined]
+            {[`devoir du ${jour(n.date)}`, n.typeDevoir, valeur !== undefined && n.noteSur !== 20 ? `soit ${moyenne((valeur * 20) / n.noteSur)}/20` : undefined]
               .filter(Boolean)
               .join(' · ')}
           </Texte>
