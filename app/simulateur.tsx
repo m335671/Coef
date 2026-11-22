@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { leviers } from '@/domain/moyennes/impact';
-import { calculer } from '@/domain/moyennes/moteur';
-import { avecHypotheses, noteNecessaire, type NoteHypothetique } from '@/domain/moyennes/simulateur';
+import { calculer, lireNote, notesDeLaPeriode } from '@/domain/moyennes/moteur';
+import { avecHypotheses, noteNecessaire, type NoteHypothetique, type Retouche } from '@/domain/moyennes/simulateur';
 import type { Note, Periode } from '@/domain/types';
 import { cleSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
@@ -30,13 +30,14 @@ import {
   Segments,
   Texte,
 } from '@/ui/composants';
-import { coef as formatCoef, moyenne } from '@/ui/format';
+import { brute, coef as formatCoef, jour, moyenne } from '@/ui/format';
 import { espace, police, taille, useCouleurs } from '@/ui/theme';
 import Svg, { Path } from 'react-native-svg';
 
 const POIDS = [0.5, 1, 2, 3, 4];
 const AUCUNE: NoteHypothetique[] = [];
-type Onglet = 'ajouter' | 'calcul' | 'objectif';
+const AUCUNE_RETOUCHE: Retouche[] = [];
+type Onglet = 'ajouter' | 'notes' | 'calcul' | 'objectif';
 type Saisie = { code: string; valeur: number; sur: number; poids: number };
 
 export default function Simulation() {
@@ -53,6 +54,8 @@ export default function Simulation() {
   const [onglet, setOnglet] = useState<Onglet>(params.onglet === 'objectif' ? 'objectif' : 'ajouter');
   const cle = cleSimulation(params.eleve, params.periode);
   const hypotheses = useSimulation((s) => s.notes[cle]) ?? AUCUNE;
+  const retouches = useSimulation((s) => s.retouches?.[cle]) ?? AUCUNE_RETOUCHE;
+  const retoucher = useSimulation((s) => s.retoucher);
   const { active, modifie, definir, activer, enregistrer, charger, viser, afficherObjectif, afficherExtremes } = useSimulation();
   const extremesAffiches = useSimulation((s) => s.extremesAffiches ?? false);
   const objectif = useSimulation((s) => s.objectif) ?? 14;
@@ -114,7 +117,7 @@ export default function Simulation() {
 
   const options = { parametrage: d.parametrage };
   const avant = calculer(p, d.notes, d.periodes, options);
-  const notesSimulees = avecHypotheses(p, d.notes, hypotheses);
+  const notesSimulees = avecHypotheses(p, d.notes, hypotheses, retouches);
   const apres = calculer(p, notesSimulees, d.periodes, options);
   const libelle = (code: string) => p.matieres.find((m) => m.code === code && !m.sousCode)?.libelle ?? code;
   const ajouter = (s: Saisie) =>
@@ -147,13 +150,31 @@ export default function Simulation() {
               <View style={{ flex: 1 }}>
                 <Ecart
                   valeur={apres.generale - avant.generale}
-                  suffixe={`avec ${hypotheses.length} note${hypotheses.length > 1 ? 's' : ''} ajoutée${hypotheses.length > 1 ? 's' : ''}`}
+                  suffixe={`avec ${[
+                    hypotheses.length || !retouches.length
+                      ? `${hypotheses.length} note${hypotheses.length > 1 ? 's' : ''} ajoutée${hypotheses.length > 1 ? 's' : ''}`
+                      : '',
+                    retouches.length
+                      ? `${retouches.length}${hypotheses.length ? '' : ` note${retouches.length > 1 ? 's' : ''}`} retouchée${retouches.length > 1 ? 's' : ''}`
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}`}
                 />
               </View>
             ) : (
               <View style={{ flex: 1 }} />
             )}
-            {hypotheses.length > 0 ? <Bouton variante="texte" titre="Tout retirer" onPress={() => setHypotheses([])} /> : null}
+            {hypotheses.length + retouches.length > 0 ? (
+              <Bouton
+                variante="texte"
+                titre="Tout retirer"
+                onPress={() => {
+                  setHypotheses([]);
+                  retoucher(cle, []);
+                }}
+              />
+            ) : null}
           </View>
         </Panneau>
       </Entree>
@@ -163,6 +184,7 @@ export default function Simulation() {
           libelle="Mode de simulation"
           options={[
             { cle: 'ajouter' as const, libelle: 'Ajouter' },
+            { cle: 'notes' as const, libelle: 'Mes notes' },
             { cle: 'calcul' as const, libelle: 'Calculateur' },
             { cle: 'objectif' as const, libelle: 'Objectif' },
           ]}
@@ -236,6 +258,8 @@ export default function Simulation() {
             })}
           </View>
         </Section>
+      ) : onglet === 'notes' ? (
+        <MesNotes notes={notesDeLaPeriode(p, d.notes, d.periodes)} libelle={libelle} retouches={retouches} onChange={(r) => retoucher(cle, r)} />
       ) : onglet === 'calcul' ? (
         <Calculateur
           p={p}
@@ -599,3 +623,113 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
 });
+
+/**
+ * Onglet « Mes notes » : changer la valeur d'une vraie note, ou décider qu'elle compte ou non (coefficient 0),
+ * pour voir l'effet sur les moyennes. Les vraies notes ne sont jamais modifiées : seule la simulation l'est.
+ */
+function MesNotes({
+  notes,
+  libelle,
+  retouches,
+  onChange,
+}: {
+  notes: Note[];
+  libelle: (code: string) => string;
+  retouches: Retouche[];
+  onChange: (r: Retouche[]) => void;
+}) {
+  const c = useCouleurs();
+  const [ouverte, setOuverte] = useState<string>();
+  const parNote = new Map(retouches.map((r) => [r.noteId, r]));
+  const note = notes.find((n) => n.id === ouverte);
+  const retouche = note ? parNote.get(note.id) : undefined;
+  const compteParDefaut = (n: Note) => !n.nonSignificative && lireNote(n.valeurBrute) !== undefined;
+  // Une retouche revenue à l'état réel disparaît : la simulation ne garde que de vrais changements.
+  const modifier = (n: Note, champs: Partial<Retouche>) => {
+    const suite = { ...parNote.get(n.id), ...champs, noteId: n.id };
+    if (suite.valeur !== undefined && suite.valeur === lireNote(n.valeurBrute)) delete suite.valeur;
+    if (suite.compte !== undefined && suite.compte === compteParDefaut(n)) delete suite.compte;
+    const autres = retouches.filter((r) => r.noteId !== n.id);
+    onChange(suite.valeur === undefined && suite.compte === undefined ? autres : [...autres, suite]);
+  };
+  const codes = [...new Set(notes.map((n) => n.matiereCode))].sort((a, b) => libelle(a).localeCompare(libelle(b), 'fr'));
+
+  if (notes.length === 0) {
+    return (
+      <Texte variante="liste" attenue>
+        Aucune note dans cette période.
+      </Texte>
+    );
+  }
+  return (
+    <Section
+      titre="Tes notes de la période"
+      aide="Touche une note pour changer sa valeur ou décider si elle compte. Tes vraies notes ne changent pas."
+      rang={3}>
+      <View style={{ gap: espace.m }}>
+        {codes.map((code) => (
+          <View key={code} style={{ gap: espace.xs }}>
+            <Texte variante="liste" moyen>
+              {libelle(code)}
+            </Texte>
+            <Panneau>
+              {notes
+                .filter((n) => n.matiereCode === code)
+                .sort((a, b) => b.date.localeCompare(a.date))
+                .map((n, i, l) => {
+                  const r = parNote.get(n.id);
+                  const compte = r?.compte ?? compteParDefaut(n);
+                  return (
+                    <Ligne
+                      key={n.id}
+                      dernier={i === l.length - 1}
+                      onPress={() => setOuverte(n.id)}
+                      libelleAccessible={`${n.devoir || 'Devoir'}, ${brute(n.valeurBrute)} sur ${n.noteSur}${r ? ', retouchée' : ''}. Modifier`}>
+                      <View style={{ flex: 1 }}>
+                        <Texte variante="liste" numberOfLines={1}>
+                          {n.devoir || 'Devoir'}
+                        </Texte>
+                        <Texte variante="petit" attenue>
+                          {jour(n.date)} · coef {formatCoef(n.coef)}
+                          {compte ? '' : ' · ne compte pas'}
+                        </Texte>
+                      </View>
+                      <Texte variante="liste" style={{ fontVariant: ['tabular-nums'], color: r ? c.negatif : c.texte }}>
+                        {r?.valeur !== undefined ? `${brute(n.valeurBrute)} → ${formatCoef(r.valeur)}` : brute(n.valeurBrute)}
+                        <Texte variante="liste" attenue>
+                          /{n.noteSur}
+                        </Texte>
+                      </Texte>
+                    </Ligne>
+                  );
+                })}
+            </Panneau>
+          </View>
+        ))}
+      </View>
+      <Feuille visible={!!note} onFermer={() => setOuverte(undefined)} titre={note ? note.devoir || 'Devoir' : ''}>
+        {note ? (
+          <View style={{ gap: espace.m }}>
+            <Texte variante="petit" attenue>
+              {libelle(note.matiereCode)} · {jour(note.date)} · vraie note {brute(note.valeurBrute)}/{note.noteSur}
+            </Texte>
+            <Curseur
+              valeur={retouche?.valeur ?? lireNote(note.valeurBrute) ?? note.noteSur / 2}
+              min={0}
+              max={note.noteSur}
+              pas={0.25}
+              onChange={(v) => modifier(note, { valeur: v })}
+              libelle="Note simulée"
+              texteValeur={`${formatCoef(retouche?.valeur ?? lireNote(note.valeurBrute) ?? note.noteSur / 2)}/${note.noteSur}`}
+            />
+            <Coche libelle="Compte dans la moyenne" coche={retouche?.compte ?? compteParDefaut(note)} onChange={(v) => modifier(note, { compte: v })} />
+            {retouche ? (
+              <Bouton variante="secondaire" titre="Revenir à la vraie note" onPress={() => modifier(note, { valeur: undefined, compte: undefined })} />
+            ) : null}
+          </View>
+        ) : null}
+      </Feuille>
+    </Section>
+  );
+}

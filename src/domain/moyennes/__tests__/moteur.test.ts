@@ -3,7 +3,7 @@ import * as fc from 'fast-check';
 import type { MatierePeriode, Note, Periode } from '../../types';
 import { calibrer } from '../calibration';
 import { arrondi, calculer, lireNote, notesDeLaPeriode } from '../moteur';
-import { noteNecessaire, simuler } from '../simulateur';
+import { avecHypotheses, noteNecessaire, simuler } from '../simulateur';
 
 const periode = (matieres: MatierePeriode[], extra: Partial<Periode> = {}): Periode => ({
   code: 'A001',
@@ -300,5 +300,23 @@ describe('calibration', () => {
     const q = periode([MATHS, { code: 'MATHS', sousCode: 'ALG', libelle: 'Algèbre', coef: 1, officielle: 9 }]);
     const { retenue } = calibrer(q, [note('MATHS', '10', { sousMatiereCode: 'ALG' })], []);
     expect(retenue.ecarts[0]!.libelle).toBe('Algèbre (ALG)');
+  });
+});
+
+describe('retouches de vraies notes dans la simulation', () => {
+  const p = periode([MATHS]);
+  const a = note('MATHS', '10');
+  const b = note('MATHS', '16');
+  const ns = note('MATHS', '4', { nonSignificative: true });
+  const moy = (notes: Note[]) => calculer(p, notes, []).matieres[0]!.moyenne;
+
+  test('sans retouche, rien ne change', () => expect(avecHypotheses(p, [a, b], [], [])).toEqual([a, b]));
+  test('une autre valeur remplace la vraie', () => expect(moy(avecHypotheses(p, [a, b], [], [{ noteId: a.id, valeur: 12.5 }]))).toBe(14.25));
+  test('compte: false retire la note du calcul', () => expect(moy(avecHypotheses(p, [a, b], [], [{ noteId: a.id, compte: false }]))).toBe(16));
+  test('compte: true compte une note non significative', () => expect(moy(avecHypotheses(p, [a, ns], [], [{ noteId: ns.id, compte: true }]))).toBe(7));
+  test('une retouche sur une note inconnue est sans effet', () => expect(moy(avecHypotheses(p, [a, b], [], [{ noteId: 'disparue', compte: false }]))).toBe(13));
+  test('les notes réelles ne sont pas modifiées', () => {
+    avecHypotheses(p, [a], [], [{ noteId: a.id, valeur: 2 }]);
+    expect(a.valeurBrute).toBe('10');
   });
 });

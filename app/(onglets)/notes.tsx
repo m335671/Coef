@@ -6,15 +6,24 @@ import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTimin
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
-import { avecHypotheses, type NoteHypothetique } from '@/domain/moyennes/simulateur';
+import { avecHypotheses, type NoteHypothetique, type Retouche } from '@/domain/moyennes/simulateur';
 import type { Note } from '@/domain/types';
 import type { Famille } from '@/ui/theme';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { familleDe, NOM_FAMILLE, ORDRE_FAMILLES, useCouleurMatiere } from '@/features/notes/familles';
-import { ordonner, TRIS, type Tri, trierNotes } from '@/features/notes/ordre';
+import { ordonner, parRecence, TRIS, type Tri, trierNotes } from '@/features/notes/ordre';
 import { cleSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
-import { evolution, evolutionsMatieres, groupesPeriodes, type LigneMatiere, periodeParDefaut, periodesAffichees, type VueNotes, vueNotes } from '@/features/notes/vue';
+import {
+  evolution,
+  evolutionsMatieres,
+  groupesPeriodes,
+  type LigneMatiere,
+  periodeParDefaut,
+  periodesAffichees,
+  type VueNotes,
+  vueNotes,
+} from '@/features/notes/vue';
 import { ecrirePreference, lirePreference } from '@/storage/base';
 import { libelleMatiere } from '@/sync/annonce';
 import {
@@ -53,6 +62,8 @@ const PREF_ORDRE_MATIERES = 'notes.ordre.matieres';
 const PREF_ORDRE_FAMILLES = 'notes.ordre.familles';
 const PREF_TRI = 'notes.tri';
 const AUCUNE: NoteHypothetique[] = [];
+const AUCUNE_RETOUCHE: Retouche[] = [];
+const AUCUN_ID = new Set<string>();
 
 export default function Notes() {
   const c = useCouleurs();
@@ -102,11 +113,13 @@ export default function Notes() {
   const simulation = useSimulation();
   useEffect(() => void simulation.charger(), [simulation.charger]); // eslint-disable-line react-hooks/exhaustive-deps
   const simulees = (periode && simulation.notes[cleSimulation(eleveId, periode)]) || AUCUNE;
+  const retouchees = (periode && simulation.retouches?.[cleSimulation(eleveId, periode)]) || AUCUNE_RETOUCHE;
+  const changements = simulees.length + retouchees.length;
   /** Notes réelles arrivées à la place d'une note simulée : id → note simulée. */
   const etaitSimulee = new Map(
     (simulation.remplacees ?? []).filter((r) => periode && r.cle === cleSimulation(eleveId, periode)).map((r) => [r.noteId, r.hypothese]),
   );
-  const simule = simulation.active && simulees.length > 0;
+  const simule = simulation.active && changements > 0;
   const reelle = useMemo(() => (instantane && periode ? vueNotes(instantane, periode) : undefined), [instantane, periode]);
   // Simulation active : les notes simulées rejoignent les vraies ; le reste (calibration, nouveautés) reste réel.
   const instantaneVu = useMemo(
@@ -116,11 +129,11 @@ export default function Notes() {
             ...instantane,
             donnees: {
               ...instantane.donnees,
-              notes: avecHypotheses(reelle.periode, instantane.donnees.notes, simulees),
+              notes: avecHypotheses(reelle.periode, instantane.donnees.notes, simulees, retouchees),
             },
           }
         : instantane,
-    [instantane, reelle, simule, simulees],
+    [instantane, reelle, simule, simulees, retouchees],
   );
   const vue = useMemo(() => {
     if (!reelle || !simule || !instantaneVu) return reelle;
@@ -171,7 +184,9 @@ export default function Notes() {
         action={
           <View style={{ flexDirection: 'row', gap: espace.s }}>
             {vue ? (
-              <BoutonRond libelle="Courbes des moyennes" onPress={() => router.push({ pathname: '/courbes', params: { periode: vue.periode.code, eleve: eleveId } })}>
+              <BoutonRond
+                libelle="Courbes des moyennes"
+                onPress={() => router.push({ pathname: '/courbes', params: { periode: vue.periode.code, eleve: eleveId } })}>
                 <IconeCourbes />
               </BoutonRond>
             ) : null}
@@ -183,9 +198,7 @@ export default function Notes() {
                 </Texte>
               </Presse>
             ) : null}
-            <BoutonRond
-              libelle={etat?.chargement ? 'Chargement en cours' : 'Actualiser les notes'}
-              onPress={() => !etat?.chargement && charger(eleveId, true)}>
+            <BoutonRond libelle={etat?.chargement ? 'Chargement en cours' : 'Actualiser les notes'} onPress={() => !etat?.chargement && charger(eleveId, true)}>
               <View style={{ opacity: etat?.chargement ? 0.35 : 1 }}>
                 <IconeActualiser />
               </View>
@@ -203,9 +216,14 @@ export default function Notes() {
           <Deroulant libelle="Période" groupes={groupesPeriodes(periodes)} valeur={periode} onChange={setPeriode} />
         </Entree>
       ) : null}
-      {simulees.length > 0 ? (
+      {changements > 0 ? (
         <Entree rang={2}>
-          <BandeauSimulation n={simulees.length} active={simulation.active} onActiver={simulation.activer} onModifier={ouvrirSimulation} />
+          <BandeauSimulation
+            texte={resumeSimulation(simulees.length, retouchees.length)}
+            active={simulation.active}
+            onActiver={simulation.activer}
+            onModifier={ouvrirSimulation}
+          />
         </Entree>
       ) : null}
       <Entree rang={2}>
@@ -341,6 +359,7 @@ export default function Notes() {
                   matieres={matieres}
                   tri={tri}
                   notes={instantaneVu!.donnees.notes}
+                  retouchees={simule ? new Set(retouchees.map((x) => x.noteId)) : AUCUN_ID}
                   etaitSimulee={etaitSimulee}
                   onMatiere={ouvrir}
                   onNote={ouvrirNote}
@@ -380,6 +399,7 @@ function ParNote({
   matieres,
   tri,
   notes,
+  retouchees,
   etaitSimulee,
   onMatiere,
   onNote,
@@ -388,17 +408,19 @@ function ParNote({
   matieres: LigneMatiere[];
   tri: Tri;
   notes: Note[];
+  /** Vraies notes changées par la simulation : leur valeur s'affiche en orange, comme une note simulée. */
+  retouchees: Set<string>;
   etaitSimulee: Map<string, NoteHypothetique>;
   onMatiere: (code: string) => void;
   onNote: (id: string) => void;
 }) {
   const c = useCouleurs();
   const parId = new Map(notes.map((n) => [n.id, n]));
-  if (tri !== 'matiere') return <NotesTriees vue={vue} matieres={matieres} tri={tri} notes={notes} onNote={onNote} />;
+  if (tri !== 'matiere') return <NotesTriees vue={vue} matieres={matieres} tri={tri} notes={notes} retouchees={retouchees} onNote={onNote} />;
   const groupes = matieres
     .map(({ matiere: m }) => ({
       m,
-      lignes: [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)].map((d) => ({ d, n: parId.get(d.id)! })).sort((a, b) => b.n.date.localeCompare(a.n.date)),
+      lignes: [...m.notes, ...m.sousMatieres.flatMap((s) => s.notes)].map((d) => ({ d, n: parId.get(d.id)! })).sort((a, b) => parRecence(a.n, b.n)),
     }))
     .filter((g) => g.lignes.length > 0);
   if (groupes.length === 0) {
@@ -441,10 +463,11 @@ function ParNote({
                     <Texte variante="petit" attenue numberOfLines={1}>
                       {jour(n.date)} · coef {coef(n.coef)}
                       {d.exclue ? ' · non comptée' : ''}
+                      {retouchees.has(n.id) ? ' · retouchée' : ''}
                       {etaitSimulee.has(n.id) ? ` · simulée ${coef(etaitSimulee.get(n.id)!.valeur)}/${etaitSimulee.get(n.id)!.noteSur}` : ''}
                     </Texte>
                   </View>
-                  <Texte variante="liste" attenue={!!d.exclue} style={[styles.note, simulee ? { color: c.negatif } : undefined]}>
+                  <Texte variante="liste" attenue={!!d.exclue} style={[styles.note, simulee || retouchees.has(n.id) ? { color: c.negatif } : undefined]}>
                     {brute(n.valeurBrute)}
                     <Texte variante="liste" attenue>
                       /{n.noteSur}
@@ -637,12 +660,14 @@ function NotesTriees({
   matieres,
   tri,
   notes,
+  retouchees,
   onNote,
 }: {
   vue: VueNotes;
   matieres: LigneMatiere[];
   tri: Exclude<Tri, 'matiere'>;
   notes: Note[];
+  retouchees: Set<string>;
   onNote: (id: string) => void;
 }) {
   const c = useCouleurs();
@@ -685,9 +710,10 @@ function NotesTriees({
                 <Texte variante="petit" attenue numberOfLines={1}>
                   {nom} · {jour(n.date)} · coef {coef(n.coef)}
                   {exclues.has(n.id) ? ' · non comptée' : ''}
+                  {retouchees.has(n.id) ? ' · retouchée' : ''}
                 </Texte>
               </View>
-              <Texte variante="liste" attenue={exclues.has(n.id)} style={[styles.note, simulee ? { color: c.negatif } : undefined]}>
+              <Texte variante="liste" attenue={exclues.has(n.id)} style={[styles.note, simulee || retouchees.has(n.id) ? { color: c.negatif } : undefined]}>
                 {brute(n.valeurBrute)}
                 <Texte variante="liste" attenue>
                   /{n.noteSur}
@@ -733,7 +759,27 @@ function IconeTri() {
 }
 
 /** Rappel d'une simulation en cours : l'afficher ou non, la modifier. */
-function BandeauSimulation({ n, active, onActiver, onModifier }: { n: number; active: boolean; onActiver: (v: boolean) => void; onModifier: () => void }) {
+/** « 2 notes simulées », « 1 note simulée, 1 retouchée », « 1 note retouchée ». */
+function resumeSimulation(ajoutees: number, retouchees: number): string {
+  const s = (n: number) => (n > 1 ? 's' : '');
+  const parts = [
+    ajoutees ? `${ajoutees} note${s(ajoutees)} simulée${s(ajoutees)}` : '',
+    retouchees ? `${retouchees}${ajoutees ? '' : ` note${s(retouchees)}`} retouchée${s(retouchees)}` : '',
+  ];
+  return parts.filter(Boolean).join(', ');
+}
+
+function BandeauSimulation({
+  texte,
+  active,
+  onActiver,
+  onModifier,
+}: {
+  texte: string;
+  active: boolean;
+  onActiver: (v: boolean) => void;
+  onModifier: () => void;
+}) {
   const c = useCouleurs();
   return (
     <View
@@ -744,9 +790,9 @@ function BandeauSimulation({ n, active, onActiver, onModifier }: { n: number; ac
           backgroundColor: c.surface,
         },
       ]}>
-      <Presse onPress={onModifier} libelleAccessible={`${n} notes simulées. Modifier la simulation`} style={{ flex: 1 }}>
+      <Presse onPress={onModifier} libelleAccessible={`${texte}. Modifier la simulation`} style={{ flex: 1 }}>
         <Texte variante="liste" moyen style={{ color: active ? c.negatif : c.texte }}>
-          {n} note{n > 1 ? 's' : ''} simulée{n > 1 ? 's' : ''}
+          {texte}
         </Texte>
         <Texte variante="petit" attenue>
           {active ? 'Moyennes simulées ci-dessous · modifier' : 'Masquée : moyennes réelles · modifier'}

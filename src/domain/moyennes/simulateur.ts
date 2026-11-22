@@ -19,9 +19,28 @@ function versNote(p: Periode, h: NoteHypothetique, i: number): Note {
   };
 }
 
-/** Les notes réelles plus les notes hypothétiques, prêtes pour le moteur. */
-export function avecHypotheses(p: Periode, notes: Note[], hypotheses: NoteHypothetique[]): Note[] {
-  return [...notes, ...hypotheses.map((h, i) => versNote(p, h, i))];
+/**
+ * Retouche d'une vraie note dans la simulation : une autre valeur (sur son barème), et/ou le choix de la compter
+ * (`compte: false` lui donne un coefficient 0 ; `compte: true` la compte même si ED la dit non significative).
+ */
+export type Retouche = { noteId: string; valeur?: number; compte?: boolean };
+
+/** Les notes réelles (retouchées) plus les notes hypothétiques, prêtes pour le moteur. */
+export function avecHypotheses(p: Periode, notes: Note[], hypotheses: NoteHypothetique[], retouches: Retouche[] = []): Note[] {
+  const parNote = new Map(retouches.map((r) => [r.noteId, r]));
+  const reelles = notes.flatMap((n) => {
+    const r = parNote.get(n.id);
+    if (!r) return [n];
+    return [
+      {
+        ...n,
+        ...(r.valeur !== undefined ? { valeurBrute: String(r.valeur).replace('.', ',') } : {}),
+        // Non comptée : coefficient 0 plutôt que retirée, pour qu'elle reste visible (« coef 0 ») dans les listes.
+        ...(r.compte === false ? { coef: 0 } : r.compte ? { nonSignificative: false } : {}),
+      },
+    ];
+  });
+  return [...reelles, ...hypotheses.map((h, i) => versNote(p, h, i))];
 }
 
 /** Moyennes de la période si l'on ajoute ces notes. */
