@@ -267,7 +267,7 @@ export default function Simulation() {
         />
         <Action
           titre="Calculer la note nécessaire"
-          description="Note à obtenir au prochain devoir pour atteindre l’objectif ou une moyenne de matière, selon le barème et le poids. Matières classées de la plus accessible à la moins accessible."
+          description="Note à obtenir aux prochains devoirs, en une ou plusieurs notes, pour atteindre l’objectif ou une moyenne de matière, selon le barème et le poids. Matières classées de la plus accessible à la moins accessible."
           onPress={() => setVue('calcul')}
           icone={
             <>
@@ -623,7 +623,7 @@ function Ajouter({
         <Curseur libelle="Note" texteValeur={`${moyenne(h.valeur)} sur ${sur}`} valeur={h.valeur} min={0} max={sur} pas={0.25} onChange={setNote} />
       </Entree>
       <Section titre="Barème et poids" rang={4}>
-        <Segments libelle="Barème" options={[20, 10].map((v) => ({ cle: v, libelle: `sur ${v}` }))} valeur={sur} onChange={setSur} />
+        <Segments libelle="Barème" plein options={[20, 10].map((v) => ({ cle: v, libelle: `sur ${v}` }))} valeur={sur} onChange={setSur} />
         <Segments libelle="Poids du devoir" plein options={POIDS.map((v) => ({ cle: v, libelle: `×${formatCoef(v)}` }))} valeur={poids} onChange={setPoids} />
       </Section>
       <Entree rang={5}>
@@ -753,6 +753,7 @@ function Calcul({
       <Section titre="Prochains devoirs" rang={2}>
         <Segments
           libelle="Nombre de notes"
+          plein
           options={[1, 2, 3, 4].map((v) => ({
             cle: v,
             libelle: v === 1 ? '1 note' : `${v} notes`,
@@ -760,7 +761,7 @@ function Calcul({
           valeur={nombre}
           onChange={setNombre}
         />
-        <Segments libelle="Barème" options={[20, 10].map((v) => ({ cle: v, libelle: `sur ${v}` }))} valeur={sur} onChange={setSur} />
+        <Segments libelle="Barème" plein options={[20, 10].map((v) => ({ cle: v, libelle: `sur ${v}` }))} valeur={sur} onChange={setSur} />
         <Segments libelle="Poids de chaque devoir" plein options={POIDS.map((v) => ({ cle: v, libelle: `×${formatCoef(v)}` }))} valeur={poids} onChange={setPoids} />
       </Section>
 
@@ -834,11 +835,7 @@ function Calcul({
                   <Texte
                     variante="liste"
                     attenue={!possible}
-                    style={{
-                      fontVariant: ['tabular-nums'],
-                      fontFamily: possible ? police.fort : police.normal,
-                      color: possible ? c.objectif : undefined,
-                    }}>
+                    style={possible ? { fontVariant: ['tabular-nums'], fontFamily: police.fort, color: c.objectif } : undefined}>
                     {!possible ? 'hors d’atteinte' : r.note === 0 ? 'atteint' : moyenne(r.note!)}
                   </Texte>
                 </Ligne>
