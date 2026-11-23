@@ -11,7 +11,8 @@ import { useEleveActif } from '@/features/compte/eleves';
 import { useCouleurMatiere } from '@/features/notes/familles';
 import { useNotes } from '@/features/notes/store';
 import { useSimulation } from '@/features/notes/simulation';
-import { evolution, periodeParDefaut, vueNotes } from '@/features/notes/vue';
+import { usePeriode } from '@/features/notes/periode';
+import { evolution, vueNotes } from '@/features/notes/vue';
 import { useDonnee, useDonneesED } from '@/features/vie/store';
 import { libelleMatiere } from '@/sync/annonce';
 import {
@@ -71,10 +72,8 @@ export default function Accueil() {
   const pret = (e?: { valeur?: unknown; chargement?: boolean }) => !demarrage && (e?.valeur !== undefined || e?.chargement === false);
   const occupe = !!etatNotes?.chargement || !!etatEdt?.chargement || !!etatDevoirs?.chargement;
 
-  const vue = useMemo(() => {
-    const p = instantane && periodeParDefaut(instantane.donnees, aujourdhui);
-    return instantane && p ? vueNotes(instantane, p.code) : undefined;
-  }, [instantane, aujourdhui]);
+  const [periode] = usePeriode(id, instantane?.donnees, aujourdhui);
+  const vue = useMemo(() => (instantane && periode ? vueNotes(instantane, periode) : undefined), [instantane, periode]);
 
   const restants = cours.filter((x) => !x.annule && x.fin > maintenant).sort((a, b) => a.debut.localeCompare(b.debut));
   const prochain = restants[0];

@@ -6,11 +6,13 @@ import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTimin
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
+import { AUJOURDHUI_DEMO } from '@/demo/vie';
 import { avecHypotheses, type NoteHypothetique, type Retouche } from '@/domain/moyennes/simulateur';
 import type { Note } from '@/domain/types';
 import type { Famille } from '@/ui/theme';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { familleDe, NOM_FAMILLE, ORDRE_FAMILLES, useCouleurMatiere } from '@/features/notes/familles';
+import { usePeriode } from '@/features/notes/periode';
 import { ordonner, parDevoir, TRIS, type Tri, trierNotes } from '@/features/notes/ordre';
 import { cleSimulation, resumeSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
@@ -19,7 +21,6 @@ import {
   evolutionsMatieres,
   groupesPeriodes,
   type LigneMatiere,
-  periodeParDefaut,
   periodesAffichees,
   type VueNotes,
   vueNotes,
@@ -49,7 +50,7 @@ import {
   Squelette,
   Texte,
 } from '@/ui/composants';
-import { brute, coef, jour, moyenne } from '@/ui/format';
+import { brute, coef, iso, jour, moyenne } from '@/ui/format';
 import { Anneau, Echelle, Hachures, MiniCourbe } from '@/ui/graphiques';
 import Svg, { Path } from 'react-native-svg';
 
@@ -73,7 +74,6 @@ export default function Notes() {
   const eleveId = eleve?.id ?? '';
   const etat = useNotes((s) => s.eleves[eleveId]);
   const charger = useNotes((s) => s.charger);
-  const [periodeChoisie, setPeriode] = useState<string>();
   const [affichage, setAffichage] = useState<Affichage>('liste');
 
   useEffect(() => {
@@ -110,7 +110,7 @@ export default function Notes() {
 
   const instantane = etat?.instantane;
   const periodes = instantane ? periodesAffichees(instantane.donnees) : [];
-  const periode = periodeChoisie ?? (instantane && periodeParDefaut(instantane.donnees, new Date().toISOString().slice(0, 10))?.code);
+  const [periode, setPeriode] = usePeriode(eleveId, instantane?.donnees, MODE_DEMO ? AUJOURDHUI_DEMO : iso(new Date()));
   const simulation = useSimulation();
   useEffect(() => void simulation.charger(), [simulation.charger]); // eslint-disable-line react-hooks/exhaustive-deps
   const simulees = (periode && simulation.notes[cleSimulation(eleveId, periode)]) || AUCUNE;
@@ -455,7 +455,7 @@ function ParNote({
                       borderBottomColor: c.filet,
                       borderBottomWidth: j === lignes.length - 1 ? 0 : StyleSheet.hairlineWidth,
                     },
-                    simulee ? { ...styles.simulee, borderColor: c.negatif } : {},
+                    simulee ? { ...styles.simulee, borderColor: c.negatif, borderBottomColor: c.negatif } : {},
                   ]}>
                   {simulee ? <Hachures /> : null}
                   <View style={{ flex: 1 }}>
@@ -1032,7 +1032,8 @@ const styles = StyleSheet.create({
   ligneTenue: { borderBottomWidth: StyleSheet.hairlineWidth, borderRadius: 12, paddingRight: 0 },
   ligneED: { flexDirection: 'row', alignItems: 'center', gap: espace.s, minHeight: 52, paddingVertical: espace.s },
   bande: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
-  simulee: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 12, paddingHorizontal: espace.s, marginVertical: 2, overflow: 'hidden' },
+  // Encadré du simulé : décalé vers l'extérieur de sa marge intérieure, le texte reste aligné sur les autres lignes.
+  simulee: { borderWidth: 1.5, borderBottomWidth: 1.5, borderRadius: 12, paddingHorizontal: espace.s, marginHorizontal: -espace.s, marginVertical: espace.s, overflow: 'hidden' },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
   pointObjectif: { width: 8, height: 8, borderRadius: 4 },
   echantillonPlage: { width: 22, height: 10, borderRadius: 5, borderWidth: 2, borderStyle: 'dashed' },
