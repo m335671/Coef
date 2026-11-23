@@ -25,7 +25,8 @@ export function Tuile({
   onLongPress?: () => void;
   libelle: string;
 }) {
-  const style = [styles.tuile, { backgroundColor: fond, borderColor: bord ?? fond, minHeight: large ? undefined : 132 }];
+  // Demi-tuiles côte à côte : chacune remplit la hauteur de la rangée, la plus haute donne la taille aux deux.
+  const style = [styles.tuile, { backgroundColor: fond, borderColor: bord ?? fond, minHeight: large ? undefined : 132 }, large ? {} : { flex: 1 }];
   if (!onPress) {
     return (
       <Entree rang={rang} style={large ? styles.large : styles.demi}>
@@ -35,7 +36,7 @@ export function Tuile({
   }
   return (
     <Entree rang={rang} style={large ? styles.large : styles.demi}>
-      <Presse onPress={onPress} onLongPress={onLongPress} libelleAccessible={libelle} style={style}>
+      <Presse onPress={onPress} onLongPress={onLongPress} libelleAccessible={libelle} style={style} remplir={!large}>
         {children}
       </Presse>
     </Entree>

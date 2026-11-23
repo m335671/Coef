@@ -214,6 +214,7 @@ export function Presse({
   role = 'button',
   selectionne,
   desactive,
+  remplir,
 }: {
   children: ReactNode;
   onPress?: () => void;
@@ -224,6 +225,8 @@ export function Presse({
   role?: 'button' | 'radio' | 'tab' | 'checkbox';
   selectionne?: boolean;
   desactive?: boolean;
+  /** Le fond visible remplit toute la place donnée au bouton (demi-tuiles de même hauteur). */
+  remplir?: boolean;
 }) {
   const reduit = useReducedMotion();
   const s = useSharedValue(1);
@@ -246,7 +249,7 @@ export function Presse({
         if (!reduit) s.set(withTiming(0.97, { duration: duree.pression }));
       }}
       onPressOut={() => s.set(withTiming(1, { duration: duree.pression }))}>
-      <Animated.View style={[interieur, anime]}>{children}</Animated.View>
+      <Animated.View style={[interieur, remplir ? { flex: 1 } : null, anime]}>{children}</Animated.View>
     </Pressable>
   );
 }
