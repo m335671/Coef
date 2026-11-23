@@ -19,6 +19,7 @@ import {
   ChiffreAnime,
   Coche,
   Curseur,
+  Deroulant,
   Ecart,
   Ecran,
   EnTete,
@@ -47,13 +48,17 @@ const valeur = (v: number) => formatCoef(v);
 
 export default function Simulation() {
   const c = useCouleurs();
-  const params = useLocalSearchParams<{ periode: string; eleve: string; code?: string; onglet?: string }>();
+  const params = useLocalSearchParams<{
+    periode: string;
+    eleve: string;
+    code?: string;
+    onglet?: string;
+  }>();
   const d = useNotes((s) => s.eleves[params.eleve]?.instantane?.donnees);
   const p = d?.periodes.find((x) => x.code === params.periode);
 
   const [vue, setVue] = useState<Vue>(params.code ? 'ajouter' : 'accueil');
   const [detail, setDetail] = useState(false);
-  const [affichage, setAffichage] = useState(false);
   const cle = cleSimulation(params.eleve, params.periode);
   const hypotheses = useSimulation((s) => s.notes[cle]) ?? AUCUNE;
   const retouches = useSimulation((s) => s.retouches?.[cle]) ?? AUCUNE_RETOUCHE;
@@ -93,8 +98,7 @@ export default function Simulation() {
   }
 
   const options = { parametrage: d.parametrage };
-  const generaleAvec = (h: NoteHypothetique[], r: Retouche[], i: readonly string[]) =>
-    calculer(p, avecHypotheses(p, d.notes, h, r, i), d.periodes, options).generale;
+  const generaleAvec = (h: NoteHypothetique[], r: Retouche[], i: readonly string[]) => calculer(p, avecHypotheses(p, d.notes, h, r, i), d.periodes, options).generale;
   const avant = calculer(p, d.notes, d.periodes, options);
   const notesSimulees = avecHypotheses(p, d.notes, hypotheses, retouches, ignorees);
   const apres = calculer(p, notesSimulees, d.periodes, options);
@@ -102,10 +106,11 @@ export default function Simulation() {
   const actives = hypotheses.length + retouches.length + ignorees.length;
   /** Ce qu'un changement apporte à la générale : la générale avec tout, moins la générale sans lui. */
   const effet = (sans: number | undefined) => (apres.generale !== undefined && sans !== undefined ? apres.generale - sans : undefined);
-  const ajouter = (h: NoteHypothetique) => {
-    setHypotheses([...hypotheses, h]);
+  const ajouterPlusieurs = (h: NoteHypothetique[]) => {
+    setHypotheses([...hypotheses, ...h]);
     setVue('accueil');
   };
+  const ajouter = (h: NoteHypothetique) => ajouterPlusieurs([h]);
 
   const retour = (titre: string) => (
     <Entree style={styles.entete}>
@@ -125,12 +130,19 @@ export default function Simulation() {
       <Ecran>
         {retour('Ajouter une note')}
         <Ajouter
-          matieres={apres.matieres.map((m) => ({ code: m.code, libelle: m.libelle, moyenne: m.moyenne }))}
+          matieres={apres.matieres.map((m) => ({
+            code: m.code,
+            libelle: m.libelle,
+            moyenne: m.moyenne,
+          }))}
           depart={params.code}
           generale={apres.generale}
           apresAjout={(h) => {
             const r = calculer(p, avecHypotheses(p, d.notes, [...hypotheses, h], retouches, ignorees), d.periodes, options);
-            return { generale: r.generale, matiere: r.matieres.find((m) => m.code === h.matiereCode)?.moyenne };
+            return {
+              generale: r.generale,
+              matiere: r.matieres.find((m) => m.code === h.matiereCode)?.moyenne,
+            };
           }}
           onAjouter={ajouter}
         />
@@ -158,22 +170,40 @@ export default function Simulation() {
         {retour('Note nécessaire')}
         <Calcul
           objectif={objectif}
+          onViser={viser}
           generale={apres.generale}
-          matieres={apres.matieres.filter((m) => m.coef > 0).map((m) => ({ code: m.code, libelle: m.libelle, moyenne: m.moyenne }))}
+          matieres={apres.matieres
+            .filter((m) => m.coef > 0)
+            .map((m) => ({
+              code: m.code,
+              libelle: m.libelle,
+              moyenne: m.moyenne,
+            }))}
           depart={params.code}
-          leviersPour={(sur, poids) => leviers(p, notesSimulees, d.periodes, objectif, options, { noteSur: sur, coef: poids })}
-          notePourMatiere={(code, sur, poids, vise) =>
-            noteNecessaire(p, notesSimulees, d.periodes, { matiereCode: code, noteSur: sur, coef: poids }, { portee: 'matiere', code }, vise, options)
+          leviersPour={(sur, poids, nombre) =>
+            leviers(p, notesSimulees, d.periodes, objectif, options, {
+              noteSur: sur,
+              coef: poids,
+              nombre,
+            })
           }
-          onEssayer={(code, note, sur, poids) => ajouter({ matiereCode: code, valeur: note, noteSur: sur, coef: poids })}
+          notePourMatiere={(code, sur, poids, nombre, vise) =>
+            noteNecessaire(p, notesSimulees, d.periodes, { matiereCode: code, noteSur: sur, coef: poids }, { portee: 'matiere', code }, vise, options, nombre)
+          }
+          onEssayer={(code, note, sur, poids, nombre) =>
+            ajouterPlusieurs(
+              Array.from({ length: nombre }, () => ({
+                matiereCode: code,
+                valeur: note,
+                noteSur: sur,
+                coef: poids,
+              })),
+            )
+          }
         />
       </Ecran>
     );
   }
-
-  const manque = apres.generale === undefined ? undefined : objectif - apres.generale;
-  const regler = (pas: number) => viser(Math.min(20, Math.max(0, Math.round((objectif + pas) * 4) / 4)));
-  const violetPale = `${c.objectif}1a`;
 
   return (
     <Ecran>
@@ -195,35 +225,7 @@ export default function Simulation() {
             <Ecart valeur={apres.generale - avant.generale} suffixe="avec la simulation" />
           ) : null}
           <View style={[styles.objectif, { borderTopColor: c.teinte100 }]}>
-            <Presse
-              libelleAccessible="Baisser l’objectif d’un quart de point (appui long : d’un point)"
-              onPress={() => regler(-0.25)}
-              onLongPress={() => regler(-1)}
-              style={[styles.pas, { borderColor: violetPale, backgroundColor: c.surface }]}>
-              <Svg width={18} height={18} viewBox="0 0 24 24" stroke={c.objectif} strokeWidth={2.4} strokeLinecap="round">
-                <Path d="M5 12h14" />
-              </Svg>
-            </Presse>
-            <View style={{ flex: 1, alignItems: 'center' }} accessible accessibilityLabel={`Objectif de moyenne générale : ${moyenne(objectif)}`}>
-              <Texte variante="petit" style={{ color: c.objectif, fontFamily: police.moyen }}>
-                Objectif de moyenne générale
-              </Texte>
-              <Texte style={{ fontFamily: police.gras, fontSize: taille.titre, color: c.objectif, fontVariant: ['tabular-nums'] }}>{moyenne(objectif)}</Texte>
-              {manque !== undefined ? (
-                <Texte variante="petit" attenue>
-                  {manque > 0 ? `il manque ${moyenne(manque)} point${manque >= 2 ? 's' : ''}` : 'atteint'}
-                </Texte>
-              ) : null}
-            </View>
-            <Presse
-              libelleAccessible="Monter l’objectif d’un quart de point (appui long : d’un point)"
-              onPress={() => regler(0.25)}
-              onLongPress={() => regler(1)}
-              style={[styles.pas, { borderColor: violetPale, backgroundColor: c.surface }]}>
-              <Svg width={18} height={18} viewBox="0 0 24 24" stroke={c.objectif} strokeWidth={2.4} strokeLinecap="round">
-                <Path d="M12 5v14M5 12h14" />
-              </Svg>
-            </Presse>
+            <ReglageObjectif objectif={objectif} generale={apres.generale} onViser={viser} />
           </View>
         </Panneau>
       </Entree>
@@ -236,7 +238,8 @@ export default function Simulation() {
             style={[styles.bandeau, { backgroundColor: c.surface, borderColor: c.bord }]}>
             <View style={[styles.point, { backgroundColor: c.negatif }]} />
             <Texte variante="liste" moyen style={{ flex: 1 }}>
-              {actives} simulation{actives > 1 ? 's' : ''} active{actives > 1 ? 's' : ''}
+              {actives} simulation{actives > 1 ? 's' : ''} active
+              {actives > 1 ? 's' : ''}
             </Texte>
             <Texte variante="petit" style={{ color: c.accent, fontFamily: police.fort }}>
               Afficher le détail ›
@@ -275,21 +278,26 @@ export default function Simulation() {
         />
       </Entree>
 
-      <Entree rang={4}>
-        <Panneau>
-          <Ligne dernier onPress={() => setAffichage(true)} libelleAccessible="Afficher sur l’écran Notes">
-            <Texte variante="liste" moyen style={{ flex: 1 }}>
-              Afficher sur l’écran Notes
-            </Texte>
-            <Texte variante="liste" attenue>
-              ›
-            </Texte>
-          </Ligne>
+      <Section
+        titre="Afficher sur l’écran Notes"
+        aide="Les notes simulées changent les moyennes affichées (en orange). L’objectif et la classe ne sont que des repères."
+        rang={4}>
+        <Panneau style={{ paddingVertical: espace.xs }}>
+          <Coche libelle="Les notes simulées" coche={active} onChange={activer} couleur={c.negatif} />
+          <Coche
+            libelle={`L’objectif (${moyenne(objectif)})`}
+            coche={objectifAffiche}
+            onChange={(v) => {
+              if (v && useSimulation.getState().objectif === undefined) viser(objectif);
+              afficherObjectif(v);
+            }}
+            couleur={c.objectif}
+          />
+          <Coche libelle="La plus basse et la plus haute de la classe" coche={extremesAffiches} onChange={afficherExtremes} couleur={c.texte} />
         </Panneau>
-      </Entree>
+      </Section>
       <Texte variante="petit" attenue>
-        Enregistré sur ce téléphone, dans la base chiffrée, jamais envoyé à EcoleDirecte. Quand la vraie note arrive dans une matière, elle remplace la note
-        ajoutée.
+        Enregistré sur ce téléphone, dans la base chiffrée, jamais envoyé à EcoleDirecte. Quand la vraie note arrive dans une matière, elle remplace la note ajoutée.
       </Texte>
 
       <Feuille visible={detail} onFermer={() => setDetail(false)} titre="Simulations actives">
@@ -302,7 +310,13 @@ export default function Simulation() {
                   dernier={j === hypotheses.length - 1}
                   titre={h.titre?.trim() || 'Note sans titre'}
                   sous={`${libelle(h.matiereCode)} · ${valeur(h.valeur)}/${h.noteSur} · ×${formatCoef(h.coef)}`}
-                  effet={effet(generaleAvec(hypotheses.filter((_, k) => k !== j), retouches, ignorees))}
+                  effet={effet(
+                    generaleAvec(
+                      hypotheses.filter((_, k) => k !== j),
+                      retouches,
+                      ignorees,
+                    ),
+                  )}
                   retirer={`Supprimer la note ${h.titre?.trim() || `de ${libelle(h.matiereCode)}`}`}
                   onRetirer={() => setHypotheses(hypotheses.filter((_, k) => k !== j))}
                 />
@@ -323,9 +337,20 @@ export default function Simulation() {
                     dernier={j === retouches.length - 1}
                     titre={n?.devoir || 'Devoir'}
                     sous={[n ? libelle(n.matiereCode) : '', ...quoi].filter(Boolean).join(' · ')}
-                    effet={effet(generaleAvec(hypotheses, retouches.filter((x) => x !== r), ignorees))}
+                    effet={effet(
+                      generaleAvec(
+                        hypotheses,
+                        retouches.filter((x) => x !== r),
+                        ignorees,
+                      ),
+                    )}
                     retirer="Rétablir la vraie note"
-                    onRetirer={() => retoucher(cle, retouches.filter((x) => x !== r))}
+                    onRetirer={() =>
+                      retoucher(
+                        cle,
+                        retouches.filter((x) => x !== r),
+                      )
+                    }
                   />
                 );
               })}
@@ -339,9 +364,20 @@ export default function Simulation() {
                   dernier={j === ignorees.length - 1}
                   titre={libelle(code)}
                   sous="exclue de la moyenne générale"
-                  effet={effet(generaleAvec(hypotheses, retouches, ignorees.filter((x) => x !== code)))}
+                  effet={effet(
+                    generaleAvec(
+                      hypotheses,
+                      retouches,
+                      ignorees.filter((x) => x !== code),
+                    ),
+                  )}
                   retirer={`Remettre ${libelle(code)} dans la générale`}
-                  onRetirer={() => ignorerMatieres(cle, ignorees.filter((x) => x !== code))}
+                  onRetirer={() =>
+                    ignorerMatieres(
+                      cle,
+                      ignorees.filter((x) => x !== code),
+                    )
+                  }
                 />
               ))}
             </Groupe>
@@ -382,26 +418,56 @@ export default function Simulation() {
           />
         ) : null}
       </Feuille>
-
-      <Feuille visible={affichage} onFermer={() => setAffichage(false)} titre="Afficher sur l’écran Notes">
-        <Texte variante="petit" attenue>
-          Les notes simulées changent les moyennes affichées (en orange). L’objectif et la classe ne sont que des repères.
-        </Texte>
-        <View>
-          <Coche libelle="Les notes simulées" coche={active} onChange={activer} couleur={c.negatif} />
-          <Coche
-            libelle={`L’objectif (${moyenne(objectif)})`}
-            coche={objectifAffiche}
-            onChange={(v) => {
-              if (v && useSimulation.getState().objectif === undefined) viser(objectif);
-              afficherObjectif(v);
-            }}
-            couleur={c.objectif}
-          />
-          <Coche libelle="La plus basse et la plus haute de la classe" coche={extremesAffiches} onChange={afficherExtremes} couleur={c.texte} />
-        </View>
-      </Feuille>
     </Ecran>
+  );
+}
+
+/** Objectif de moyenne générale réglable : − et + d'un quart de point, d'un point à l'appui long. */
+function ReglageObjectif({ objectif, generale, onViser }: { objectif: number; generale?: number; onViser: (v: number) => void }) {
+  const c = useCouleurs();
+  const manque = generale === undefined ? undefined : objectif - generale;
+  const regler = (pas: number) => onViser(Math.min(20, Math.max(0, Math.round((objectif + pas) * 4) / 4)));
+  const violetPale = `${c.objectif}1a`;
+  return (
+    <View style={styles.rangee}>
+      <Presse
+        libelleAccessible="Baisser l’objectif d’un quart de point (appui long : d’un point)"
+        onPress={() => regler(-0.25)}
+        onLongPress={() => regler(-1)}
+        style={[styles.pas, { borderColor: violetPale, backgroundColor: c.surface }]}>
+        <Svg width={18} height={18} viewBox="0 0 24 24" stroke={c.objectif} strokeWidth={2.4} strokeLinecap="round">
+          <Path d="M5 12h14" />
+        </Svg>
+      </Presse>
+      <View style={{ flex: 1, alignItems: 'center' }} accessible accessibilityLabel={`Objectif de moyenne générale : ${moyenne(objectif)}`}>
+        <Texte variante="petit" style={{ color: c.objectif, fontFamily: police.moyen }}>
+          Objectif de moyenne générale
+        </Texte>
+        <Texte
+          style={{
+            fontFamily: police.gras,
+            fontSize: taille.titre,
+            color: c.objectif,
+            fontVariant: ['tabular-nums'],
+          }}>
+          {moyenne(objectif)}
+        </Texte>
+        {manque !== undefined ? (
+          <Texte variante="petit" attenue>
+            {manque > 0 ? `il manque ${moyenne(manque)} point${manque >= 2 ? 's' : ''}` : 'atteint'}
+          </Texte>
+        ) : null}
+      </View>
+      <Presse
+        libelleAccessible="Monter l’objectif d’un quart de point (appui long : d’un point)"
+        onPress={() => regler(0.25)}
+        onLongPress={() => regler(1)}
+        style={[styles.pas, { borderColor: violetPale, backgroundColor: c.surface }]}>
+        <Svg width={18} height={18} viewBox="0 0 24 24" stroke={c.objectif} strokeWidth={2.4} strokeLinecap="round">
+          <Path d="M12 5v14M5 12h14" />
+        </Svg>
+      </Presse>
+    </View>
   );
 }
 
@@ -466,7 +532,13 @@ function Changement({
         </Texte>
       </View>
       {effet !== undefined && Math.abs(effet) >= 0.005 ? (
-        <Texte variante="petit" style={{ fontVariant: ['tabular-nums'], color: effet > 0 ? c.positif : c.negatif, fontFamily: police.fort }}>
+        <Texte
+          variante="petit"
+          style={{
+            fontVariant: ['tabular-nums'],
+            color: effet > 0 ? c.positif : c.negatif,
+            fontFamily: police.fort,
+          }}>
           {signe(effet)}
         </Texte>
       ) : null}
@@ -505,13 +577,32 @@ function Ajouter({
   const [poids, setPoids] = useState(1);
   const m = matieres.find((x) => x.code === code);
   if (!m) return null;
-  const h: NoteHypothetique = { matiereCode: m.code, valeur: Math.min(note, sur), noteSur: sur, coef: poids, ...(titre.trim() ? { titre: titre.trim() } : {}) };
+  const h: NoteHypothetique = {
+    matiereCode: m.code,
+    valeur: Math.min(note, sur),
+    noteSur: sur,
+    coef: poids,
+    ...(titre.trim() ? { titre: titre.trim() } : {}),
+  };
   const ensuite = apresAjout(h);
   const fleche = (a?: number, b?: number) => `${a === undefined ? '—' : moyenne(a)} → ${b === undefined ? '—' : moyenne(b)}`;
   return (
     <>
       <Section titre="Matière" rang={1}>
-        <Segments libelle="Matière" plein options={matieres.map((x) => ({ cle: x.code, libelle: x.libelle }))} valeur={m.code} onChange={setCode} />
+        <Deroulant
+          libelle="Matière"
+          groupes={[
+            {
+              options: matieres.map((x) => ({
+                cle: x.code,
+                libelle: x.libelle,
+                aide: x.moyenne === undefined ? 'pas encore de note' : `moyenne ${moyenne(x.moyenne)}`,
+              })),
+            },
+          ]}
+          valeur={m.code}
+          onChange={setCode}
+        />
       </Section>
       <Entree rang={2}>
         <Champ libelle="Titre (facultatif)" value={titre} onChangeText={setTitre} placeholder="Contrôle chapitre 5" maxLength={60} returnKeyType="done" />
@@ -541,7 +632,13 @@ function Ajouter({
             <Texte variante="petit" attenue style={{ flex: 1 }}>
               {m.libelle}
             </Texte>
-            <Texte variante="liste" style={{ fontVariant: ['tabular-nums'], color: c.negatif, fontFamily: police.fort }}>
+            <Texte
+              variante="liste"
+              style={{
+                fontVariant: ['tabular-nums'],
+                color: c.negatif,
+                fontFamily: police.fort,
+              }}>
               {fleche(m.moyenne, ensuite.matiere)}
             </Texte>
           </View>
@@ -549,7 +646,13 @@ function Ajouter({
             <Texte variante="petit" attenue style={{ flex: 1 }}>
               Moyenne générale
             </Texte>
-            <Texte variante="liste" style={{ fontVariant: ['tabular-nums'], color: c.accent, fontFamily: police.fort }}>
+            <Texte
+              variante="liste"
+              style={{
+                fontVariant: ['tabular-nums'],
+                color: c.accent,
+                fontFamily: police.fort,
+              }}>
               {fleche(generale, ensuite.generale)}
             </Texte>
           </View>
@@ -561,11 +664,13 @@ function Ajouter({
 }
 
 /**
- * Note nécessaire au prochain devoir. Cible : l'objectif de générale (matières classées de la plus accessible à
- * la moins accessible) ou une moyenne de matière. Part de la moyenne simulée.
+ * Note nécessaire aux prochains devoirs. Cible : l'objectif de générale (réglable ici aussi) ou une moyenne de
+ * matière. Les deux cibles donnent la même liste : chaque matière et la note qu'il y faut, en couleur quand elle
+ * est atteignable. Part de la moyenne simulée.
  */
 function Calcul({
   objectif,
+  onViser,
   generale,
   matieres,
   depart,
@@ -574,31 +679,45 @@ function Calcul({
   onEssayer,
 }: {
   objectif: number;
+  onViser: (v: number) => void;
   generale?: number;
   matieres: Matiere[];
   depart?: string;
-  leviersPour: (sur: number, poids: number) => ReturnType<typeof leviers>;
-  notePourMatiere: (code: string, sur: number, poids: number, vise: number) => number | undefined;
-  onEssayer: (code: string, note: number, sur: number, poids: number) => void;
+  leviersPour: (sur: number, poids: number, nombre: number) => ReturnType<typeof leviers>;
+  notePourMatiere: (code: string, sur: number, poids: number, nombre: number, vise: number) => number | undefined;
+  onEssayer: (code: string, note: number, sur: number, poids: number, nombre: number) => void;
 }) {
   const c = useCouleurs();
   const [cible, setCible] = useState<'generale' | 'matiere'>('generale');
   const [sur, setSur] = useState(20);
   const [poids, setPoids] = useState(1);
+  const [nombre, setNombre] = useState(1);
   const [choisie, setChoisie] = useState(matieres.some((m) => m.code === depart) ? depart : undefined);
-  const [codeMatiere, setCodeMatiere] = useState(matieres.some((m) => m.code === depart) ? depart! : matieres[0]?.code);
   const [vise, setVise] = useState(Math.min(20, Math.round(objectif * 4) / 4));
   const violetPale = `${c.objectif}1a`;
   const arrondi = (n: number) => Math.min(sur, Math.ceil(n * 4) / 4);
 
-  const liste = cible === 'generale' ? leviersPour(sur, poids) : [];
-  const atteint = cible === 'generale' && generale !== undefined && generale >= objectif;
-  const selection =
+  // Une ligne par matière : la note qu'il faut (0 : déjà atteint ; undefined : hors d'atteinte).
+  type Rangee = { code: string; libelle: string; sous: string; note?: number };
+  const rangees: Rangee[] =
     cible === 'generale'
-      ? (liste.find((l) => l.code === choisie) ?? liste.find((l) => l.noteSeule !== undefined && l.noteSeule > 0) ?? liste[0])
-      : undefined;
-  const m = matieres.find((x) => x.code === (cible === 'generale' ? selection?.code : codeMatiere));
-  const note = cible === 'generale' ? selection?.noteSeule : m ? notePourMatiere(m.code, sur, poids, vise) : undefined;
+      ? leviersPour(sur, poids, nombre).map((l) => ({
+          code: l.code,
+          libelle: l.libelle,
+          note: l.noteSeule,
+          sous: `${l.parPoint > 0 ? `1 point ici = +${moyenne(l.parPoint)} sur la générale` : 'Pas encore de note : sa première comptera'} · coef ${formatCoef(l.coef)}`,
+        }))
+      : matieres
+          .map((m) => ({
+            code: m.code,
+            libelle: m.libelle,
+            note: notePourMatiere(m.code, sur, poids, nombre, vise),
+            sous: m.moyenne === undefined ? 'pas encore de note' : `moyenne actuelle ${moyenne(m.moyenne)}`,
+          }))
+          .sort((a, b) => (a.note === undefined ? 1 : b.note === undefined ? -1 : a.note - b.note));
+  const atteint = cible === 'generale' && generale !== undefined && generale >= objectif;
+  const selection = rangees.find((r) => r.code === choisie) ?? rangees.find((r) => r.note !== undefined && r.note > 0) ?? rangees[0];
+  const devoirs = nombre > 1 ? `aux ${nombre} prochains devoirs` : 'au prochain devoir';
 
   return (
     <>
@@ -607,34 +726,42 @@ function Calcul({
           libelle="Cible"
           plein
           options={[
-            { cle: 'generale' as const, libelle: `Objectif ${moyenne(objectif)}` },
+            { cle: 'generale' as const, libelle: 'Moyenne générale' },
             { cle: 'matiere' as const, libelle: 'Moyenne d’une matière' },
           ]}
           valeur={cible}
           onChange={setCible}
         />
-        {cible === 'matiere' ? (
-          <>
-            <Segments libelle="Matière" options={matieres.map((x) => ({ cle: x.code, libelle: x.libelle }))} valeur={codeMatiere ?? ''} onChange={setCodeMatiere} />
-            <View style={styles.phare}>
-              <Texte variante="liste" moyen style={{ flex: 1 }}>
-                Moyenne visée
-              </Texte>
-              <Texte variante="section" style={{ color: c.objectif, fontVariant: ['tabular-nums'] }}>
-                {moyenne(vise)}
-              </Texte>
+        <Panneau teinte style={{ paddingVertical: espace.m }}>
+          {cible === 'generale' ? (
+            <ReglageObjectif objectif={objectif} generale={generale} onViser={onViser} />
+          ) : (
+            <View style={{ gap: espace.s }}>
+              <View style={styles.phare}>
+                <Texte variante="liste" moyen style={{ flex: 1, color: c.objectif }}>
+                  Moyenne visée dans la matière
+                </Texte>
+                <Texte variante="section" style={{ color: c.objectif, fontVariant: ['tabular-nums'] }}>
+                  {moyenne(vise)}
+                </Texte>
+              </View>
+              <Curseur libelle="Moyenne visée dans la matière" texteValeur={`${moyenne(vise)} sur 20`} valeur={vise} min={0} max={20} pas={0.25} onChange={setVise} />
             </View>
-            <Curseur libelle="Moyenne visée dans la matière" texteValeur={`${moyenne(vise)} sur 20`} valeur={vise} min={0} max={20} pas={0.25} onChange={setVise} />
-          </>
-        ) : (
-          <Texte variante="petit" attenue>
-            L’objectif se règle sur l’accueil de la simulation.
-          </Texte>
-        )}
+          )}
+        </Panneau>
       </Section>
-      <Section titre="Prochain devoir" rang={2}>
+      <Section titre="Prochains devoirs" rang={2}>
+        <Segments
+          libelle="Nombre de notes"
+          options={[1, 2, 3, 4].map((v) => ({
+            cle: v,
+            libelle: v === 1 ? '1 note' : `${v} notes`,
+          }))}
+          valeur={nombre}
+          onChange={setNombre}
+        />
         <Segments libelle="Barème" options={[20, 10].map((v) => ({ cle: v, libelle: `sur ${v}` }))} valeur={sur} onChange={setSur} />
-        <Segments libelle="Poids du devoir" plein options={POIDS.map((v) => ({ cle: v, libelle: `×${formatCoef(v)}` }))} valeur={poids} onChange={setPoids} />
+        <Segments libelle="Poids de chaque devoir" plein options={POIDS.map((v) => ({ cle: v, libelle: `×${formatCoef(v)}` }))} valeur={poids} onChange={setPoids} />
       </Section>
 
       <Entree rang={3}>
@@ -643,31 +770,27 @@ function Calcul({
             <Texte variante="section" style={{ color: c.objectif }}>
               Objectif déjà atteint avec la simulation actuelle.
             </Texte>
-          ) : m ? (
+          ) : selection ? (
             <>
               <Texte variante="liste" style={{ color: c.objectif, fontFamily: police.fort }}>
-                Au prochain devoir de {m.libelle}
+                {selection.libelle}, {devoirs}
               </Texte>
-              {note === undefined ? (
-                <Texte variante="liste">
-                  Hors d’atteinte avec une seule note
-                  {cible === 'generale' && selection?.moyenneVisee !== undefined && selection.moyenneVisee <= 20
-                    ? ` : il faudrait ${moyenne(selection.moyenneVisee)} de moyenne dans la matière.`
-                    : '.'}
-                </Texte>
-              ) : note === 0 ? (
+              {selection.note === undefined ? (
+                <Texte variante="liste">Hors d’atteinte, même avec {nombre > 1 ? `${nombre} fois ${sur}/${sur}` : `${sur}/${sur}`}.</Texte>
+              ) : selection.note === 0 ? (
                 <Texte variante="liste">Déjà atteint : n’importe quelle note suffit.</Texte>
               ) : (
                 <>
                   <View style={styles.phare}>
-                    <ChiffreAnime valeur={note} taillePx={taille.geant} couleur={c.objectif} />
+                    <ChiffreAnime valeur={selection.note} taillePx={taille.geant} couleur={c.objectif} />
                     <Texte variante="section" style={{ color: c.objectif }}>
                       /{sur}
+                      {nombre > 1 ? ' à chacun' : ''}
                     </Texte>
                   </View>
                   <Bouton
-                    titre={`Essayer ${valeur(arrondi(note))}/${sur} en ${m.libelle}`}
-                    onPress={() => onEssayer(m.code, arrondi(note), sur, poids)}
+                    titre={`Essayer ${nombre > 1 ? `${nombre} × ` : ''}${valeur(arrondi(selection.note))}/${sur} en ${selection.libelle}`}
+                    onPress={() => onEssayer(selection.code, arrondi(selection.note!), sur, poids, nombre)}
                   />
                 </>
               )}
@@ -676,37 +799,51 @@ function Calcul({
         </View>
       </Entree>
 
-      {cible === 'generale' && !atteint ? (
-        <Section titre="Par matière" aide="De la plus accessible à la moins accessible. Touche une matière pour voir sa note." rang={4}>
+      {!atteint ? (
+        <Section
+          titre="Par matière"
+          aide="En couleur : les matières où c’est atteignable, de la plus facile à la plus difficile. Touche une matière pour voir sa note."
+          rang={4}>
           <Panneau>
-            {liste.map((l, i) => (
-              <Ligne
-                key={l.code}
-                dernier={i === liste.length - 1}
-                role="radio"
-                selectionne={l.code === selection?.code}
-                onPress={() => setChoisie(l.code)}
-                libelleAccessible={`${l.libelle} : ${l.noteSeule === undefined ? 'hors d’atteinte avec une note' : l.noteSeule === 0 ? 'déjà atteint' : `${moyenne(l.noteSeule)} sur ${sur}`}`}>
-                <View style={[styles.repere, { backgroundColor: l.code === selection?.code ? c.objectif : 'transparent' }]} />
-                <View style={{ flex: 1 }}>
-                  <Texte variante="liste" moyen numberOfLines={1}>
-                    {l.libelle}
+            {rangees.map((r, i) => {
+              const possible = r.note !== undefined;
+              return (
+                <Ligne
+                  key={r.code}
+                  dernier={i === rangees.length - 1}
+                  role="radio"
+                  selectionne={r.code === selection?.code}
+                  onPress={() => setChoisie(r.code)}
+                  libelleAccessible={`${r.libelle} : ${!possible ? 'hors d’atteinte' : r.note === 0 ? 'déjà atteint' : `${moyenne(r.note!)} sur ${sur}`}`}>
+                  <View
+                    style={[
+                      styles.repere,
+                      {
+                        backgroundColor: r.code === selection?.code ? c.objectif : possible ? violetPale : 'transparent',
+                      },
+                    ]}
+                  />
+                  <View style={{ flex: 1, opacity: possible ? 1 : 0.55 }}>
+                    <Texte variante="liste" moyen numberOfLines={1}>
+                      {r.libelle}
+                    </Texte>
+                    <Texte variante="petit" attenue>
+                      {r.sous}
+                    </Texte>
+                  </View>
+                  <Texte
+                    variante="liste"
+                    attenue={!possible}
+                    style={{
+                      fontVariant: ['tabular-nums'],
+                      fontFamily: possible ? police.fort : police.normal,
+                      color: possible ? c.objectif : undefined,
+                    }}>
+                    {!possible ? 'hors d’atteinte' : r.note === 0 ? 'atteint' : moyenne(r.note!)}
                   </Texte>
-                  <Texte variante="petit" attenue>
-                    {l.parPoint > 0 ? `1 point ici = +${moyenne(l.parPoint)} sur la générale` : 'Pas encore de note : sa première comptera'} · coef {formatCoef(l.coef)}
-                  </Texte>
-                </View>
-                {l.noteSeule !== undefined ? (
-                  <Texte variante="liste" style={{ fontVariant: ['tabular-nums'], fontFamily: police.fort, color: c.objectif }}>
-                    {l.noteSeule === 0 ? 'atteint' : moyenne(l.noteSeule)}
-                  </Texte>
-                ) : (
-                  <Texte variante="petit" attenue style={{ textAlign: 'right', fontVariant: ['tabular-nums'] }}>
-                    {l.moyenneVisee !== undefined && l.moyenneVisee <= 20 ? `moyenne\n${moyenne(l.moyenneVisee)}` : 'hors\nd’atteinte'}
-                  </Texte>
-                )}
-              </Ligne>
-            ))}
+                </Ligne>
+              );
+            })}
           </Panneau>
         </Section>
       ) : null}
@@ -792,7 +929,12 @@ function MesNotes({
                           {compte ? '' : ' · ne compte pas'}
                         </Texte>
                       </View>
-                      <Texte variante="liste" style={{ fontVariant: ['tabular-nums'], color: r ? c.negatif : c.texte }}>
+                      <Texte
+                        variante="liste"
+                        style={{
+                          fontVariant: ['tabular-nums'],
+                          color: r ? c.negatif : c.texte,
+                        }}>
                         {r?.valeur !== undefined ? `${brute(n.valeurBrute)} → ${formatCoef(r.valeur)}` : brute(n.valeurBrute)}
                         <Texte variante="liste" attenue>
                           /{n.noteSur}
@@ -821,9 +963,7 @@ function MesNotes({
               texteValeur={`${formatCoef(retouche?.valeur ?? lireNote(note.valeurBrute) ?? note.noteSur / 2)}/${note.noteSur}`}
             />
             <Coche libelle="Compte dans la moyenne" coche={retouche?.compte ?? compteParDefaut(note)} onChange={(v) => modifier(note, { compte: v })} />
-            {retouche ? (
-              <Bouton variante="secondaire" titre="Revenir à la vraie note" onPress={() => modifier(note, { valeur: undefined, compte: undefined })} />
-            ) : null}
+            {retouche ? <Bouton variante="secondaire" titre="Revenir à la vraie note" onPress={() => modifier(note, { valeur: undefined, compte: undefined })} /> : null}
           </View>
         ) : null}
       </Feuille>
@@ -832,16 +972,61 @@ function MesNotes({
 }
 
 const styles = StyleSheet.create({
-  entete: { flexDirection: 'row', alignItems: 'center', gap: espace.m, minHeight: 48 },
+  entete: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espace.m,
+    minHeight: 48,
+  },
   phare: { flexDirection: 'row', alignItems: 'baseline', gap: espace.s },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
-  objectif: { flexDirection: 'row', alignItems: 'center', gap: espace.s, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: espace.m, marginTop: espace.xs },
-  pas: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  bandeau: { flexDirection: 'row', alignItems: 'center', gap: espace.s, minHeight: 52, paddingHorizontal: espace.m, borderRadius: rayon.carte, borderWidth: 1 },
+  objectif: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espace.s,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: espace.m,
+    marginTop: espace.xs,
+  },
+  pas: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bandeau: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espace.s,
+    minHeight: 52,
+    paddingHorizontal: espace.m,
+    borderRadius: rayon.carte,
+    borderWidth: 1,
+  },
   point: { width: 8, height: 8, borderRadius: 4 },
-  action: { flexDirection: 'row', alignItems: 'flex-start', gap: espace.m, padding: espace.m, borderRadius: rayon.phare - 2, borderWidth: 1 },
-  icone: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  croix: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  action: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: espace.m,
+    padding: espace.m,
+    borderRadius: rayon.phare - 2,
+    borderWidth: 1,
+  },
+  icone: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  croix: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   resultat: { borderRadius: rayon.phare, padding: espace.l, gap: espace.s },
   repere: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
 });
