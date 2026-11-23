@@ -460,10 +460,10 @@ function ParNote({
                   {simulee ? <Hachures /> : null}
                   <View style={{ flex: 1 }}>
                     <Texte variante="liste" numberOfLines={1} style={simulee ? { color: c.negatif } : undefined}>
-                      {simulee ? 'Note simulée' : n.devoir || 'Devoir'}
+                      {n.devoir || 'Devoir'}
                     </Texte>
                     <Texte variante="petit" attenue numberOfLines={1}>
-                      {jour(n.date)} · coef {coef(n.coef)}
+                      {simulee ? 'Simulée, pas sur EcoleDirecte' : jour(n.date)} · coef {coef(n.coef)}
                       {d.exclue ? ' · non comptée' : ''}
                       {retouchees.has(n.id) ? ' · retouchée' : ''}
                       {etaitSimulee.has(n.id) ? ` · simulée ${coef(etaitSimulee.get(n.id)!.valeur)}/${etaitSimulee.get(n.id)!.noteSur}` : ''}
@@ -702,15 +702,15 @@ function NotesTriees({
           <View key={n.id}>
             <Presse
               onPress={simulee ? undefined : () => onNote(n.id)}
-              libelleAccessible={`${nom}, ${n.devoir || 'devoir'}, ${brute(n.valeurBrute)} sur ${n.noteSur}`}
+              libelleAccessible={`${nom}, ${n.devoir || 'devoir'}${simulee ? ', note simulée' : ''}, ${brute(n.valeurBrute)} sur ${n.noteSur}`}
               style={[styles.ligneNote, { borderBottomColor: c.filet, borderBottomWidth: j === liste.length - 1 ? 0 : StyleSheet.hairlineWidth }]}>
               <View style={[styles.bande, { backgroundColor: couleurMatiere(n.matiereCode, nom).trait }]} />
               <View style={{ flex: 1 }}>
                 <Texte variante="liste" numberOfLines={1} style={simulee ? { color: c.negatif } : undefined}>
-                  {simulee ? 'Note simulée' : n.devoir || 'Devoir'}
+                  {n.devoir || 'Devoir'}
                 </Texte>
                 <Texte variante="petit" attenue numberOfLines={1}>
-                  {nom} · {jour(n.date)} · coef {coef(n.coef)}
+                  {nom} · {simulee ? 'simulée' : jour(n.date)} · coef {coef(n.coef)}
                   {exclues.has(n.id) ? ' · non comptée' : ''}
                   {retouchees.has(n.id) ? ' · retouchée' : ''}
                 </Texte>
