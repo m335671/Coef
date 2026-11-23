@@ -68,7 +68,7 @@ export function leviers(
   periodes: Periode[],
   objectif: number,
   options?: Options,
-  modele: { noteSur: number; coef: number } = { noteSur: 20, coef: 1 },
+  modele: { noteSur: number; coef: number; nombre?: number } = { noteSur: 20, coef: 1 },
 ): Levier[] {
   const r = calculer(p, notes, periodes, options);
   const ponderer = options?.parametrage?.moyenneCoefMatiere ?? true;
@@ -84,7 +84,7 @@ export function leviers(
       parPoint: total > 0 && m.moyenne !== undefined ? (ponderer ? m.coef : 1) / total : 0,
       moyenneVisee:
         m.moyenne !== undefined && r.generale !== undefined && total > 0 ? m.moyenne + (objectif - r.generale) / ((ponderer ? m.coef : 1) / total) : undefined,
-      noteSeule: noteNecessaire(p, notes, periodes, { matiereCode: m.code, ...modele }, { portee: 'generale' }, objectif, options),
+      noteSeule: noteNecessaire(p, notes, periodes, { matiereCode: m.code, noteSur: modele.noteSur, coef: modele.coef }, { portee: 'generale' }, objectif, options, modele.nombre),
     }));
   // Ordre : d'abord ce qu'une seule note règle (la plus basse en tête), puis ce qu'une moyenne de matière
   // atteignable règle (le plus petit effort en tête), puis le reste, les matières les plus lourdes d'abord.

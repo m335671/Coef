@@ -70,7 +70,8 @@ function lire(r: Resultat, cible: Cible): number | undefined {
 
 /**
  * Plus petite note (au centième, sur noteSur) qui amène la cible à `objectif`, ou undefined si même la note
- * maximale n'y suffit pas. La moyenne croît avec la note : on cherche par dichotomie.
+ * maximale n'y suffit pas. `nombre` : autant de notes identiques (« 15 aux deux prochains devoirs »).
+ * La moyenne croît avec la note : on cherche par dichotomie.
  */
 export function noteNecessaire(
   p: Periode,
@@ -80,8 +81,10 @@ export function noteNecessaire(
   cible: Cible,
   objectif: number,
   options?: Options,
+  nombre = 1,
 ): number | undefined {
-  const avec = (valeur: number) => lire(simuler(p, notes, periodes, [{ ...hypothese, valeur }], options), cible) ?? -Infinity;
+  const avec = (valeur: number) =>
+    lire(simuler(p, notes, periodes, Array.from({ length: nombre }, () => ({ ...hypothese, valeur })), options), cible) ?? -Infinity;
   if (avec(hypothese.noteSur) < objectif) return undefined;
   // Bornes en centièmes de point : la réponse est une note saisissable.
   let bas = 0;
