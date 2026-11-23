@@ -1,0 +1,76 @@
+# IPA iOS ajouté à une release existante. Lancé à la main seulement (Actions > ipa > Run workflow) : un build
+# macOS coûte cher en minutes GitHub, il ne part jamais tout seul.
+# L'IPA n'est pas signé (pas de compte développeur Apple) : il s'installe avec AltStore ou SideStore, qui le
+# signent avec l'identifiant Apple de l'utilisateur.
+name: ipa
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release à compléter (vX.Y.Z), vide = la dernière'
+        required: false
+permissions:
+  contents: write
+concurrency:
+  group: ipa
+  cancel-in-progress: false
+jobs:
+  ipa:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      # Le code construit est celui du tag de la release : l'IPA correspond aux APK déjà publiés.
+      - name: Release visée
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          T="${TAG:-$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName)}"
+          [[ "$T" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Tag attendu : vX.Y.Z (reçu « $T »)"; exit 1; }
+          gh release view "$T" --repo "$GITHUB_REPOSITORY" > /dev/null
+          echo "TAG=$T" >> "$GITHUB_ENV"
+          echo "V=${T#v}" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Xcode le plus récent de l'image
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)" && xcodebuild -version
+      - run: npm ci
+
+      # Même numérotation que les APK : 1.2.3 → build 10203.
+      - name: Version
+        run: |
+          IFS=. read -r MA MI PA <<< "$V"
+          node -e "
+            const fs = require('fs'); const a = JSON.parse(fs.readFileSync('app.json'));
+            a.expo.version = '$V'; a.expo.ios.buildNumber = '$((MA * 10000 + MI * 100 + PA))';
+            fs.writeFileSync('app.json', JSON.stringify(a, null, 2));"
+
+      - run: npx expo prebuild -p ios --no-install
+        env:
+          NODE_ENV: production
+      - run: pod install
+        working-directory: ios
+        env:
+          NODE_ENV: production
+      - name: Compilation (sans signature)
+        working-directory: ios
+        env:
+          NODE_ENV: production
+        run: |
+          xcodebuild -workspace Coef.xcworkspace -scheme Coef -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Coef.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" -quiet archive
+      - name: IPA
+        run: |
+          mkdir Payload
+          cp -R "$RUNNER_TEMP/Coef.xcarchive/Products/Applications/Coef.app" Payload/
+          zip -qry "coef-$V-non-signe.ipa" Payload
+          ls -la coef-*.ipa
+      - run: gh release upload "$TAG" "coef-$V-non-signe.ipa" --clobber --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}

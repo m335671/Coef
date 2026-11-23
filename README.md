@@ -23,6 +23,8 @@ Les APK sont publiés dans les [releases](../../releases), un par type de proces
 
 Pour recevoir les mises à jour automatiquement, ajoute ce dépôt dans [Obtainium](https://github.com/ImranR98/Obtainium) : « Ajouter une app », colle l'adresse du dépôt. Obtainium choisit l'APK qui correspond à ton téléphone.
 
+**iPhone (pas encore essayé)** : certaines releases ont aussi un `coef-X.Y.Z-non-signe.ipa`. Il n'est pas signé (pas de compte développeur Apple) : installe-le avec [AltStore](https://altstore.io) ou [SideStore](https://sidestore.io), qui le signent avec ton identifiant Apple.
+
 ## Développer
 
 ```sh
