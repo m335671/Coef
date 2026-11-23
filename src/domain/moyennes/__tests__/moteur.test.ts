@@ -315,6 +315,13 @@ describe('retouches de vraies notes dans la simulation', () => {
   test('compte: false retire la note du calcul', () => expect(moy(avecHypotheses(p, [a, b], [], [{ noteId: a.id, compte: false }]))).toBe(16));
   test('compte: true compte une note non significative', () => expect(moy(avecHypotheses(p, [a, ns], [], [{ noteId: ns.id, compte: true }]))).toBe(7));
   test('une retouche sur une note inconnue est sans effet', () => expect(moy(avecHypotheses(p, [a, b], [], [{ noteId: 'disparue', compte: false }]))).toBe(13));
+  test('une note ajoutée garde son titre, sinon « Note simulée »', () => {
+    const [titree, sans] = avecHypotheses(p, [], [
+      { matiereCode: 'MATHS', valeur: 15, noteSur: 20, coef: 1, titre: ' Contrôle 5 ' },
+      { matiereCode: 'MATHS', valeur: 12, noteSur: 20, coef: 1 },
+    ]);
+    expect([titree!.devoir, sans!.devoir]).toEqual(['Contrôle 5', 'Note simulée']);
+  });
   test('les notes réelles ne sont pas modifiées', () => {
     avecHypotheses(p, [a], [], [{ noteId: a.id, valeur: 2 }]);
     expect(a.valeurBrute).toBe('10');

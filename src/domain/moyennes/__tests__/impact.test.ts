@@ -73,3 +73,8 @@ test('sans pondération par coefficient de matière', () => {
   const l = leviers(p, notes, [], 12, { parametrage: { moyenneCoefMatiere: false } });
   expect(l.find((x) => x.code === 'MATHS')!.parPoint).toBe(0.5);
 });
+
+test('leviers avec un autre barème et un autre poids', () => {
+  const l = leviers(p, notes, [], 12, undefined, { noteSur: 10, coef: 1 });
+  expect(l.find((x) => x.code === 'MATHS')!.noteSeule).toBe(6);
+});

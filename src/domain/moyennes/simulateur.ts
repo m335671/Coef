@@ -2,7 +2,8 @@
 import type { Note, Periode } from '../types';
 import { calculer, type Options, type Resultat } from './moteur';
 
-export type NoteHypothetique = { matiereCode: string; sousMatiereCode?: string; valeur: number; noteSur: number; coef: number };
+/** Note ajoutée dans la simulation ; `titre` (facultatif) la nomme dans les listes de notes. */
+export type NoteHypothetique = { matiereCode: string; sousMatiereCode?: string; valeur: number; noteSur: number; coef: number; titre?: string };
 
 function versNote(p: Periode, h: NoteHypothetique, i: number): Note {
   return {
@@ -10,7 +11,7 @@ function versNote(p: Periode, h: NoteHypothetique, i: number): Note {
     periodeCode: p.code,
     matiereCode: h.matiereCode,
     sousMatiereCode: h.sousMatiereCode,
-    devoir: 'Note hypothétique',
+    devoir: h.titre?.trim() || 'Note simulée',
     date: p.fin, // en fin de période : la courbe d'évolution finit sur la simulation
     valeurBrute: String(h.valeur),
     noteSur: h.noteSur,
