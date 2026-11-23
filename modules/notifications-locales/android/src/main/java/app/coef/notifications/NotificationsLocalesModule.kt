@@ -13,6 +13,12 @@ import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.work.Data
+import androidx.work.ExistingWorkPolicy
+import androidx.work.ListenableWorker
+import androidx.work.OneTimeWorkRequest
+import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -28,6 +34,19 @@ class NotificationsLocalesModule : Module() {
     AsyncFunction("effacer") { NotificationManagerCompat.from(context).cancelAll() }
 
     AsyncFunction("autorisees") { NotificationManagerCompat.from(context).areNotificationsEnabled() }
+
+    // Test du vrai chemin d'arrière-plan : le travailleur d'expo-background-task, mis en file WorkManager comme le
+    // fait Android à chaque heure (classe prise par son nom : pas de dépendance de compilation sur le module expo).
+    Function("lancerTestFond") { delaiSecondes: Int ->
+      @Suppress("UNCHECKED_CAST")
+      val travail = Class.forName("expo.modules.backgroundtask.BackgroundTaskWork") as Class<out ListenableWorker>
+      val demande = OneTimeWorkRequest.Builder(travail)
+        .setInputData(Data.Builder().putString("appScopeKey", context.packageName).build())
+        .setInitialDelay(delaiSecondes.toLong(), TimeUnit.SECONDS)
+        .build()
+      WorkManager.getInstance(context).enqueueUniqueWork("COEF_TEST_SYNCHRO", ExistingWorkPolicy.REPLACE, demande)
+      true
+    }
 
     // L'optimisation de la batterie peut retarder ou bloquer la synchro de fond (WorkManager).
     Function("batterieOptimisee") {

@@ -10,20 +10,34 @@ import type { Message } from '@/domain/types';
 import { depot, ecrireCache, ecrirePreference, lireCache, lirePreference } from '@/storage/base';
 import { comptesEnregistres, lireAcces, sauverAcces } from '@/storage/secrets';
 
-import { afficher, type EcranVerrouille } from '../../modules/notifications-locales';
+import { afficher, type EcranVerrouille, lancerTestFond } from '../../modules/notifications-locales';
 import { remplacerEnBase } from '@/features/notes/simulation';
 import { annonceRemplacement } from '@/features/notes/remplacement';
 
 import { annonce, annonceMessages, libelleMatiere, nouveauxMessages } from './annonce';
+import { ajouterBilan, type BilanFond, decrireBilan } from './historique';
 import { DELAI_MIN_MS, synchroniser } from './synchro';
 
 export const TACHE = 'coef.synchro-notes';
 export const PREF_ECRAN_VERROUILLE = 'notifications.ecran-verrouille';
 /** Bilan de la dernière synchro d'arrière-plan, affiché dans Réglages : sans lui, un échec passe inaperçu. */
 export const PREF_BILAN_FOND = 'synchro.fond';
-export type BilanFond = { date: string; resultat: 'ok' | 'premier-plan' | 'echec'; notifiees?: number; erreur?: string };
-const bilan = (b: Omit<BilanFond, 'date'>) =>
-  ecrirePreference(PREF_BILAN_FOND, { date: new Date().toISOString(), ...b } satisfies BilanFond).catch(() => undefined);
+/** Les derniers bilans (le plus récent d'abord), pour l'historique de Réglages. */
+export const PREF_HISTORIQUE_FOND = 'synchro.fond.historique';
+/** Date d'une demande de test (bouton de Réglages) : la prochaine vérification annonce son résultat. */
+const PREF_TEST_FOND = 'synchro.fond.test';
+/** Lisible sur l'écran verrouillé selon le réglage du téléphone, sauf choix contraire dans Réglages. */
+export const ECRAN_VERROUILLE_DEFAUT: EcranVerrouille = 'systeme';
+
+async function bilan(b: Omit<BilanFond, 'date'>): Promise<void> {
+  const complet: BilanFond = { date: new Date().toISOString(), ...b };
+  try {
+    await ecrirePreference(PREF_BILAN_FOND, complet);
+    await ecrirePreference(PREF_HISTORIQUE_FOND, ajouterBilan(await lirePreference<BilanFond[]>(PREF_HISTORIQUE_FOND, []), complet));
+  } catch {
+    // Base indisponible : le bilan est perdu, la synchro elle-même a eu lieu.
+  }
+}
 /** Minutes. Le système peut espacer davantage (batterie, réseau). */
 const INTERVALLE = 60;
 
@@ -34,7 +48,7 @@ const idNotificationMessages = (eleveId: string) => 1_000_000_000 + (Number(elev
 /** Synchronise chaque élève de chaque compte enregistré et notifie ses nouvelles notes. */
 export async function synchroniserComptes(): Promise<number> {
   let notifiees = 0;
-  const ecranVerrouille = await lirePreference<EcranVerrouille>(PREF_ECRAN_VERROUILLE, 'rien');
+  const ecranVerrouille = await lirePreference<EcranVerrouille>(PREF_ECRAN_VERROUILLE, ECRAN_VERROUILLE_DEFAUT);
   for (const id of await comptesEnregistres()) {
     const acces = await lireAcces(id);
     if (!acces) continue;
@@ -72,23 +86,39 @@ async function verifierMessages(client: ClientED, eleveId: string, prenom: strin
 }
 
 TaskManager.defineTask(TACHE, async () => {
+  // Demande de test récente (moins de 15 min) : cette vérification annonce son résultat, même sans nouveauté.
+  const demande = await lirePreference<string | null>(PREF_TEST_FOND, null).catch(() => null);
+  const test = !!demande && Date.now() - Date.parse(demande) < 15 * 60_000;
+  if (demande) await ecrirePreference(PREF_TEST_FOND, null).catch(() => undefined);
+  let b: Omit<BilanFond, 'date'>;
   // App au premier plan : elle synchronise elle-même. Deux reconnexions simultanées useraient deux fois
   // le même accessToken (usage unique) et déconnecteraient le compte.
-  if (AppState.currentState === 'active') {
-    await bilan({ resultat: 'premier-plan' });
-    return BackgroundTask.BackgroundTaskResult.Success;
+  if (AppState.currentState === 'active') b = { resultat: 'premier-plan' };
+  else {
+    try {
+      b = { resultat: 'ok', notifiees: await synchroniserComptes() };
+    } catch (e) {
+      // Le message d'erreur ne contient ni identifiant ni jeton (ErreurED, ErreurReseau) : il peut être gardé et montré.
+      const erreur = e instanceof Error ? `${e.name} : ${e.message}` : String(e);
+      console.warn('[coef] synchro de fond :', erreur);
+      b = { resultat: 'echec', erreur };
+    }
   }
-  try {
-    await bilan({ resultat: 'ok', notifiees: await synchroniserComptes() });
-    return BackgroundTask.BackgroundTaskResult.Success;
-  } catch (e) {
-    // Le message d'erreur ne contient ni identifiant ni jeton (ErreurED, ErreurReseau) : il peut être gardé et montré.
-    const erreur = e instanceof Error ? `${e.name} : ${e.message}` : String(e);
-    console.warn('[coef] synchro de fond :', erreur);
-    await bilan({ resultat: 'echec', erreur });
-    return BackgroundTask.BackgroundTaskResult.Failed;
-  }
+  await bilan(test ? { ...b, test } : b);
+  if (test) await afficher(ID_NOTIFICATION_TEST, 'Test de la vérification en arrière-plan', decrireBilan(b), 'systeme');
+  return b.resultat === 'echec' ? BackgroundTask.BackgroundTaskResult.Failed : BackgroundTask.BackgroundTaskResult.Success;
 });
+
+const ID_NOTIFICATION_TEST = 7;
+
+/**
+ * Test du vrai chemin d'arrière-plan (WorkManager, app relancée sans écran) : la vérification part dans
+ * `delaiSecondes`, il faut quitter l'app avant (au premier plan, Android la repousse). Faux hors Android.
+ */
+export async function testerSynchroFond(delaiSecondes = 20): Promise<boolean> {
+  await ecrirePreference(PREF_TEST_FOND, new Date().toISOString());
+  return lancerTestFond(delaiSecondes);
+}
 
 export async function activerSynchroAuto(): Promise<void> {
   if ((await BackgroundTask.getStatusAsync()) !== BackgroundTask.BackgroundTaskStatus.Available) return;

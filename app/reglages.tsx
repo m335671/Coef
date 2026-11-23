@@ -1,7 +1,7 @@
 // Réglages. Sa question : « Qu'est-ce que l'app garde et montre de moi ? »
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, AppState, Platform } from 'react-native';
+import { Alert, AppState, Linking, Platform } from 'react-native';
 
 import { CAPTURE } from '@/api/ecoledirecte/capture';
 import { MODE_DEMO } from '@/demo';
@@ -14,38 +14,47 @@ import { useNotes } from '@/features/notes/store';
 import { annonce } from '@/sync/annonce';
 import { depot, ecrirePreference, lirePreference } from '@/storage/base';
 import { synchroniser } from '@/sync/synchro';
-import { type BilanFond, PREF_BILAN_FOND, PREF_ECRAN_VERROUILLE } from '@/sync/tache';
-import { Bouton, Choix, Ecran, EnTete, Ligne, Panneau, Section, Texte } from '@/ui/composants';
+import { type BilanFond, decrireBilan, regularite } from '@/sync/historique';
+import { ECRAN_VERROUILLE_DEFAUT, PREF_BILAN_FOND, PREF_ECRAN_VERROUILLE, PREF_HISTORIQUE_FOND } from '@/sync/tache';
+import { Bouton, Choix, Ecran, EnTete, Ligne, Panneau, Presse, Section, Texte } from '@/ui/composants';
+import { espace, useCouleurs } from '@/ui/theme';
 
 import { afficher, batterieOptimisee, type EcranVerrouille, exempterBatterie } from '../modules/notifications-locales';
 
 const CHOIX: { cle: EcranVerrouille; titre: string; aide: string }[] = [
-  { cle: 'rien', titre: 'Rien', aide: "La notification n'apparaît qu'une fois le téléphone déverrouillé." },
   {
     cle: 'systeme',
     titre: 'Selon les réglages du téléphone',
     aide: 'Le téléphone décide : la note et la moyenne, ou seulement « Nouvelle note » s’il masque le contenu sensible.',
   },
+  { cle: 'rien', titre: 'Rien', aide: "La notification n'apparaît qu'une fois le téléphone déverrouillé." },
 ];
 
 export default function Reglages() {
   const { profils, deconnecter, toutEffacer, client } = useCompte();
   const vider = useNotes((s) => s.vider);
-  const [ecran, setEcran] = useState<EcranVerrouille>('rien');
+  const c = useCouleurs();
+  const [ecran, setEcran] = useState<EcranVerrouille>(ECRAN_VERROUILLE_DEFAUT);
   const [info, setInfo] = useState('');
 
   const [bilanFond, setBilanFond] = useState<BilanFond>();
-  // Relu au retour dans l'app : l'élève vient peut-être de répondre à la fenêtre système.
+  const [historique, setHistorique] = useState<BilanFond[]>([]);
   const [optimisee, setOptimisee] = useState(batterieOptimisee);
   useEffect(() => {
-    const abonnement = AppState.addEventListener('change', (e) => e === 'active' && setOptimisee(batterieOptimisee()));
+    const relire = () => {
+      setOptimisee(batterieOptimisee());
+      if (MODE_DEMO) return;
+      void lirePreference<BilanFond | undefined>(PREF_BILAN_FOND, undefined).then(setBilanFond, () => undefined);
+      void lirePreference<BilanFond[]>(PREF_HISTORIQUE_FOND, []).then(setHistorique, () => undefined);
+    };
+    relire();
+    if (!MODE_DEMO) void lirePreference<EcranVerrouille>(PREF_ECRAN_VERROUILLE, ECRAN_VERROUILLE_DEFAUT).then(setEcran, () => undefined);
+    // Relu au retour dans l'app : fenêtre système de la batterie, vérification de test passée entre-temps.
+    const abonnement = AppState.addEventListener('change', (e) => e === 'active' && relire());
     return () => abonnement.remove();
   }, []);
-  useEffect(() => {
-    if (MODE_DEMO) return;
-    void lirePreference<EcranVerrouille>(PREF_ECRAN_VERROUILLE, 'rien').then(setEcran, () => undefined);
-    void lirePreference<BilanFond | undefined>(PREF_BILAN_FOND, undefined).then(setBilanFond, () => undefined);
-  }, []);
+  const dernier = historique[0] ?? bilanFond;
+  const rythme = regularite(historique, new Date());
 
   function choisir(v: EcranVerrouille) {
     setEcran(v);
@@ -120,7 +129,9 @@ export default function Reglages() {
         </Panneau>
       </Section>
 
-      <Section titre="Notifications" aide="Une notification par nouvelle note, note modifiée ou nouveau message, vérifiés en arrière-plan au plus une fois par heure.">
+      <Section
+        titre="Notifications"
+        aide="Une notification par nouvelle note, note modifiée ou nouveau message, vérifiés en arrière-plan au plus une fois par heure.">
         <Texte variante="liste" moyen>
           Sur l’écran verrouillé
         </Texte>
@@ -129,20 +140,33 @@ export default function Reglages() {
             <Choix key={ch.cle} {...ch} actif={ecran === ch.cle} dernier={i === CHOIX.length - 1} onPress={() => choisir(ch.cle)} />
           ))}
         </Panneau>
-        <Texte variante="petit" attenue>
-          {!bilanFond
-            ? 'Vérification en arrière-plan : pas encore passée. Android choisit le moment (batterie, réseau).'
-            : `Dernière vérification en arrière-plan : ${new Date(bilanFond.date).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}, ${
-                bilanFond.resultat === 'ok'
-                  ? bilanFond.notifiees
-                    ? `${bilanFond.notifiees} notification${bilanFond.notifiees > 1 ? 's' : ''}`
-                    : 'rien de nouveau'
-                  : bilanFond.resultat === 'premier-plan'
-                    ? 'app ouverte, elle s’en est chargée'
-                    : `échec (${bilanFond.erreur})`
-              }.`}
-        </Texte>
-        {optimisee ? (
+        <Presse onPress={() => router.push('/historique-synchro')} libelleAccessible="Historique des vérifications en arrière-plan">
+          <Texte variante="petit" attenue>
+            {!dernier
+              ? 'Vérification en arrière-plan : pas encore passée. Android choisit le moment (batterie, réseau).'
+              : `Dernière vérification en arrière-plan : ${new Date(dernier.date).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}, ${decrireBilan(dernier)}.`}{' '}
+            <Texte variante="petit" style={{ color: c.accent }}>
+              Historique ›
+            </Texte>
+          </Texte>
+        </Presse>
+        {rythme.irregulier ? (
+          <Panneau style={{ gap: espace.s, paddingVertical: espace.m, borderColor: c.negatif }}>
+            <Texte variante="liste" moyen style={{ color: c.negatif }}>
+              Vérifications irrégulières : {rythme.raison}.
+            </Texte>
+            <Texte variante="petit" attenue>
+              {optimisee
+                ? 'Android économise la batterie de Coef : c’est la cause la plus probable. Retire Coef de l’optimisation pour que la vérification passe à l’heure.'
+                : 'La batterie de Coef n’est pas optimisée : le fabricant (mise en veille des apps) ou l’économiseur de données peuvent aussi bloquer Coef en arrière-plan. Vérifie ses réglages d’arrière-plan.'}
+            </Texte>
+            {optimisee ? (
+              <Bouton titre="Ne plus optimiser la batterie pour Coef" onPress={exempterBatterie} />
+            ) : (
+              <Bouton variante="secondaire" titre="Ouvrir les réglages de Coef" onPress={() => void Linking.openSettings()} />
+            )}
+          </Panneau>
+        ) : optimisee ? (
           <>
             <Texte variante="petit" attenue>
               Android économise la batterie de Coef : la vérification peut être retardée de plusieurs heures, voire bloquée. Si les notifications arrivent tard

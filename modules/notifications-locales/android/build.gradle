@@ -16,4 +16,6 @@ android {
 
 dependencies {
   implementation 'androidx.core:core:1.17.0'
+  // Même version que celle d'expo-background-task (bouton « Tester » de Réglages).
+  implementation 'androidx.work:work-runtime:2.10.5'
 }

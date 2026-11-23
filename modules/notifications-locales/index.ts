@@ -7,6 +7,7 @@ type Natif = {
   autorisees(): Promise<boolean>;
   batterieOptimisee?(): boolean;
   exempterBatterie?(): void;
+  lancerTestFond?(delaiSecondes: number): boolean;
   effacer(): Promise<void>;
   afficher(id: number, titre: string, texte: string, ecranVerrouille: EcranVerrouille): Promise<boolean>;
 };
@@ -50,3 +51,11 @@ export function exempterBatterie(): void {
   natif?.exempterBatterie?.();
 }
 
+/** Met en file la vérification d'arrière-plan dans `delaiSecondes` (Android) ; faux ailleurs. */
+export function lancerTestFond(delaiSecondes: number): boolean {
+  try {
+    return natif?.lancerTestFond?.(delaiSecondes) ?? false;
+  } catch {
+    return false;
+  }
+}
