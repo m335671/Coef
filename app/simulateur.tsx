@@ -173,7 +173,6 @@ export default function Simulation() {
 
   const manque = apres.generale === undefined ? undefined : objectif - apres.generale;
   const regler = (pas: number) => viser(Math.min(20, Math.max(0, Math.round((objectif + pas) * 4) / 4)));
-  const orangePale = `${c.negatif}1f`;
   const violetPale = `${c.objectif}1a`;
 
   return (
@@ -201,9 +200,9 @@ export default function Simulation() {
               onPress={() => regler(-0.25)}
               onLongPress={() => regler(-1)}
               style={[styles.pas, { borderColor: violetPale, backgroundColor: c.surface }]}>
-              <Texte variante="section" style={{ color: c.objectif }}>
-                −
-              </Texte>
+              <Svg width={18} height={18} viewBox="0 0 24 24" stroke={c.objectif} strokeWidth={2.4} strokeLinecap="round">
+                <Path d="M5 12h14" />
+              </Svg>
             </Presse>
             <View style={{ flex: 1, alignItems: 'center' }} accessible accessibilityLabel={`Objectif de moyenne générale : ${moyenne(objectif)}`}>
               <Texte variante="petit" style={{ color: c.objectif, fontFamily: police.moyen }}>
@@ -221,9 +220,9 @@ export default function Simulation() {
               onPress={() => regler(0.25)}
               onLongPress={() => regler(1)}
               style={[styles.pas, { borderColor: violetPale, backgroundColor: c.surface }]}>
-              <Texte variante="section" style={{ color: c.objectif }}>
-                +
-              </Texte>
+              <Svg width={18} height={18} viewBox="0 0 24 24" stroke={c.objectif} strokeWidth={2.4} strokeLinecap="round">
+                <Path d="M12 5v14M5 12h14" />
+              </Svg>
             </Presse>
           </View>
         </Panneau>
@@ -234,12 +233,12 @@ export default function Simulation() {
           <Presse
             onPress={() => setDetail(true)}
             libelleAccessible={`${actives} simulation${actives > 1 ? 's' : ''} active${actives > 1 ? 's' : ''}. Afficher le détail`}
-            style={[styles.bandeau, { backgroundColor: orangePale }]}>
+            style={[styles.bandeau, { backgroundColor: c.surface, borderColor: c.bord }]}>
             <View style={[styles.point, { backgroundColor: c.negatif }]} />
-            <Texte variante="liste" moyen style={{ flex: 1, color: c.negatif }}>
+            <Texte variante="liste" moyen style={{ flex: 1 }}>
               {actives} simulation{actives > 1 ? 's' : ''} active{actives > 1 ? 's' : ''}
             </Texte>
-            <Texte variante="petit" style={{ color: c.negatif, fontFamily: police.fort }}>
+            <Texte variante="petit" style={{ color: c.accent, fontFamily: police.fort }}>
               Afficher le détail ›
             </Texte>
           </Presse>
@@ -254,21 +253,18 @@ export default function Simulation() {
         <Action
           titre="Ajouter une note"
           description="Note hypothétique dans une matière, avec son barème, son poids et un titre facultatif. Elle entre dans les moyennes simulées."
-          fond={orangePale}
           onPress={() => setVue('ajouter')}
           icone={<Path d="M12 5v14M5 12h14" stroke={c.negatif} />}
         />
         <Action
           titre="Modifier mes notes"
           description="Changer la valeur d’une note reçue, l’exclure du calcul, ou exclure une matière de la générale. Les notes EcoleDirecte ne changent pas."
-          fond={c.teinte50}
           onPress={() => setVue('modifier')}
           icone={<Path d="M4 20h4L19 9l-4-4L4 16z" stroke={c.accent} strokeLinejoin="round" />}
         />
         <Action
           titre="Calculer la note nécessaire"
           description="Note à obtenir au prochain devoir pour atteindre l’objectif ou une moyenne de matière, selon le barème et le poids. Matières classées de la plus accessible à la moins accessible."
-          fond={violetPale}
           onPress={() => setVue('calcul')}
           icone={
             <>
@@ -410,11 +406,11 @@ export default function Simulation() {
 }
 
 /** Carte d'action de l'accueil : icône, titre, description de ce que fait l'action. */
-function Action({ titre, description, fond, icone, onPress }: { titre: string; description: string; fond: string; icone: ReactNode; onPress: () => void }) {
+function Action({ titre, description, icone, onPress }: { titre: string; description: string; icone: ReactNode; onPress: () => void }) {
   const c = useCouleurs();
   return (
     <Presse onPress={onPress} libelleAccessible={`${titre}. ${description}`} style={[styles.action, { borderColor: c.bord, backgroundColor: c.surface }]}>
-      <View style={[styles.icone, { backgroundColor: fond }]}>
+      <View style={[styles.icone, { backgroundColor: c.teinte50 }]}>
         <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" strokeWidth={2} strokeLinecap="round">
           {icone}
         </Svg>
@@ -528,7 +524,7 @@ function Ajouter({
           <Texte variante="liste" moyen style={{ flex: 1 }}>
             Note
           </Texte>
-          <ChiffreAnime valeur={h.valeur} taillePx={taille.chiffre} couleur={c.negatif} />
+          <ChiffreAnime valeur={h.valeur} taillePx={taille.chiffre} couleur={c.accent} />
           <Texte variante="section" attenue>
             /{sur}
           </Texte>
@@ -700,12 +696,15 @@ function Calcul({
                     {l.parPoint > 0 ? `1 point ici = +${moyenne(l.parPoint)} sur la générale` : 'Pas encore de note : sa première comptera'} · coef {formatCoef(l.coef)}
                   </Texte>
                 </View>
-                <Texte
-                  variante="liste"
-                  attenue={l.noteSeule === undefined}
-                  style={{ fontVariant: ['tabular-nums'], fontFamily: police.fort, color: l.noteSeule === undefined ? undefined : c.objectif }}>
-                  {l.noteSeule === undefined ? 'hors d’atteinte' : l.noteSeule === 0 ? 'atteint' : moyenne(l.noteSeule)}
-                </Texte>
+                {l.noteSeule !== undefined ? (
+                  <Texte variante="liste" style={{ fontVariant: ['tabular-nums'], fontFamily: police.fort, color: c.objectif }}>
+                    {l.noteSeule === 0 ? 'atteint' : moyenne(l.noteSeule)}
+                  </Texte>
+                ) : (
+                  <Texte variante="petit" attenue style={{ textAlign: 'right', fontVariant: ['tabular-nums'] }}>
+                    {l.moyenneVisee !== undefined && l.moyenneVisee <= 20 ? `moyenne\n${moyenne(l.moyenneVisee)}` : 'hors\nd’atteinte'}
+                  </Texte>
+                )}
               </Ligne>
             ))}
           </Panneau>
@@ -838,7 +837,7 @@ const styles = StyleSheet.create({
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
   objectif: { flexDirection: 'row', alignItems: 'center', gap: espace.s, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: espace.m, marginTop: espace.xs },
   pas: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  bandeau: { flexDirection: 'row', alignItems: 'center', gap: espace.s, minHeight: 52, paddingHorizontal: espace.m, borderRadius: rayon.carte },
+  bandeau: { flexDirection: 'row', alignItems: 'center', gap: espace.s, minHeight: 52, paddingHorizontal: espace.m, borderRadius: rayon.carte, borderWidth: 1 },
   point: { width: 8, height: 8, borderRadius: 4 },
   action: { flexDirection: 'row', alignItems: 'flex-start', gap: espace.m, padding: espace.m, borderRadius: rayon.phare - 2, borderWidth: 1 },
   icone: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
