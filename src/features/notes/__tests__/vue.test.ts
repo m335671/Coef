@@ -12,6 +12,10 @@ test('période par défaut : le trimestre en cours, sinon le dernier avec des no
   expect(periodeParDefaut(i.donnees, '2026-11-17')?.code).toBe('A001');
   expect(periodeParDefaut(i.donnees, '2027-08-01')?.code).toBe('A001');
   expect(periodeParDefaut({ ...i.donnees, notes: [] }, '2027-08-01')?.code).toBe('A001');
+  // Premier jour du 2e trimestre, encore sans note : le 1er reste affiché.
+  expect(periodeParDefaut(i.donnees, '2026-11-23')?.code).toBe('A001');
+  // Sans aucune note : le trimestre en cours.
+  expect(periodeParDefaut({ ...i.donnees, notes: [] }, '2026-11-23')?.code).toBe('A002');
 });
 
 test('vue du trimestre : calcul vérifié contre ED, nouvelles notes du dernier jour, écart depuis la synchro', () => {
