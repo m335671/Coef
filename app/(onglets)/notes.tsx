@@ -64,7 +64,7 @@ const PREF_ORDRE_FAMILLES = 'notes.ordre.familles';
 const PREF_TRI = 'notes.tri';
 const AUCUNE: NoteHypothetique[] = [];
 const AUCUNE_RETOUCHE: Retouche[] = [];
-const AUCUN_ID = new Set<string>();
+const AUCUNE_RETOUCHE_ID = new Map<string, Retouche>();
 const AUCUN_CODE: string[] = [];
 
 export default function Notes() {
@@ -361,7 +361,7 @@ export default function Notes() {
                   matieres={matieres}
                   tri={tri}
                   notes={instantaneVu!.donnees.notes}
-                  retouchees={simule ? new Set(retouchees.map((x) => x.noteId)) : AUCUN_ID}
+                  retouchees={simule ? new Map(retouchees.map((x) => [x.noteId, x])) : AUCUNE_RETOUCHE_ID}
                   etaitSimulee={etaitSimulee}
                   onMatiere={ouvrir}
                   onNote={ouvrirNote}
@@ -411,7 +411,7 @@ function ParNote({
   tri: Tri;
   notes: Note[];
   /** Vraies notes changées par la simulation : leur valeur s'affiche en orange, comme une note simulée. */
-  retouchees: Set<string>;
+  retouchees: Map<string, Retouche>;
   etaitSimulee: Map<string, NoteHypothetique>;
   onMatiere: (code: string) => void;
   onNote: (id: string) => void;
@@ -464,8 +464,8 @@ function ParNote({
                     </Texte>
                     <Texte variante="petit" attenue numberOfLines={1}>
                       {simulee ? 'Simulée, pas sur EcoleDirecte' : jour(n.date)} · coef {coef(n.coef)}
-                      {d.exclue ? ' · non comptée' : ''}
-                      {retouchees.has(n.id) ? ' · retouchée' : ''}
+                      {d.exclue && retouchees.get(n.id)?.compte !== false ? ' · non comptée' : ''}
+                      <Marques r={retouchees.get(n.id)} />
                       {etaitSimulee.has(n.id) ? ` · simulée ${coef(etaitSimulee.get(n.id)!.valeur)}/${etaitSimulee.get(n.id)!.noteSur}` : ''}
                     </Texte>
                   </View>
@@ -669,7 +669,7 @@ function NotesTriees({
   matieres: LigneMatiere[];
   tri: Exclude<Tri, 'matiere'>;
   notes: Note[];
-  retouchees: Set<string>;
+  retouchees: Map<string, Retouche>;
   onNote: (id: string) => void;
 }) {
   const c = useCouleurs();
@@ -711,8 +711,8 @@ function NotesTriees({
                 </Texte>
                 <Texte variante="petit" attenue numberOfLines={1}>
                   {nom} · {simulee ? 'simulée' : jour(n.date)} · coef {coef(n.coef)}
-                  {exclues.has(n.id) ? ' · non comptée' : ''}
-                  {retouchees.has(n.id) ? ' · retouchée' : ''}
+                  {exclues.has(n.id) && retouchees.get(n.id)?.compte !== false ? ' · non comptée' : ''}
+                  <Marques r={retouchees.get(n.id)} />
                 </Texte>
               </View>
               <Texte variante="liste" attenue={exclues.has(n.id)} style={[styles.note, simulee || retouchees.has(n.id) ? { color: c.negatif } : undefined]}>
@@ -1023,6 +1023,18 @@ function ComparaisonED({ visible, onFermer, vue }: { visible: boolean; onFermer:
         </Animated.ScrollView>
       </View>
     </Feuille>
+  );
+}
+
+/** Ce que la simulation a changé sur une vraie note, en orange : « retouchée », « non comptée ». */
+function Marques({ r }: { r?: Retouche }) {
+  const c = useCouleurs();
+  if (!r) return null;
+  return (
+    <Texte variante="petit" style={{ color: c.negatif }}>
+      {r.valeur !== undefined ? ' · retouchée' : ''}
+      {r.compte === false ? ' · non comptée' : ''}
+    </Texte>
   );
 }
 
