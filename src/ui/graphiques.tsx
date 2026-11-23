@@ -95,10 +95,13 @@ export function Anneau({
 
 /** Petite courbe de tendance (liste des matières) : pas d'axe, juste la forme, un point sur la dernière valeur. */
 export function MiniCourbe({ points, couleur, largeur = 64, hauteur = 18 }: { points: number[]; couleur: string; largeur?: number; hauteur?: number }) {
-  if (points.length < 2) return <View style={{ width: largeur, height: hauteur }} />;
-  const min = Math.min(...points);
-  const ecart = Math.max(Math.max(...points) - min, 1);
-  const xy = points.map((v, i) => [2 + (i / (points.length - 1)) * (largeur - 6), hauteur - 3 - ((v - min) / ecart) * (hauteur - 6)] as const);
+  if (points.length === 0) return <View style={{ width: largeur, height: hauteur }} />;
+  // Une seule note ou des moyennes stables : un trait droit à mi-hauteur plutôt que rien.
+  const pts = points.length === 1 ? [points[0]!, points[0]!] : points;
+  const min = Math.min(...pts);
+  const plat = Math.max(...pts) === min;
+  const ecart = Math.max(Math.max(...pts) - min, 1);
+  const xy = pts.map((v, i) => [2 + (i / (pts.length - 1)) * (largeur - 6), plat ? hauteur / 2 : hauteur - 3 - ((v - min) / ecart) * (hauteur - 6)] as const);
   const [fx, fy] = xy.at(-1)!;
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
