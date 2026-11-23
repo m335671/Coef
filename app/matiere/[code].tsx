@@ -1,12 +1,13 @@
 // Détail d'une matière. Sa question : « D'où vient cette moyenne ? » Chaque note, ce qu'elle pèse, et pourquoi
 // certaines ne comptent pas.
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import type { DetailNote, Exclusion, ResultatMatiere } from '@/domain/moyennes/moteur';
 import type { Note } from '@/domain/types';
 import { impactMatiere } from '@/domain/moyennes/impact';
+import { cleSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
 import { evolution, vueNotes } from '@/features/notes/vue';
 import { Bouton, Chiffre, ChiffreAnime, Courbe, Ecran, EnTete, Entree, Ligne, Panneau, Pastille, Section, Texte } from '@/ui/composants';
@@ -27,6 +28,9 @@ export default function DetailMatiere() {
   const instantane = useNotes((s) => s.eleves[eleve]?.instantane);
   const vue = instantane ? vueNotes(instantane, periode) : undefined;
   const m = vue?.matieres.find((x) => x.matiere.code === code);
+  const chargerSimulation = useSimulation((s) => s.charger);
+  useEffect(() => void chargerSimulation(), [chargerSimulation]);
+  const simulees = (useSimulation((s) => s.notes[cleSimulation(eleve, periode)]) ?? []).filter((h) => h.matiereCode === code);
 
   if (!instantane || !vue || !m) {
     return (
@@ -165,6 +169,36 @@ export default function DetailMatiere() {
         </Panneau>
       </Section>
 
+      {simulees.length > 0 ? (
+        <Section titre="Notes simulées" aide="Ajoutées dans Simulation, absentes d’EcoleDirecte : elles ne changent pas la moyenne prévue ci-dessus.">
+          <Panneau>
+            {simulees.map((h, i) => (
+              <Ligne
+                key={i}
+                dernier={i === simulees.length - 1}
+                onPress={() => router.push({ pathname: '/simulateur', params: { periode, eleve } })}
+                libelleAccessible={`${h.titre ?? 'Note sans titre'}, note simulée, ${moyenne(h.valeur)} sur ${h.noteSur}. Gérer dans Simulation`}>
+                <View style={[styles.lisere, { backgroundColor: c.negatif }]} />
+                <View style={{ flex: 1 }}>
+                  <Texte variante="liste" numberOfLines={2}>
+                    {h.titre ?? 'Note sans titre'}
+                  </Texte>
+                  <Texte variante="petit" attenue>
+                    Simulée · coef {coef(h.coef)}
+                  </Texte>
+                </View>
+                <Texte variante="liste" moyen style={[styles.chiffres, { color: c.negatif }]}>
+                  {coef(h.valeur)}
+                  <Texte variante="liste" attenue>
+                    /{h.noteSur}
+                  </Texte>
+                </Texte>
+              </Ligne>
+            ))}
+          </Panneau>
+        </Section>
+      ) : null}
+
       <Bouton
         variante="secondaire"
         titre={`Simuler des notes en ${m.matiere.libelle}`}
@@ -204,6 +238,7 @@ function LigneNote({ d, n, sous, dernier, onPress }: { d: DetailNote; n: Note; s
 }
 
 const styles = StyleSheet.create({
+  lisere: { width: 3, alignSelf: 'stretch', borderRadius: 2 },
   phare: { flexDirection: 'row', alignItems: 'baseline', gap: espace.xs },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
   valeur: { alignItems: 'flex-end' },
