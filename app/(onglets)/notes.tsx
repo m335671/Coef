@@ -6,11 +6,13 @@ import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTimin
 
 import { ErreurED } from '@/api/ecoledirecte/erreurs';
 import { MODE_DEMO } from '@/demo';
+import { AUJOURDHUI_DEMO } from '@/demo/vie';
 import { avecHypotheses, type NoteHypothetique, type Retouche } from '@/domain/moyennes/simulateur';
 import type { Note } from '@/domain/types';
 import type { Famille } from '@/ui/theme';
 import { useEleveActif, useEleves } from '@/features/compte/eleves';
 import { familleDe, NOM_FAMILLE, ORDRE_FAMILLES, useCouleurMatiere } from '@/features/notes/familles';
+import { usePeriode } from '@/features/notes/periode';
 import { ordonner, parDevoir, TRIS, type Tri, trierNotes } from '@/features/notes/ordre';
 import { cleSimulation, resumeSimulation, useSimulation } from '@/features/notes/simulation';
 import { useNotes } from '@/features/notes/store';
@@ -19,7 +21,6 @@ import {
   evolutionsMatieres,
   groupesPeriodes,
   type LigneMatiere,
-  periodeParDefaut,
   periodesAffichees,
   type VueNotes,
   vueNotes,
@@ -49,7 +50,7 @@ import {
   Squelette,
   Texte,
 } from '@/ui/composants';
-import { brute, coef, jour, moyenne } from '@/ui/format';
+import { brute, coef, iso, jour, moyenne } from '@/ui/format';
 import { Anneau, Echelle, Hachures, MiniCourbe } from '@/ui/graphiques';
 import Svg, { Path } from 'react-native-svg';
 
@@ -63,7 +64,7 @@ const PREF_ORDRE_FAMILLES = 'notes.ordre.familles';
 const PREF_TRI = 'notes.tri';
 const AUCUNE: NoteHypothetique[] = [];
 const AUCUNE_RETOUCHE: Retouche[] = [];
-const AUCUN_ID = new Set<string>();
+const AUCUNE_RETOUCHE_ID = new Map<string, Retouche>();
 const AUCUN_CODE: string[] = [];
 
 export default function Notes() {
@@ -73,7 +74,6 @@ export default function Notes() {
   const eleveId = eleve?.id ?? '';
   const etat = useNotes((s) => s.eleves[eleveId]);
   const charger = useNotes((s) => s.charger);
-  const [periodeChoisie, setPeriode] = useState<string>();
   const [affichage, setAffichage] = useState<Affichage>('liste');
 
   useEffect(() => {
@@ -110,7 +110,7 @@ export default function Notes() {
 
   const instantane = etat?.instantane;
   const periodes = instantane ? periodesAffichees(instantane.donnees) : [];
-  const periode = periodeChoisie ?? (instantane && periodeParDefaut(instantane.donnees, new Date().toISOString().slice(0, 10))?.code);
+  const [periode, setPeriode] = usePeriode(eleveId, instantane?.donnees, MODE_DEMO ? AUJOURDHUI_DEMO : iso(new Date()));
   const simulation = useSimulation();
   useEffect(() => void simulation.charger(), [simulation.charger]); // eslint-disable-line react-hooks/exhaustive-deps
   const simulees = (periode && simulation.notes[cleSimulation(eleveId, periode)]) || AUCUNE;
@@ -361,7 +361,7 @@ export default function Notes() {
                   matieres={matieres}
                   tri={tri}
                   notes={instantaneVu!.donnees.notes}
-                  retouchees={simule ? new Set(retouchees.map((x) => x.noteId)) : AUCUN_ID}
+                  retouchees={simule ? new Map(retouchees.map((x) => [x.noteId, x])) : AUCUNE_RETOUCHE_ID}
                   etaitSimulee={etaitSimulee}
                   onMatiere={ouvrir}
                   onNote={ouvrirNote}
@@ -411,7 +411,7 @@ function ParNote({
   tri: Tri;
   notes: Note[];
   /** Vraies notes changées par la simulation : leur valeur s'affiche en orange, comme une note simulée. */
-  retouchees: Set<string>;
+  retouchees: Map<string, Retouche>;
   etaitSimulee: Map<string, NoteHypothetique>;
   onMatiere: (code: string) => void;
   onNote: (id: string) => void;
@@ -455,17 +455,17 @@ function ParNote({
                       borderBottomColor: c.filet,
                       borderBottomWidth: j === lignes.length - 1 ? 0 : StyleSheet.hairlineWidth,
                     },
-                    simulee ? { ...styles.simulee, borderColor: c.negatif } : {},
+                    simulee ? { ...styles.simulee, borderColor: c.negatif, borderBottomColor: c.negatif } : {},
                   ]}>
                   {simulee ? <Hachures /> : null}
                   <View style={{ flex: 1 }}>
                     <Texte variante="liste" numberOfLines={1} style={simulee ? { color: c.negatif } : undefined}>
-                      {simulee ? 'Note simulée' : n.devoir || 'Devoir'}
+                      {n.devoir || 'Devoir'}
                     </Texte>
                     <Texte variante="petit" attenue numberOfLines={1}>
-                      {jour(n.date)} · coef {coef(n.coef)}
-                      {d.exclue ? ' · non comptée' : ''}
-                      {retouchees.has(n.id) ? ' · retouchée' : ''}
+                      {simulee ? 'Simulée, pas sur EcoleDirecte' : jour(n.date)} · coef {coef(n.coef)}
+                      {d.exclue && retouchees.get(n.id)?.compte !== false ? ' · non comptée' : ''}
+                      <Marques r={retouchees.get(n.id)} />
                       {etaitSimulee.has(n.id) ? ` · simulée ${coef(etaitSimulee.get(n.id)!.valeur)}/${etaitSimulee.get(n.id)!.noteSur}` : ''}
                     </Texte>
                   </View>
@@ -669,7 +669,7 @@ function NotesTriees({
   matieres: LigneMatiere[];
   tri: Exclude<Tri, 'matiere'>;
   notes: Note[];
-  retouchees: Set<string>;
+  retouchees: Map<string, Retouche>;
   onNote: (id: string) => void;
 }) {
   const c = useCouleurs();
@@ -702,17 +702,17 @@ function NotesTriees({
           <View key={n.id}>
             <Presse
               onPress={simulee ? undefined : () => onNote(n.id)}
-              libelleAccessible={`${nom}, ${n.devoir || 'devoir'}, ${brute(n.valeurBrute)} sur ${n.noteSur}`}
+              libelleAccessible={`${nom}, ${n.devoir || 'devoir'}${simulee ? ', note simulée' : ''}, ${brute(n.valeurBrute)} sur ${n.noteSur}`}
               style={[styles.ligneNote, { borderBottomColor: c.filet, borderBottomWidth: j === liste.length - 1 ? 0 : StyleSheet.hairlineWidth }]}>
               <View style={[styles.bande, { backgroundColor: couleurMatiere(n.matiereCode, nom).trait }]} />
               <View style={{ flex: 1 }}>
                 <Texte variante="liste" numberOfLines={1} style={simulee ? { color: c.negatif } : undefined}>
-                  {simulee ? 'Note simulée' : n.devoir || 'Devoir'}
+                  {n.devoir || 'Devoir'}
                 </Texte>
                 <Texte variante="petit" attenue numberOfLines={1}>
-                  {nom} · {jour(n.date)} · coef {coef(n.coef)}
-                  {exclues.has(n.id) ? ' · non comptée' : ''}
-                  {retouchees.has(n.id) ? ' · retouchée' : ''}
+                  {nom} · {simulee ? 'simulée' : jour(n.date)} · coef {coef(n.coef)}
+                  {exclues.has(n.id) && retouchees.get(n.id)?.compte !== false ? ' · non comptée' : ''}
+                  <Marques r={retouchees.get(n.id)} />
                 </Texte>
               </View>
               <Texte variante="liste" attenue={exclues.has(n.id)} style={[styles.note, simulee || retouchees.has(n.id) ? { color: c.negatif } : undefined]}>
@@ -1026,13 +1026,26 @@ function ComparaisonED({ visible, onFermer, vue }: { visible: boolean; onFermer:
   );
 }
 
+/** Ce que la simulation a changé sur une vraie note, en orange : « retouchée », « non comptée ». */
+function Marques({ r }: { r?: Retouche }) {
+  const c = useCouleurs();
+  if (!r) return null;
+  return (
+    <Texte variante="petit" style={{ color: c.negatif }}>
+      {r.valeur !== undefined ? ' · retouchée' : ''}
+      {r.compte === false ? ' · non comptée' : ''}
+    </Texte>
+  );
+}
+
 const styles = StyleSheet.create({
   simuler: { minHeight: 44, borderRadius: 22, paddingHorizontal: espace.m, flexDirection: 'row', alignItems: 'center', gap: 6 },
   optionTri: { minHeight: 52, borderRadius: 14, paddingHorizontal: espace.m, justifyContent: 'center' },
   ligneTenue: { borderBottomWidth: StyleSheet.hairlineWidth, borderRadius: 12, paddingRight: 0 },
   ligneED: { flexDirection: 'row', alignItems: 'center', gap: espace.s, minHeight: 52, paddingVertical: espace.s },
   bande: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
-  simulee: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 12, paddingHorizontal: espace.s, marginVertical: 2, overflow: 'hidden' },
+  // Encadré du simulé : décalé vers l'extérieur de sa marge intérieure, le texte reste aligné sur les autres lignes.
+  simulee: { borderWidth: 1.5, borderBottomWidth: 1.5, borderRadius: 12, paddingHorizontal: espace.s, marginHorizontal: -espace.s, marginVertical: espace.s, overflow: 'hidden' },
   rangee: { flexDirection: 'row', alignItems: 'center', gap: espace.s },
   pointObjectif: { width: 8, height: 8, borderRadius: 4 },
   echantillonPlage: { width: 22, height: 10, borderRadius: 5, borderWidth: 2, borderStyle: 'dashed' },

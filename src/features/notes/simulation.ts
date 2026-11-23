@@ -1,5 +1,5 @@
-// Notes simulées, partagées entre l'écran Simulation et l'écran Notes. Gardées en mémoire tant que l'app
-// tourne ; « Enregistrer » les range dans la base chiffrée (préférences) pour les retrouver au prochain lancement.
+// Notes simulées, partagées entre l'écran Simulation et l'écran Notes. Chaque changement est rangé tout seul
+// (un court instant après, pour ne pas écrire à chaque cran d'un curseur) dans la base chiffrée (préférences).
 // Une vraie note qui arrive remplace la simulée de sa matière (remplacement.ts), en mémoire comme en base.
 import { create } from 'zustand';
 
@@ -29,8 +29,6 @@ type Enregistre = {
 };
 
 type EtatSimulation = Enregistre & {
-  /** Différent de ce qui est enregistré dans la base. */
-  modifie: boolean;
   charge: boolean;
   charger: () => Promise<void>;
   definir: (cle: string, notes: NoteHypothetique[]) => void;
@@ -40,6 +38,8 @@ type EtatSimulation = Enregistre & {
   viser: (objectif: number) => void;
   afficherObjectif: (v: boolean) => void;
   afficherExtremes: (v: boolean) => void;
+  /** Retire notes ajoutées, retouches et matières exclues d'une simulation ; l'objectif reste. */
+  toutRetirer: (cle: string) => void;
   enregistrer: () => Promise<void>;
   /** Nouvelles notes d'une synchro au premier plan : remplace les simulées correspondantes. */
   integrer: (eleveId: string, nouvelles: Note[], d: DonneesNotes) => Promise<Remplacement[]>;
@@ -63,10 +63,18 @@ export async function remplacerEnBase(eleveId: string, nouvelles: Note[], d: Don
   return r.nouveaux;
 }
 
-export const useSimulation = create<EtatSimulation>((set, get) => ({
+let minuteur: ReturnType<typeof setTimeout> | undefined;
+
+export const useSimulation = create<EtatSimulation>((set, get) => {
+  /** Applique un changement et l'enregistre peu après. */
+  const changer = (x: Partial<Enregistre> | ((s: EtatSimulation) => Partial<Enregistre>)) => {
+    set(x);
+    clearTimeout(minuteur);
+    minuteur = setTimeout(() => void get().enregistrer(), 400);
+  };
+  return {
   active: true,
   notes: {},
-  modifie: false,
   charge: false,
   async charger() {
     if (get().charge || MODE_DEMO) return set({ charge: true });
@@ -82,13 +90,15 @@ export const useSimulation = create<EtatSimulation>((set, get) => ({
     )
       set({ ...e });
   },
-  definir: (cle, notes) => set((s) => ({ notes: { ...s.notes, [cle]: notes }, modifie: true })),
-  retoucher: (cle, retouches) => set((s) => ({ retouches: { ...s.retouches, [cle]: retouches }, modifie: true })),
-  ignorerMatieres: (cle, codes) => set((s) => ({ matieresIgnorees: { ...s.matieresIgnorees, [cle]: codes }, modifie: true })),
-  activer: (active) => set({ active, modifie: true }),
-  viser: (objectif) => set({ objectif, modifie: true }),
-  afficherObjectif: (objectifAffiche) => set({ objectifAffiche, modifie: true }),
-  afficherExtremes: (extremesAffiches) => set({ extremesAffiches, modifie: true }),
+  definir: (cle, notes) => changer((s) => ({ notes: { ...s.notes, [cle]: notes } })),
+  retoucher: (cle, retouches) => changer((s) => ({ retouches: { ...s.retouches, [cle]: retouches } })),
+  ignorerMatieres: (cle, codes) => changer((s) => ({ matieresIgnorees: { ...s.matieresIgnorees, [cle]: codes } })),
+  toutRetirer: (cle) =>
+    changer((s) => ({ notes: { ...s.notes, [cle]: [] }, retouches: { ...s.retouches, [cle]: [] }, matieresIgnorees: { ...s.matieresIgnorees, [cle]: [] } })),
+  activer: (active) => changer({ active }),
+  viser: (objectif) => changer({ objectif }),
+  afficherObjectif: (objectifAffiche) => changer({ objectifAffiche }),
+  afficherExtremes: (extremesAffiches) => changer({ extremesAffiches }),
   async enregistrer() {
     const { active, notes, retouches, matieresIgnorees, objectif, objectifAffiche, extremesAffiches, remplacees } = get();
     if (!MODE_DEMO)
@@ -102,7 +112,6 @@ export const useSimulation = create<EtatSimulation>((set, get) => ({
         extremesAffiches,
         remplacees,
       } satisfies Enregistre);
-    set({ modifie: false });
   },
   async integrer(eleveId, nouvelles, d) {
     if (nouvelles.length === 0) return [];
@@ -125,7 +134,8 @@ export const useSimulation = create<EtatSimulation>((set, get) => ({
     }
     set({ notes, remplacees: [...manquants, ...connus] });
   },
-}));
+  };
+});
 
 /** « 2 notes simulées », « 1 note simulée, 1 retouchée », « 1 matière retirée »… ; rien → chaîne vide. */
 export function resumeSimulation(ajoutees: number, retouchees: number, matieres: number): string {

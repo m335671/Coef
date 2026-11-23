@@ -64,7 +64,6 @@ export default function Reglages() {
       objectifAffiche: undefined,
       remplacees: undefined,
       active: true,
-      modifie: false,
       charge: false,
     });
     router.replace('/connexion');

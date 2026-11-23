@@ -51,6 +51,17 @@ test('fuites vues à l’essai réel : UAI, badge de cantine, foStat, appréciat
   expect(a).toMatchObject({ modules: [{ code: 'CANTINE_BARCODE', badge: 0 }], moyenne: '12,75', dateDebut: '2026-09-02' });
 });
 
+test('documents : titres masqués (une retenue peut nommer un professeur), bulletins gardés', () => {
+  const a = anonymiser({
+    notes: [{ libelle: 'Bulletin 1er Trimestre', type: 'Note' }],
+    viescolaire: [{ libelle: 'DUPONT - Retenue 26-02-26', type: 'VS' }],
+    administratifs: [{ libelle: 'Certificat de scolarité' }],
+  });
+  const texte = JSON.stringify(a);
+  for (const s of ['DUPONT', 'Certificat']) expect(texte).not.toContain(s);
+  expect(a).toMatchObject({ notes: [{ libelle: 'Bulletin 1er Trimestre' }] });
+});
+
 test('export : JSON complet, chemins et en-têtes sans valeur ; erreurs avec clés masquées', () => {
   capturer('/eleves/42/notes.awp', 200, new Headers({ 'x-token': 'secret' }), { data: { notes: [{ valeur: '12' }] } });
   const message = capturerErreur('notes', new Error(`file is not a database (clé ${'ab'.repeat(32)})`));

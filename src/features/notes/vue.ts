@@ -13,9 +13,11 @@ export function periodesAffichees(d: DonneesNotes): Periode[] {
 /** Le trimestre en cours ; à défaut le dernier qui a des notes ; à défaut le premier. */
 export function periodeParDefaut(d: DonneesNotes, aujourdhui: string): Periode | undefined {
   const ps = periodesAffichees(d);
+  const aDesNotes = (p: Periode) => notesDeLaPeriode(p, d.notes, d.periodes).length > 0;
   const enCours = ps.find((p) => p.type === 'trimestre' && p.debut <= aujourdhui && aujourdhui <= p.fin);
-  const avecNotes = [...ps].reverse().find((p) => p.type === 'trimestre' && notesDeLaPeriode(p, d.notes, d.periodes).length > 0);
-  return enCours ?? avecNotes ?? ps[0];
+  // Un trimestre qui vient de commencer, encore sans note, laisse la place au précédent.
+  const avecNotes = [...ps].reverse().find((p) => p.type === 'trimestre' && p.debut <= aujourdhui && aDesNotes(p));
+  return (enCours && aDesNotes(enCours) ? enCours : undefined) ?? avecNotes ?? enCours ?? ps[0];
 }
 
 export type LigneMatiere = { matiere: ResultatMatiere; sur20: number[] };

@@ -52,7 +52,7 @@ export type Levier = {
   moyenne?: number;
   /** Ce que gagne la générale quand la moyenne de la matière gagne un point. */
   parPoint: number;
-  /** Note (sur 20, coef 1) qui suffirait seule à atteindre l'objectif ; undefined : impossible avec une note. */
+  /** Note (barème et poids du modèle, sur 20 ×1 par défaut) qui suffirait seule ; undefined : impossible avec une note. */
   noteSeule?: number;
   /** Moyenne qu'il faudrait dans cette matière seule (les autres inchangées) ; au-delà de 20 : hors d'atteinte. */
   moyenneVisee?: number;
@@ -62,7 +62,14 @@ export type Levier = {
  * Pour une moyenne générale visée : chaque matière, ce qu'un point y rapporte et la note qui suffirait seule.
  * Triées de la plus accessible à la moins accessible ; les impossibles à la fin, par poids décroissant.
  */
-export function leviers(p: Periode, notes: Note[], periodes: Periode[], objectif: number, options?: Options): Levier[] {
+export function leviers(
+  p: Periode,
+  notes: Note[],
+  periodes: Periode[],
+  objectif: number,
+  options?: Options,
+  modele: { noteSur: number; coef: number; nombre?: number } = { noteSur: 20, coef: 1 },
+): Levier[] {
   const r = calculer(p, notes, periodes, options);
   const ponderer = options?.parametrage?.moyenneCoefMatiere ?? true;
   const actives = r.matieres.filter((m) => m.moyenne !== undefined);
@@ -77,7 +84,7 @@ export function leviers(p: Periode, notes: Note[], periodes: Periode[], objectif
       parPoint: total > 0 && m.moyenne !== undefined ? (ponderer ? m.coef : 1) / total : 0,
       moyenneVisee:
         m.moyenne !== undefined && r.generale !== undefined && total > 0 ? m.moyenne + (objectif - r.generale) / ((ponderer ? m.coef : 1) / total) : undefined,
-      noteSeule: noteNecessaire(p, notes, periodes, { matiereCode: m.code, noteSur: 20, coef: 1 }, { portee: 'generale' }, objectif, options),
+      noteSeule: noteNecessaire(p, notes, periodes, { matiereCode: m.code, noteSur: modele.noteSur, coef: modele.coef }, { portee: 'generale' }, objectif, options, modele.nombre),
     }));
   // Ordre : d'abord ce qu'une seule note règle (la plus basse en tête), puis ce qu'une moyenne de matière
   // atteignable règle (le plus petit effort en tête), puis le reste, les matières les plus lourdes d'abord.
